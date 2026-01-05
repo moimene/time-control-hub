@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.qtsp-export-package]
 verify_jwt = false
+
+[functions.setup-test-data]
+verify_jwt = false
