@@ -1,1 +1,4 @@
 project_id = "rsbwqgzespcltmufkhdx"
+
+[functions.kiosk-clock]
+verify_jwt = false

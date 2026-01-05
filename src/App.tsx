@@ -19,6 +19,7 @@ import EmployeeDashboard from "./pages/employee/Dashboard";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
+import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,9 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
       <Route path="/auth" element={<Auth />} />
+      
+      {/* Kiosk route - no auth required */}
+      <Route path="/kiosk" element={<KioskHome />} />
       
       {/* Admin routes */}
       <Route path="/admin" element={
