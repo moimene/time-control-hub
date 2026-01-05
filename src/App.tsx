@@ -39,7 +39,8 @@ function AppRoutes() {
     if (!user) return "/auth";
     if (isAdmin || isResponsible) return "/admin";
     if (isEmployee) return "/employee";
-    return "/admin"; // Default for new users
+    // Users without roles go to auth to prevent redirect loop
+    return "/auth";
   };
 
   return (

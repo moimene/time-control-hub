@@ -28,7 +28,8 @@ export function ProtectedRoute({
   }
 
   if (requiredRoles.length > 0 && !requiredRoles.some(role => roles.includes(role))) {
-    return <Navigate to="/" replace />;
+    // Redirect to auth if user doesn't have required roles, not to "/" which could cause a loop
+    return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
