@@ -2,11 +2,25 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Delete, KeyRound, User, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeft, Delete, KeyRound, User, LogIn, LogOut, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const OVERRIDE_REASONS = [
+  { value: 'forgot_mark', label: 'Olvidé marcar' },
+  { value: 'system_unavailable', label: 'No estaba disponible el sistema' },
+  { value: 'error_correction', label: 'Corrección de error' },
+  { value: 'other', label: 'Otro motivo' },
+];
 
 interface KioskPinPadProps {
-  onSubmit: (employeeCode: string, pin: string) => void;
+  onSubmit: (employeeCode: string, pin: string, overrideData?: { eventType: 'entry' | 'exit'; reason: string }) => void;
   onCancel: () => void;
   onValidateCode?: (employeeCode: string) => Promise<{ valid: boolean; name?: string }>;
   isLoading: boolean;
@@ -27,6 +41,9 @@ export function KioskPinPad({
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [pin, setPin] = useState('');
   const [step, setStep] = useState<'code' | 'pin'>('code');
+  const [isOverriding, setIsOverriding] = useState(false);
+  const [overrideEventType, setOverrideEventType] = useState<'entry' | 'exit'>('entry');
+  const [overrideReason, setOverrideReason] = useState<string>('');
 
   const handleNumberClick = (num: string) => {
     if (step === 'code') {
@@ -70,9 +87,27 @@ export function KioskPinPad({
       }
     } else if (step === 'pin' && pin.length >= 4) {
       const fullEmployeeCode = 'EMP' + employeeNumber.padStart(3, '0');
-      onSubmit(fullEmployeeCode, pin);
+      if (isOverriding && overrideReason) {
+        onSubmit(fullEmployeeCode, pin, { eventType: overrideEventType, reason: overrideReason });
+      } else {
+        onSubmit(fullEmployeeCode, pin);
+      }
     }
   };
+
+  const handleToggleOverride = () => {
+    if (!isOverriding) {
+      // Starting override - set opposite of suggested
+      setOverrideEventType(nextEventType === 'entry' ? 'exit' : 'entry');
+      setIsOverriding(true);
+    } else {
+      // Canceling override
+      setIsOverriding(false);
+      setOverrideReason('');
+    }
+  };
+
+  const currentEventType = isOverriding ? overrideEventType : nextEventType;
 
   const handleBack = () => {
     if (step === 'pin') {
@@ -145,23 +180,55 @@ export function KioskPinPad({
               ? 'Teclea tu número (ej: 1, 2, 3...)' 
               : 'Introduce tu PIN de 4 dígitos'}
           </p>
-          {!isCodeStep && nextEventType && (
-            <div className={cn(
-              "mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
-              nextEventType === 'entry' 
-                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
-            )}>
-              {nextEventType === 'entry' ? (
-                <>
-                  <LogIn className="h-4 w-4" />
-                  Vas a fichar ENTRADA
-                </>
-              ) : (
-                <>
-                  <LogOut className="h-4 w-4" />
-                  Vas a fichar SALIDA
-                </>
+          {!isCodeStep && currentEventType && (
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <div className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
+                currentEventType === 'entry' 
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                  : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+              )}>
+                {currentEventType === 'entry' ? (
+                  <>
+                    <LogIn className="h-4 w-4" />
+                    Vas a fichar ENTRADA
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Vas a fichar SALIDA
+                  </>
+                )}
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={handleToggleOverride}
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                {isOverriding ? 'Cancelar cambio' : 'Cambiar tipo de fichaje'}
+              </Button>
+
+              {isOverriding && (
+                <div className="w-full max-w-xs space-y-2">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Selecciona el motivo del cambio:
+                  </p>
+                  <Select value={overrideReason} onValueChange={setOverrideReason}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un motivo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OVERRIDE_REASONS.map((reason) => (
+                        <SelectItem key={reason.value} value={reason.value}>
+                          {reason.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
           )}
@@ -230,11 +297,11 @@ export function KioskPinPad({
           <Button
             className={cn("w-full h-14 text-lg text-white transition-colors", submitButtonBg)}
             onClick={handleNext}
-            disabled={isLoading || isValidating || currentValue.length < minLength}
+            disabled={isLoading || isValidating || currentValue.length < minLength || (isOverriding && !overrideReason)}
           >
             {isLoading || isValidating 
               ? 'Procesando...' 
-              : isCodeStep ? 'Siguiente' : 'Fichar'}
+              : isCodeStep ? 'Siguiente' : (isOverriding ? `Fichar ${currentEventType === 'entry' ? 'ENTRADA' : 'SALIDA'}` : 'Fichar')}
           </Button>
         </CardContent>
       </Card>
