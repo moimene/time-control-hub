@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
@@ -22,6 +22,13 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+
+interface LatencyDataPoint {
+  time: string;
+  latency: number;
+  status: 'healthy' | 'degraded' | 'unhealthy';
+}
 
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -46,6 +53,21 @@ interface CompanyQTSPStatus {
 export default function QTSPMonitor() {
   const [lastHealthStatus, setLastHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [latencyHistory, setLatencyHistory] = useState<LatencyDataPoint[]>([]);
+
+  // Update latency history when health check completes
+  const updateLatencyHistory = useCallback((data: HealthCheckResult) => {
+    setLatencyHistory(prev => {
+      const newPoint: LatencyDataPoint = {
+        time: format(new Date(), 'HH:mm:ss'),
+        latency: data.latency_ms,
+        status: data.status,
+      };
+      const updated = [...prev, newPoint];
+      // Keep last 30 data points (15 minutes of data at 30s intervals)
+      return updated.slice(-30);
+    });
+  }, []);
 
   // Global health check - auto-refresh every 30 seconds
   const { data: healthStatus, isLoading: loadingHealth, refetch: refetchHealth } = useQuery({
@@ -93,6 +115,13 @@ export default function QTSPMonitor() {
 
     setLastHealthStatus(healthStatus.status);
   }, [healthStatus, lastHealthStatus, notificationsEnabled]);
+
+  // Update latency history when health check completes
+  useEffect(() => {
+    if (healthStatus) {
+      updateLatencyHistory(healthStatus);
+    }
+  }, [healthStatus, updateLatencyHistory]);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -274,6 +303,83 @@ export default function QTSPMonitor() {
                     Latencia: <strong>{healthStatus?.latency_ms || '-'}ms</strong>
                   </span>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Latency History Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Historial de Latencia
+            </CardTitle>
+            <CardDescription>
+              Últimos 15 minutos de latencia de la API (muestreo cada 30s)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {latencyHistory.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={latencyHistory}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis 
+                    dataKey="time" 
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }}
+                    domain={[0, 'auto']}
+                    label={{ value: 'ms', angle: -90, position: 'insideLeft', fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: number) => [`${value}ms`, 'Latencia']}
+                  />
+                  <ReferenceLine y={500} stroke="hsl(var(--destructive))" strokeDasharray="5 5" label="Límite" />
+                  <ReferenceLine y={200} stroke="hsl(38 92% 50%)" strokeDasharray="5 5" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="latency" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={(props: any) => {
+                      const { cx, cy, payload } = props;
+                      const color = payload.status === 'healthy' ? 'hsl(142 76% 36%)' : 
+                                    payload.status === 'degraded' ? 'hsl(38 92% 50%)' : 
+                                    'hsl(var(--destructive))';
+                      return <circle key={`dot-${payload.time}`} cx={cx} cy={cy} r={4} fill={color} />;
+                    }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                Recopilando datos de latencia...
+              </div>
+            )}
+            <div className="flex gap-4 mt-4 text-xs text-muted-foreground justify-center">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span>Saludable (&lt;200ms)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <span>Degradado (200-500ms)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--destructive))' }} />
+                <span>Crítico (&gt;500ms)</span>
               </div>
             </div>
           </CardContent>
