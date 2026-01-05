@@ -13,7 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CalendarIcon, Download, FileText } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Clock, Users, TrendingUp } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -109,7 +117,7 @@ export default function Reports() {
     a.click();
   };
 
-  const calculateHours = (dayRecords: any[]) => {
+  const calculateHours = (dayRecords: any[]): number => {
     let totalMinutes = 0;
     const entries = dayRecords.filter((r) => r.event_type === 'entry').sort((a, b) => 
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -124,10 +132,36 @@ export default function Reports() {
       totalMinutes += (exit.getTime() - entry.getTime()) / 1000 / 60;
     }
 
+    return totalMinutes;
+  };
+
+  const formatMinutes = (totalMinutes: number): string => {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = Math.round(totalMinutes % 60);
     return `${hours}h ${minutes}m`;
   };
+
+  // Calculate summary per employee
+  const employeeSummary = groupedRecords ? Object.entries(groupedRecords).map(([employeeId, data]: [string, any]) => {
+    let totalMinutes = 0;
+    let totalDays = 0;
+    
+    Object.values(data.dates).forEach((dayRecords: any) => {
+      const minutes = calculateHours(dayRecords);
+      if (minutes > 0) {
+        totalMinutes += minutes;
+        totalDays++;
+      }
+    });
+
+    return {
+      employeeId,
+      employee: data.employee,
+      totalMinutes,
+      totalDays,
+      avgMinutesPerDay: totalDays > 0 ? totalMinutes / totalDays : 0,
+    };
+  }).sort((a, b) => b.totalMinutes - a.totalMinutes) : [];
 
   return (
     <AppLayout>
@@ -177,13 +211,103 @@ export default function Reports() {
           </Select>
         </div>
 
-        {/* Report content */}
+        {/* Summary Cards */}
+        {!isLoading && employeeSummary.length > 0 && (
+          <>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Horas Mes</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatMinutes(employeeSummary.reduce((acc, e) => acc + e.totalMinutes, 0))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {format(month, 'MMMM yyyy', { locale: es })}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Empleados Activos</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{employeeSummary.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    con fichajes este mes
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Media Diaria</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatMinutes(
+                      employeeSummary.reduce((acc, e) => acc + e.avgMinutesPerDay, 0) / 
+                      (employeeSummary.length || 1)
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    por empleado/día
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Summary Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumen por Empleado</CardTitle>
+                <CardDescription>Horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Empleado</TableHead>
+                      <TableHead className="text-right">Días</TableHead>
+                      <TableHead className="text-right">Total Horas</TableHead>
+                      <TableHead className="text-right">Media/Día</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {employeeSummary.map((summary) => (
+                      <TableRow key={summary.employeeId}>
+                        <TableCell className="font-mono">{summary.employee?.employee_code}</TableCell>
+                        <TableCell>
+                          {summary.employee?.first_name} {summary.employee?.last_name}
+                        </TableCell>
+                        <TableCell className="text-right">{summary.totalDays}</TableCell>
+                        <TableCell className="text-right font-mono font-medium">
+                          {formatMinutes(summary.totalMinutes)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-muted-foreground">
+                          {formatMinutes(summary.avgMinutesPerDay)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Detailed Report */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         ) : groupedRecords && Object.keys(groupedRecords).length > 0 ? (
           <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Detalle por Día</h2>
             {Object.entries(groupedRecords).map(([employeeId, data]: [string, any]) => (
               <Card key={employeeId}>
                 <CardHeader>
@@ -218,7 +342,7 @@ export default function Reports() {
                           </div>
                           <div className="text-right">
                             <p className="font-mono font-medium">
-                              {calculateHours(dayRecords)}
+                              {formatMinutes(calculateHours(dayRecords))}
                             </p>
                           </div>
                         </div>
