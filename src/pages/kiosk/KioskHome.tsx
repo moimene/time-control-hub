@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, QrCode, KeyRound, LogIn, LogOut } from 'lucide-react';
+import { Clock, QrCode, KeyRound } from 'lucide-react';
 import { KioskPinPad } from '@/components/kiosk/KioskPinPad';
 import { KioskQrScanner } from '@/components/kiosk/KioskQrScanner';
 import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
@@ -30,6 +29,8 @@ export default function KioskHome() {
   const [mode, setMode] = useState<KioskMode>('home');
   const [clockResult, setClockResult] = useState<ClockResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [employeeName, setEmployeeName] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -38,6 +39,40 @@ export default function KioskHome() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Validate employee code and get name
+  const handleValidateCode = async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
+    setIsValidating(true);
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('first_name, last_name')
+        .eq('employee_code', employeeCode)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast({
+          variant: 'destructive',
+          title: 'Empleado no encontrado',
+          description: 'Verifica tu número de empleado',
+        });
+        return { valid: false };
+      }
+
+      const fullName = data.first_name;
+      setEmployeeName(fullName);
+      return { valid: true, name: fullName };
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Error de conexión',
+      });
+      return { valid: false };
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   const handlePinSubmit = async (employeeCode: string, pin: string) => {
     setIsLoading(true);
@@ -108,6 +143,12 @@ export default function KioskHome() {
 
   const handleSuccessClose = () => {
     setClockResult(null);
+    setEmployeeName('');
+    setMode('home');
+  };
+
+  const handlePinCancel = () => {
+    setEmployeeName('');
     setMode('home');
   };
 
@@ -115,8 +156,11 @@ export default function KioskHome() {
     return (
       <KioskPinPad
         onSubmit={handlePinSubmit}
-        onCancel={() => setMode('home')}
+        onCancel={handlePinCancel}
+        onValidateCode={handleValidateCode}
         isLoading={isLoading}
+        isValidating={isValidating}
+        employeeName={employeeName}
       />
     );
   }
