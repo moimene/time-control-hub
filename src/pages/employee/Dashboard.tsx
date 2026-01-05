@@ -2,12 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock } from 'lucide-react';
+import { Clock, Download, FileText } from 'lucide-react';
 import type { EventType, EventSource } from '@/types/database';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -50,14 +53,164 @@ export default function EmployeeDashboard() {
     return acc;
   }, {});
 
+  // Calculate hours for a day
+  const calculateHours = (dayRecords: any[]): number => {
+    let totalMinutes = 0;
+    const entries = dayRecords.filter((r) => r.event_type === 'entry').sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    const exits = dayRecords.filter((r) => r.event_type === 'exit').sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    for (let i = 0; i < Math.min(entries.length, exits.length); i++) {
+      const entry = new Date(entries[i].timestamp);
+      const exit = new Date(exits[i].timestamp);
+      totalMinutes += (exit.getTime() - entry.getTime()) / 1000 / 60;
+    }
+
+    return totalMinutes;
+  };
+
+  const formatMinutes = (totalMinutes: number): string => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+    return `${hours}h ${minutes}m`;
+  };
+
+  // Log export to audit_log
+  const logExport = async (exportFormat: 'csv' | 'pdf') => {
+    try {
+      await supabase.functions.invoke('log-export', {
+        body: {
+          format: exportFormat,
+          entity_type: 'time_events',
+          date_range: {
+            start: startOfMonth(today).toISOString(),
+            end: endOfMonth(today).toISOString(),
+          },
+          employee_id: employee?.id,
+          record_count: recentEvents?.length || 0,
+          filters: {
+            month: format(today, 'yyyy-MM'),
+            self_export: true,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error logging export:', error);
+    }
+  };
+
+  const exportCSV = async () => {
+    if (!recentEvents) return;
+
+    const headers = ['Fecha', 'Tipo', 'Hora', 'Origen'];
+    const rows = recentEvents
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .map((event: any) => [
+        format(new Date(event.timestamp), 'dd/MM/yyyy'),
+        eventTypeLabels[event.event_type as EventType],
+        format(new Date(event.timestamp), 'HH:mm:ss'),
+        eventSourceLabels[event.event_source as EventSource],
+      ]);
+
+    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mis_fichajes_${format(today, 'yyyy-MM')}.csv`;
+    a.click();
+
+    await logExport('csv');
+    toast.success('Fichajes exportados a CSV');
+  };
+
+  const exportPDF = async () => {
+    if (!recentEvents) return;
+
+    const doc = new jsPDF();
+    const monthStr = format(today, 'MMMM yyyy', { locale: es });
+    const now = new Date();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.text('Mis Fichajes', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Período: ${monthStr}`, 14, 30);
+    doc.setFontSize(10);
+    doc.text(`Generado: ${format(now, 'dd/MM/yyyy HH:mm:ss')}`, 14, 38);
+    
+    // Calculate total hours
+    let totalMinutes = 0;
+    if (groupedEvents) {
+      Object.values(groupedEvents).forEach((dayRecords: any) => {
+        totalMinutes += calculateHours(dayRecords);
+      });
+    }
+    
+    doc.text(`Total horas del mes: ${formatMinutes(totalMinutes)}`, 14, 46);
+
+    // Events table
+    const sortedEvents = [...recentEvents].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    autoTable(doc, {
+      startY: 55,
+      head: [['Fecha', 'Tipo', 'Hora', 'Origen']],
+      body: sortedEvents.map((event: any) => [
+        format(new Date(event.timestamp), 'dd/MM/yyyy'),
+        eventTypeLabels[event.event_type as EventType],
+        format(new Date(event.timestamp), 'HH:mm:ss'),
+        eventSourceLabels[event.event_source as EventSource],
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text(
+        `Documento generado automáticamente. Conservar durante 4 años según normativa laboral. Página ${i} de ${pageCount}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+
+    doc.save(`mis_fichajes_${format(today, 'yyyy-MM')}.pdf`);
+
+    await logExport('pdf');
+    toast.success('Fichajes exportados a PDF');
+  };
+
   return (
     <EmployeeLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mis Fichajes</h1>
-          <p className="text-muted-foreground">
-            {format(today, 'MMMM yyyy', { locale: es })}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Mis Fichajes</h1>
+            <p className="text-muted-foreground">
+              {format(today, 'MMMM yyyy', { locale: es })}
+            </p>
+          </div>
+          {recentEvents && recentEvents.length > 0 && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={exportCSV}>
+                <Download className="mr-2 h-4 w-4" />
+                CSV
+              </Button>
+              <Button size="sm" onClick={exportPDF}>
+                <FileText className="mr-2 h-4 w-4" />
+                PDF
+              </Button>
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -71,9 +224,14 @@ export default function EmployeeDashboard() {
               .map(([date, events]: [string, any]) => (
                 <Card key={date}>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">
-                      {format(new Date(date), 'EEEE, d MMMM', { locale: es })}
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        {format(new Date(date), 'EEEE, d MMMM', { locale: es })}
+                      </CardTitle>
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {formatMinutes(calculateHours(events))}
+                      </span>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
