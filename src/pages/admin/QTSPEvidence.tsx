@@ -1,54 +1,172 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/hooks/useCompany";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw, Package, RotateCcw } from "lucide-react";
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 export default function QTSPEvidence() {
+  const { company, isLoading: loadingCompany } = useCompany();
+  const queryClient = useQueryClient();
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState(() => 
+    format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')
+  );
+  const [exportEndDate, setExportEndDate] = useState(() => 
+    format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')
+  );
+
   const { data: caseFile, isLoading: loadingCaseFile } = useQuery({
-    queryKey: ['dt-case-file'],
+    queryKey: ['dt-case-file', company?.id],
     queryFn: async () => {
+      if (!company?.id) return null;
       const { data, error } = await supabase
         .from('dt_case_files')
         .select('*')
+        .eq('company_id', company.id)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
+    enabled: !!company?.id,
   });
 
   const { data: evidenceGroups, isLoading: loadingGroups } = useQuery({
-    queryKey: ['dt-evidence-groups'],
+    queryKey: ['dt-evidence-groups', caseFile?.id],
     queryFn: async () => {
+      if (!caseFile?.id) return [];
       const { data, error } = await supabase
         .from('dt_evidence_groups')
         .select('*')
+        .eq('case_file_id', caseFile.id)
         .order('year_month', { ascending: false });
       if (error) throw error;
       return data;
     },
+    enabled: !!caseFile?.id,
   });
 
   const { data: evidences, isLoading: loadingEvidences, refetch: refetchEvidences } = useQuery({
-    queryKey: ['dt-evidences'],
+    queryKey: ['dt-evidences', evidenceGroups],
     queryFn: async () => {
+      if (!evidenceGroups || evidenceGroups.length === 0) return [];
+      const groupIds = evidenceGroups.map(g => g.id);
       const { data, error } = await supabase
         .from('dt_evidences')
         .select(`
           *,
           daily_roots (date, root_hash, event_count)
         `)
+        .in('evidence_group_id', groupIds)
         .order('created_at', { ascending: false })
         .limit(100);
       if (error) throw error;
       return data;
+    },
+    enabled: !!evidenceGroups && evidenceGroups.length > 0,
+  });
+
+  const { data: auditLogs } = useQuery({
+    queryKey: ['qtsp-audit-log', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const { data, error } = await supabase
+        .from('qtsp_audit_log')
+        .select('*')
+        .eq('company_id', company.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.id,
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) throw new Error('No company');
+      const { data, error } = await supabase.functions.invoke('qtsp-notarize', {
+        body: {
+          action: 'retry_failed',
+          company_id: company.id,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Reintentados: ${data.succeeded} exitosos, ${data.failed} fallidos`);
+      queryClient.invalidateQueries({ queryKey: ['dt-evidences'] });
+      queryClient.invalidateQueries({ queryKey: ['qtsp-audit-log'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error al reintentar: ${error.message}`);
+    },
+  });
+
+  const checkPendingMutation = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) throw new Error('No company');
+      const { data, error } = await supabase.functions.invoke('qtsp-notarize', {
+        body: {
+          action: 'check_status',
+          company_id: company.id,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Verificados: ${data.checked} pendientes, ${data.completed} completados`);
+      queryClient.invalidateQueries({ queryKey: ['dt-evidences'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error al verificar: ${error.message}`);
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) throw new Error('No company');
+      const { data, error } = await supabase.functions.invoke('qtsp-export-package', {
+        body: {
+          company_id: company.id,
+          start_date: exportStartDate,
+          end_date: exportEndDate,
+          include_pdfs: true,
+        },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      // Download as JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `evidencia_${company?.name?.replace(/\s+/g, '_')}_${exportStartDate}_${exportEndDate}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Paquete de evidencia exportado');
+      setExportDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error(`Error al exportar: ${error.message}`);
     },
   });
 
@@ -93,11 +211,12 @@ export default function QTSPEvidence() {
   const stats = {
     totalTimestamps: dailyTimestamps.length,
     completedTimestamps: dailyTimestamps.filter(e => e.status === 'completed').length,
+    failedTimestamps: dailyTimestamps.filter(e => e.status === 'failed').length,
     totalReports: monthlyReports.length,
     completedReports: monthlyReports.filter(e => e.status === 'completed').length,
   };
 
-  if (loadingCaseFile || loadingGroups || loadingEvidences) {
+  if (loadingCompany || loadingCaseFile || loadingGroups || loadingEvidences) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
@@ -117,13 +236,39 @@ export default function QTSPEvidence() {
               Evidencias QTSP
             </h1>
             <p className="text-muted-foreground">
-              Registro de evidencias cualificadas con EADTrust
+              Registro de evidencias cualificadas con EADTrust - {company?.name}
             </p>
           </div>
-          <Button variant="outline" onClick={() => refetchEvidences()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Actualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
+              <Package className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => retryMutation.mutate()}
+              disabled={retryMutation.isPending || stats.failedTimestamps === 0}
+            >
+              {retryMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 mr-2" />
+              )}
+              Reintentar fallidos ({stats.failedTimestamps})
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => checkPendingMutation.mutate()}
+              disabled={checkPendingMutation.isPending}
+            >
+              {checkPendingMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Verificar pendientes
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -158,7 +303,9 @@ export default function QTSPEvidence() {
               <div className="text-2xl font-bold">
                 {stats.completedTimestamps}/{stats.totalTimestamps}
               </div>
-              <p className="text-xs text-muted-foreground">Completados</p>
+              <p className="text-xs text-muted-foreground">
+                Completados {stats.failedTimestamps > 0 && `(${stats.failedTimestamps} fallidos)`}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -183,6 +330,10 @@ export default function QTSPEvidence() {
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Informes Mensuales
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Auditoría
             </TabsTrigger>
           </TabsList>
 
@@ -304,6 +455,59 @@ export default function QTSPEvidence() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="audit">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registro de Auditoría QTSP</CardTitle>
+                <CardDescription>
+                  Historial de operaciones con el servicio de timestamp cualificado
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!auditLogs || auditLogs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay registros de auditoría aún
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Acción</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Duración</TableHead>
+                        <TableHead>Error</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {auditLogs.map((log: any) => (
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss', { locale: es })}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {log.action}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={log.status === 'success' ? 'default' : log.status === 'failed' ? 'destructive' : 'secondary'}>
+                              {log.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {log.duration_ms ? `${log.duration_ms}ms` : '-'}
+                          </TableCell>
+                          <TableCell className="text-xs text-destructive max-w-xs truncate">
+                            {log.error_message || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Evidence Groups */}
@@ -343,6 +547,60 @@ export default function QTSPEvidence() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exportar Paquete de Evidencia</DialogTitle>
+            <DialogDescription>
+              Genera un archivo JSON con todas las evidencias y hashes del período seleccionado
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="start-date" className="text-right">
+                Desde
+              </Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={exportStartDate}
+                onChange={(e) => setExportStartDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="end-date" className="text-right">
+                Hasta
+              </Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={exportEndDate}
+                onChange={(e) => setExportEndDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => exportMutation.mutate()}
+              disabled={exportMutation.isPending}
+            >
+              {exportMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Package className="w-4 h-4 mr-2" />
+              )}
+              Exportar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
