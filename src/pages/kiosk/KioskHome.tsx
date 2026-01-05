@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,6 +30,9 @@ interface ClockResult {
 }
 
 export default function KioskHome() {
+  const [searchParams] = useSearchParams();
+  const terminalId = searchParams.get('terminal');
+  
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mode, setMode] = useState<KioskMode>('home');
   const [clockResult, setClockResult] = useState<ClockResult | null>(null);
@@ -37,6 +41,8 @@ export default function KioskHome() {
   const [employeeName, setEmployeeName] = useState<string>('');
   const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
   const [overrideInfo, setOverrideInfo] = useState<{ eventType: 'entry' | 'exit'; reason: string } | null>(null);
+  const [employeeCodePrefix, setEmployeeCodePrefix] = useState<string>('EMP');
+  const [companyName, setCompanyName] = useState<string>('');
   const { toast } = useToast();
   
   const { isOnline } = useConnectionStatus();
@@ -48,6 +54,38 @@ export default function KioskHome() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch company prefix from terminal
+  useEffect(() => {
+    const fetchCompanyPrefix = async () => {
+      if (!terminalId) return;
+      
+      try {
+        const { data: terminalData, error: terminalError } = await supabase
+          .from('terminals')
+          .select('company_id')
+          .eq('id', terminalId)
+          .single();
+        
+        if (terminalError || !terminalData) return;
+        
+        const { data: companyData, error: companyError } = await supabase
+          .from('company')
+          .select('name, employee_code_prefix')
+          .eq('id', terminalData.company_id)
+          .single();
+        
+        if (!companyError && companyData) {
+          setEmployeeCodePrefix(companyData.employee_code_prefix || 'EMP');
+          setCompanyName(companyData.name || '');
+        }
+      } catch (err) {
+        console.error('Error fetching company prefix:', err);
+      }
+    };
+    
+    fetchCompanyPrefix();
+  }, [terminalId]);
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -386,6 +424,7 @@ export default function KioskHome() {
           isValidating={isValidating}
           employeeName={employeeName}
           nextEventType={nextEventType}
+          employeeCodePrefix={employeeCodePrefix}
         />
       </>
     );
@@ -439,6 +478,9 @@ export default function KioskHome() {
       
       {/* Clock Display */}
       <div className="text-center mb-12">
+        {companyName && (
+          <div className="text-lg font-medium text-primary mb-2">{companyName}</div>
+        )}
         <div className="flex items-center justify-center gap-3 mb-4">
           <Clock className="h-10 w-10 text-primary" />
           <h1 className="text-4xl font-bold">Control Horario</h1>

@@ -27,6 +27,7 @@ interface KioskPinPadProps {
   isValidating?: boolean;
   employeeName?: string;
   nextEventType?: 'entry' | 'exit';
+  employeeCodePrefix?: string;
 }
 
 export function KioskPinPad({ 
@@ -36,7 +37,8 @@ export function KioskPinPad({
   isLoading, 
   isValidating = false,
   employeeName,
-  nextEventType
+  nextEventType,
+  employeeCodePrefix = 'EMP'
 }: KioskPinPadProps) {
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [pin, setPin] = useState('');
@@ -76,7 +78,7 @@ export function KioskPinPad({
 
   const handleNext = async () => {
     if (step === 'code' && employeeNumber.length >= 1) {
-      const fullEmployeeCode = 'EMP' + employeeNumber.padStart(3, '0');
+      const fullEmployeeCode = employeeCodePrefix + employeeNumber.padStart(3, '0');
       
       if (onValidateCode) {
         const result = await onValidateCode(fullEmployeeCode);
@@ -87,7 +89,7 @@ export function KioskPinPad({
         setStep('pin');
       }
     } else if (step === 'pin' && pin.length >= 4) {
-      const fullEmployeeCode = 'EMP' + employeeNumber.padStart(3, '0');
+      const fullEmployeeCode = employeeCodePrefix + employeeNumber.padStart(3, '0');
       if (isOverriding && overrideReason) {
         const finalReason = overrideReason === 'other' ? `other: ${customReason}` : overrideReason;
         onSubmit(fullEmployeeCode, pin, { eventType: overrideEventType, reason: finalReason });
@@ -129,7 +131,7 @@ export function KioskPinPad({
     const digits = employeeNumber.padEnd(3, '').split('');
     return (
       <div className="flex items-center justify-center gap-2">
-        <span className="text-2xl font-bold text-muted-foreground mr-2">EMP</span>
+        <span className="text-2xl font-bold text-muted-foreground mr-2">{employeeCodePrefix}</span>
         {[0, 1, 2].map((index) => (
           <div
             key={index}

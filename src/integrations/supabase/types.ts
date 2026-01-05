@@ -73,6 +73,7 @@ export type Database = {
           cif: string | null
           city: string | null
           created_at: string
+          employee_code_prefix: string
           id: string
           name: string
           postal_code: string | null
@@ -85,6 +86,7 @@ export type Database = {
           cif?: string | null
           city?: string | null
           created_at?: string
+          employee_code_prefix?: string
           id?: string
           name: string
           postal_code?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           cif?: string | null
           city?: string | null
           created_at?: string
+          employee_code_prefix?: string
           id?: string
           name?: string
           postal_code?: string | null
