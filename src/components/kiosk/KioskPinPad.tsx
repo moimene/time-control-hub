@@ -12,14 +12,14 @@ interface KioskPinPadProps {
 }
 
 export function KioskPinPad({ onSubmit, onCancel, isLoading }: KioskPinPadProps) {
-  const [employeeCode, setEmployeeCode] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
   const [pin, setPin] = useState('');
   const [step, setStep] = useState<'code' | 'pin'>('code');
 
   const handleNumberClick = (num: string) => {
     if (step === 'code') {
-      if (employeeCode.length < 10) {
-        setEmployeeCode(prev => prev + num);
+      if (employeeNumber.length < 3) {
+        setEmployeeNumber(prev => prev + num);
       }
     } else {
       if (pin.length < 6) {
@@ -30,7 +30,7 @@ export function KioskPinPad({ onSubmit, onCancel, isLoading }: KioskPinPadProps)
 
   const handleDelete = () => {
     if (step === 'code') {
-      setEmployeeCode(prev => prev.slice(0, -1));
+      setEmployeeNumber(prev => prev.slice(0, -1));
     } else {
       setPin(prev => prev.slice(0, -1));
     }
@@ -38,17 +38,19 @@ export function KioskPinPad({ onSubmit, onCancel, isLoading }: KioskPinPadProps)
 
   const handleClear = () => {
     if (step === 'code') {
-      setEmployeeCode('');
+      setEmployeeNumber('');
     } else {
       setPin('');
     }
   };
 
   const handleNext = () => {
-    if (step === 'code' && employeeCode.length >= 3) {
+    if (step === 'code' && employeeNumber.length >= 1) {
       setStep('pin');
     } else if (step === 'pin' && pin.length >= 4) {
-      onSubmit(employeeCode, pin);
+      // Build full employee code: EMP + padded number (e.g., 1 -> EMP001)
+      const fullEmployeeCode = 'EMP' + employeeNumber.padStart(3, '0');
+      onSubmit(fullEmployeeCode, pin);
     }
   };
 
@@ -61,9 +63,12 @@ export function KioskPinPad({ onSubmit, onCancel, isLoading }: KioskPinPadProps)
     }
   };
 
-  const currentValue = step === 'code' ? employeeCode : pin;
-  const maxLength = step === 'code' ? 10 : 6;
-  const minLength = step === 'code' ? 3 : 4;
+  // Display value: show EMP prefix for code step
+  const displayValue = step === 'code' 
+    ? (employeeNumber ? 'EMP' + employeeNumber.padStart(3, '0') : '') 
+    : pin;
+  const currentValue = step === 'code' ? employeeNumber : pin;
+  const minLength = step === 'code' ? 1 : 4;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
@@ -81,18 +86,21 @@ export function KioskPinPad({ onSubmit, onCancel, isLoading }: KioskPinPadProps)
             <KeyRound className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">
-            {step === 'code' ? 'Código de Empleado' : 'Introduce tu PIN'}
+            {step === 'code' ? 'Nº de Empleado' : 'Introduce tu PIN'}
           </CardTitle>
+          <p className="text-muted-foreground text-sm mt-2">
+            {step === 'code' ? 'Teclea tu número (ej: 1, 2, 3...)' : 'Teclea tu PIN de 4 dígitos'}
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Display */}
           <div className="relative">
             <Input
               type={step === 'pin' ? 'password' : 'text'}
-              value={currentValue}
+              value={displayValue}
               readOnly
               className="text-center text-3xl font-mono h-16 tracking-widest"
-              placeholder={step === 'code' ? 'EMP001' : '••••'}
+              placeholder={step === 'code' ? 'EMP00_' : '••••'}
             />
           </div>
 
