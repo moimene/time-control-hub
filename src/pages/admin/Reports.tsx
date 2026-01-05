@@ -22,10 +22,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import type { Employee, EventType, EventSource } from '@/types/database';
+import type { EventType, EventSource } from '@/types/database';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -259,6 +261,55 @@ export default function Reports() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Bar Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Horas por Empleado</CardTitle>
+                <CardDescription>Comparativa de horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{
+                    hours: {
+                      label: "Horas",
+                      color: "hsl(var(--primary))",
+                    },
+                  }}
+                  className="h-[300px] w-full"
+                >
+                  <BarChart
+                    data={employeeSummary.map((s) => ({
+                      name: `${s.employee?.first_name} ${s.employee?.last_name?.charAt(0)}.`,
+                      hours: Math.round(s.totalMinutes / 60 * 10) / 10,
+                      fullName: `${s.employee?.first_name} ${s.employee?.last_name}`,
+                    }))}
+                    margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                  >
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `${value}h`}
+                    />
+                    <ChartTooltip
+                      content={<ChartTooltipContent />}
+                      formatter={(value: number) => [`${value}h`, "Horas"]}
+                    />
+                    <Bar 
+                      dataKey="hours" 
+                      fill="hsl(var(--primary))" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
 
             {/* Summary Table */}
             <Card>
