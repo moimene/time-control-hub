@@ -231,6 +231,157 @@ export type Database = {
         }
         Relationships: []
       }
+      dt_case_files: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          external_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dt_case_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dt_evidence_groups: {
+        Row: {
+          case_file_id: string
+          created_at: string
+          external_id: string
+          id: string
+          name: string
+          updated_at: string
+          year_month: string
+        }
+        Insert: {
+          case_file_id: string
+          created_at?: string
+          external_id: string
+          id?: string
+          name: string
+          updated_at?: string
+          year_month: string
+        }
+        Update: {
+          case_file_id?: string
+          created_at?: string
+          external_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          year_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dt_evidence_groups_case_file_id_fkey"
+            columns: ["case_file_id"]
+            isOneToOne: false
+            referencedRelation: "dt_case_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dt_evidences: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          daily_root_id: string | null
+          error_message: string | null
+          evidence_group_id: string
+          evidence_type: Database["public"]["Enums"]["evidence_type"]
+          external_id: string | null
+          id: string
+          original_pdf_path: string | null
+          report_month: string | null
+          retry_count: number
+          sealed_pdf_path: string | null
+          signature_data: Json | null
+          status: Database["public"]["Enums"]["evidence_status"]
+          tsp_timestamp: string | null
+          tsp_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          daily_root_id?: string | null
+          error_message?: string | null
+          evidence_group_id: string
+          evidence_type: Database["public"]["Enums"]["evidence_type"]
+          external_id?: string | null
+          id?: string
+          original_pdf_path?: string | null
+          report_month?: string | null
+          retry_count?: number
+          sealed_pdf_path?: string | null
+          signature_data?: Json | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          tsp_timestamp?: string | null
+          tsp_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          daily_root_id?: string | null
+          error_message?: string | null
+          evidence_group_id?: string
+          evidence_type?: Database["public"]["Enums"]["evidence_type"]
+          external_id?: string | null
+          id?: string
+          original_pdf_path?: string | null
+          report_month?: string | null
+          retry_count?: number
+          sealed_pdf_path?: string | null
+          signature_data?: Json | null
+          status?: Database["public"]["Enums"]["evidence_status"]
+          tsp_timestamp?: string | null
+          tsp_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dt_evidences_daily_root_id_fkey"
+            columns: ["daily_root_id"]
+            isOneToOne: false
+            referencedRelation: "daily_roots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dt_evidences_evidence_group_id_fkey"
+            columns: ["evidence_group_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidence_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_qr: {
         Row: {
           created_at: string
@@ -497,6 +648,8 @@ export type Database = {
       employee_status: "active" | "inactive" | "suspended" | "on_leave"
       event_source: "qr" | "pin" | "manual"
       event_type: "entry" | "exit"
+      evidence_status: "pending" | "processing" | "completed" | "failed"
+      evidence_type: "daily_timestamp" | "monthly_report"
       terminal_status: "pending" | "active" | "inactive"
     }
     CompositeTypes: {
@@ -630,6 +783,8 @@ export const Constants = {
       employee_status: ["active", "inactive", "suspended", "on_leave"],
       event_source: ["qr", "pin", "manual"],
       event_type: ["entry", "exit"],
+      evidence_status: ["pending", "processing", "completed", "failed"],
+      evidence_type: ["daily_timestamp", "monthly_report"],
       terminal_status: ["pending", "active", "inactive"],
     },
   },

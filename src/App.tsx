@@ -15,6 +15,7 @@ import TimeRecords from "./pages/admin/TimeRecords";
 import Corrections from "./pages/admin/Corrections";
 import Reports from "./pages/admin/Reports";
 import AuditLog from "./pages/admin/AuditLog";
+import QTSPEvidence from "./pages/admin/QTSPEvidence";
 import Settings from "./pages/admin/Settings";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import RequestCorrection from "./pages/employee/RequestCorrection";
@@ -87,6 +88,11 @@ function AppRoutes() {
       <Route path="/admin/audit" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <AuditLog />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/qtsp" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <QTSPEvidence />
         </ProtectedRoute>
       } />
       <Route path="/admin/settings" element={
