@@ -11,11 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw, Package, RotateCcw, CalendarDays } from "lucide-react";
+import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw, Package, RotateCcw, CalendarDays, Activity, Wifi, WifiOff } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { EvidenceCalendar } from "@/components/admin/EvidenceCalendar";
+
+interface HealthCheckResult {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  auth: boolean;
+  api: boolean;
+  latency_ms: number;
+  message: string;
+}
 
 export default function QTSPEvidence() {
   const { company, isLoading: loadingCompany } = useCompany();
@@ -27,6 +35,20 @@ export default function QTSPEvidence() {
   const [exportEndDate, setExportEndDate] = useState(() => 
     format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')
   );
+
+  // Health check query - auto-refresh every 60 seconds
+  const { data: healthStatus, isLoading: loadingHealth, refetch: refetchHealth } = useQuery({
+    queryKey: ['qtsp-health-check'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('qtsp-notarize', {
+        body: { action: 'health_check' },
+      });
+      if (error) throw error;
+      return data as HealthCheckResult;
+    },
+    refetchInterval: 60000, // Every 60 seconds
+    staleTime: 30000,
+  });
 
   const { data: caseFile, isLoading: loadingCaseFile } = useQuery({
     queryKey: ['dt-case-file', company?.id],
@@ -288,6 +310,70 @@ export default function QTSPEvidence() {
             </Button>
           </div>
         </div>
+
+        {/* Health Status Card */}
+        <Card className={
+          healthStatus?.status === 'healthy' ? 'border-green-500/50 bg-green-500/5' :
+          healthStatus?.status === 'degraded' ? 'border-yellow-500/50 bg-yellow-500/5' :
+          healthStatus?.status === 'unhealthy' ? 'border-destructive/50 bg-destructive/5' :
+          ''
+        }>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Estado de la API QTSP
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => refetchHealth()}
+                disabled={loadingHealth}
+              >
+                {loadingHealth ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {healthStatus?.status === 'healthy' ? (
+                  <Wifi className="w-5 h-5 text-green-500" />
+                ) : healthStatus?.status === 'degraded' ? (
+                  <Wifi className="w-5 h-5 text-yellow-500" />
+                ) : (
+                  <WifiOff className="w-5 h-5 text-destructive" />
+                )}
+                <span className="font-medium">
+                  {healthStatus?.status === 'healthy' ? 'Operativo' :
+                   healthStatus?.status === 'degraded' ? 'Degradado' :
+                   healthStatus?.status === 'unhealthy' ? 'No disponible' :
+                   'Verificando...'}
+                </span>
+              </div>
+              {healthStatus && (
+                <>
+                  <Badge variant={healthStatus.auth ? 'default' : 'destructive'} className="text-xs">
+                    Auth: {healthStatus.auth ? 'OK' : 'Error'}
+                  </Badge>
+                  <Badge variant={healthStatus.api ? 'default' : 'destructive'} className="text-xs">
+                    API: {healthStatus.api ? 'OK' : 'Error'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Latencia: {healthStatus.latency_ms}ms
+                  </span>
+                </>
+              )}
+            </div>
+            {healthStatus?.message && healthStatus.status !== 'healthy' && (
+              <p className="text-xs text-muted-foreground mt-2">{healthStatus.message}</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
