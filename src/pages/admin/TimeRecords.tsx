@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Download, Search } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CalendarIcon, Download, Search, AlertTriangle } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -38,6 +39,13 @@ const eventSourceLabels: Record<EventSource, string> = {
   qr: 'QR',
   pin: 'PIN',
   manual: 'Manual',
+};
+
+const overrideReasonLabels: Record<string, string> = {
+  forgot_mark: 'Olvidé fichar',
+  system_error: 'Error del sistema',
+  authorized_exception: 'Excepción autorizada',
+  other: 'Otro motivo',
 };
 
 export default function TimeRecords() {
@@ -189,42 +197,63 @@ export default function TimeRecords() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRecords?.map((record: any) => (
-                  <TableRow key={record.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {record.employees?.first_name} {record.employees?.last_name}
-                        </p>
-                        <p className="text-sm text-muted-foreground font-mono">
-                          {record.employees?.employee_code}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={cn(
-                            'h-2 w-2 rounded-full',
-                            record.event_type === 'entry' ? 'bg-green-500' : 'bg-red-500'
+                filteredRecords?.map((record: any) => {
+                  const overrideReason = record.raw_payload?.override_reason;
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">
+                            {record.employees?.first_name} {record.employees?.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground font-mono">
+                            {record.employees?.employee_code}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              'h-2 w-2 rounded-full',
+                              record.event_type === 'entry' ? 'bg-green-500' : 'bg-red-500'
+                            )}
+                          />
+                          {eventTypeLabels[record.event_type as EventType]}
+                          {overrideReason && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="outline" className="ml-1 gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Override
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-medium">Fichaje con override</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {overrideReasonLabels[overrideReason] || overrideReason}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
-                        />
-                        {eventTypeLabels[record.event_type as EventType]}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(record.timestamp), 'dd/MM/yyyy')}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {format(new Date(record.timestamp), 'HH:mm:ss')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {eventSourceLabels[record.event_source as EventSource]}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(record.timestamp), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {format(new Date(record.timestamp), 'HH:mm:ss')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {eventSourceLabels[record.event_source as EventSource]}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

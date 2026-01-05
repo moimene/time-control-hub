@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, Download, FileText } from 'lucide-react';
+import { Clock, Download, FileText, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { EventType, EventSource } from '@/types/database';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -21,6 +23,13 @@ const eventSourceLabels: Record<EventSource, string> = {
   qr: 'QR',
   pin: 'PIN',
   manual: 'Manual',
+};
+
+const overrideReasonLabels: Record<string, string> = {
+  forgot_mark: 'Olvidé fichar',
+  system_error: 'Error del sistema',
+  authorized_exception: 'Excepción autorizada',
+  other: 'Otro motivo',
 };
 
 export default function EmployeeDashboard() {
@@ -239,31 +248,54 @@ export default function EmployeeDashboard() {
                         .sort((a: any, b: any) => 
                           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
                         )
-                        .map((event: any) => (
-                          <div
-                            key={event.id}
-                            className="flex items-center justify-between rounded-lg border p-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`h-2 w-2 rounded-full ${
-                                  event.event_type === 'entry' ? 'bg-green-500' : 'bg-red-500'
-                                }`}
-                              />
-                              <div>
-                                <p className="font-medium">
-                                  {eventTypeLabels[event.event_type as EventType]}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {eventSourceLabels[event.event_source as EventSource]}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="font-mono text-lg">
-                              {format(new Date(event.timestamp), 'HH:mm')}
-                            </span>
-                          </div>
-                        ))}
+                                        .map((event: any) => {
+                                          const overrideReason = event.raw_payload?.override_reason;
+                                          return (
+                                            <div
+                                              key={event.id}
+                                              className="flex items-center justify-between rounded-lg border p-3"
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <div
+                                                  className={`h-2 w-2 rounded-full ${
+                                                    event.event_type === 'entry' ? 'bg-green-500' : 'bg-red-500'
+                                                  }`}
+                                                />
+                                                <div>
+                                                  <div className="flex items-center gap-2">
+                                                    <p className="font-medium">
+                                                      {eventTypeLabels[event.event_type as EventType]}
+                                                    </p>
+                                                    {overrideReason && (
+                                                      <TooltipProvider>
+                                                        <Tooltip>
+                                                          <TooltipTrigger>
+                                                            <Badge variant="outline" className="gap-1 text-amber-600 border-amber-300 bg-amber-50">
+                                                              <AlertTriangle className="h-3 w-3" />
+                                                              Override
+                                                            </Badge>
+                                                          </TooltipTrigger>
+                                                          <TooltipContent>
+                                                            <p className="font-medium">Fichaje con override</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                              {overrideReasonLabels[overrideReason] || overrideReason}
+                                                            </p>
+                                                          </TooltipContent>
+                                                        </Tooltip>
+                                                      </TooltipProvider>
+                                                    )}
+                                                  </div>
+                                                  <p className="text-sm text-muted-foreground">
+                                                    {eventSourceLabels[event.event_source as EventSource]}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                              <span className="font-mono text-lg">
+                                                {format(new Date(event.timestamp), 'HH:mm')}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
                     </div>
                   </CardContent>
                 </Card>
