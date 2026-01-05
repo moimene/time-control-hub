@@ -384,12 +384,14 @@ export type Database = {
         Row: {
           created_at: string
           employee_id: string
+          event_hash: string | null
           event_source: Database["public"]["Enums"]["event_source"]
           event_type: Database["public"]["Enums"]["event_type"]
           id: string
           ip_address: unknown
           local_timestamp: string
           offline_uuid: string | null
+          previous_hash: string | null
           qr_version: number | null
           raw_payload: Json | null
           synced_at: string | null
@@ -401,12 +403,14 @@ export type Database = {
         Insert: {
           created_at?: string
           employee_id: string
+          event_hash?: string | null
           event_source: Database["public"]["Enums"]["event_source"]
           event_type: Database["public"]["Enums"]["event_type"]
           id?: string
           ip_address?: unknown
           local_timestamp: string
           offline_uuid?: string | null
+          previous_hash?: string | null
           qr_version?: number | null
           raw_payload?: Json | null
           synced_at?: string | null
@@ -418,12 +422,14 @@ export type Database = {
         Update: {
           created_at?: string
           employee_id?: string
+          event_hash?: string | null
           event_source?: Database["public"]["Enums"]["event_source"]
           event_type?: Database["public"]["Enums"]["event_type"]
           id?: string
           ip_address?: unknown
           local_timestamp?: string
           offline_uuid?: string | null
+          previous_hash?: string | null
           qr_version?: number | null
           raw_payload?: Json | null
           synced_at?: string | null
