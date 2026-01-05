@@ -31,6 +31,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
+import { useCompany } from '@/hooks/useCompany';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -47,13 +48,16 @@ export default function Reports() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [sealingPdf, setSealingPdf] = useState(false);
+  const { company } = useCompany();
 
   const { data: employees } = useQuery({
-    queryKey: ['employees-list'],
+    queryKey: ['employees-list', company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employees')
         .select('id, first_name, last_name, employee_code')
+        .eq('company_id', company!.id)
         .eq('status', 'active')
         .order('last_name');
       if (error) throw error;
@@ -62,11 +66,13 @@ export default function Reports() {
   });
 
   const { data: records, isLoading } = useQuery({
-    queryKey: ['report-records', month, selectedEmployee],
+    queryKey: ['report-records', month, selectedEmployee, company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       let query = supabase
         .from('time_events')
         .select('*, employees(first_name, last_name, employee_code)')
+        .eq('company_id', company!.id)
         .gte('timestamp', startOfMonth(month).toISOString())
         .lte('timestamp', endOfMonth(month).toISOString())
         .order('timestamp', { ascending: true });

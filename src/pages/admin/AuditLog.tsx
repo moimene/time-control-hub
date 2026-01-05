@@ -27,6 +27,7 @@ import { CalendarIcon, Search, Shield, FileText, Users, Download, CheckCircle, X
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useCompany } from '@/hooks/useCompany';
 
 const actionLabels: Record<string, { label: string; icon: React.ReactNode; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   create: { label: 'Crear', icon: <FileText className="h-3 w-3" />, variant: 'default' },
@@ -52,13 +53,16 @@ export default function AuditLog() {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
+  const { company } = useCompany();
 
   const { data: logs, isLoading } = useQuery({
-    queryKey: ['audit-logs', dateRange, actionFilter, entityFilter],
+    queryKey: ['audit-logs', dateRange, actionFilter, entityFilter, company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       let query = supabase
         .from('audit_log')
         .select('*')
+        .eq('company_id', company!.id)
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false })

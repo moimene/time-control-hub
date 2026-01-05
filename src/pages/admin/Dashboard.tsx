@@ -5,38 +5,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Users, Monitor, Clock, AlertCircle } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useCompany } from '@/hooks/useCompany';
 
 export default function Dashboard() {
   const today = new Date();
+  const { company } = useCompany();
 
   const { data: employeeCount } = useQuery({
-    queryKey: ['employees-count'],
+    queryKey: ['employees-count', company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       const { count } = await supabase
         .from('employees')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('company_id', company!.id);
       return count || 0;
     },
   });
 
   const { data: terminalCount } = useQuery({
-    queryKey: ['terminals-count'],
+    queryKey: ['terminals-count', company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       const { count } = await supabase
         .from('terminals')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('company_id', company!.id);
       return count || 0;
     },
   });
 
   const { data: todayEvents } = useQuery({
-    queryKey: ['today-events'],
+    queryKey: ['today-events', company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       const { data } = await supabase
         .from('time_events')
         .select('*, employees(first_name, last_name)')
+        .eq('company_id', company!.id)
         .gte('timestamp', startOfDay(today).toISOString())
         .lte('timestamp', endOfDay(today).toISOString())
         .order('timestamp', { ascending: false })
@@ -46,12 +54,14 @@ export default function Dashboard() {
   });
 
   const { data: pendingCorrections } = useQuery({
-    queryKey: ['pending-corrections-count'],
+    queryKey: ['pending-corrections-count', company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       const { count } = await supabase
         .from('correction_requests')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .eq('company_id', company!.id);
       return count || 0;
     },
   });
