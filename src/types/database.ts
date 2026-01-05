@@ -29,6 +29,7 @@ export interface UserRole {
 export interface Employee {
   id: string;
   user_id: string | null;
+  company_id: string | null;
   employee_code: string;
   first_name: string;
   last_name: string;
@@ -45,6 +46,13 @@ export interface Employee {
   pin_locked_until: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserCompany {
+  id: string;
+  user_id: string;
+  company_id: string;
+  created_at: string;
 }
 
 export interface EmployeeQR {

@@ -19,6 +19,7 @@ export type Database = {
           action: string
           actor_id: string | null
           actor_type: string
+          company_id: string | null
           created_at: string
           entity_id: string | null
           entity_type: string
@@ -32,6 +33,7 @@ export type Database = {
           action: string
           actor_id?: string | null
           actor_type: string
+          company_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type: string
@@ -45,6 +47,7 @@ export type Database = {
           action?: string
           actor_id?: string | null
           actor_type?: string
+          company_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string
@@ -54,7 +57,15 @@ export type Database = {
           old_values?: Json | null
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company: {
         Row: {
@@ -97,6 +108,7 @@ export type Database = {
       }
       corrected_events: {
         Row: {
+          company_id: string | null
           correction_request_id: string
           created_at: string
           employee_id: string
@@ -107,6 +119,7 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          company_id?: string | null
           correction_request_id: string
           created_at?: string
           employee_id: string
@@ -117,6 +130,7 @@ export type Database = {
           timezone?: string
         }
         Update: {
+          company_id?: string | null
           correction_request_id?: string
           created_at?: string
           employee_id?: string
@@ -127,6 +141,13 @@ export type Database = {
           timezone?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "corrected_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "corrected_events_correction_request_id_fkey"
             columns: ["correction_request_id"]
@@ -145,6 +166,7 @@ export type Database = {
       }
       correction_requests: {
         Row: {
+          company_id: string | null
           created_at: string
           employee_id: string
           id: string
@@ -159,6 +181,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           employee_id: string
           id?: string
@@ -175,6 +198,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           employee_id?: string
           id?: string
@@ -191,6 +215,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "correction_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "correction_requests_employee_id_fkey"
             columns: ["employee_id"]
@@ -209,6 +240,7 @@ export type Database = {
       }
       daily_roots: {
         Row: {
+          company_id: string | null
           created_at: string
           date: string
           event_count: number
@@ -216,6 +248,7 @@ export type Database = {
           root_hash: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           date: string
           event_count?: number
@@ -223,13 +256,22 @@ export type Database = {
           root_hash: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           date?: string
           event_count?: number
           id?: string
           root_hash?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_roots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dt_case_files: {
         Row: {
@@ -384,6 +426,7 @@ export type Database = {
       }
       employee_qr: {
         Row: {
+          company_id: string | null
           created_at: string
           employee_id: string
           id: string
@@ -393,6 +436,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           employee_id: string
           id?: string
@@ -402,6 +446,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           employee_id?: string
           id?: string
@@ -411,6 +456,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_qr_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employee_qr_employee_id_fkey"
             columns: ["employee_id"]
@@ -422,6 +474,7 @@ export type Database = {
       }
       employees: {
         Row: {
+          company_id: string | null
           created_at: string
           department: string | null
           email: string | null
@@ -442,6 +495,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -462,6 +516,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -481,11 +536,20 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       terminals: {
         Row: {
           auth_token_hash: string | null
+          company_id: string | null
           created_at: string
           id: string
           ip_address: unknown
@@ -501,6 +565,7 @@ export type Database = {
         }
         Insert: {
           auth_token_hash?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           ip_address?: unknown
@@ -516,6 +581,7 @@ export type Database = {
         }
         Update: {
           auth_token_hash?: string | null
+          company_id?: string | null
           created_at?: string
           id?: string
           ip_address?: unknown
@@ -529,10 +595,19 @@ export type Database = {
           updated_at?: string
           user_agent?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "terminals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_events: {
         Row: {
+          company_id: string | null
           created_at: string
           employee_id: string
           event_hash: string | null
@@ -552,6 +627,7 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           employee_id: string
           event_hash?: string | null
@@ -571,6 +647,7 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           employee_id?: string
           event_hash?: string | null
@@ -591,6 +668,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "time_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "time_events_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -602,6 +686,35 @@ export type Database = {
             columns: ["terminal_id"]
             isOneToOne: false
             referencedRelation: "terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_company: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
             referencedColumns: ["id"]
           },
         ]
@@ -633,6 +746,7 @@ export type Database = {
     }
     Functions: {
       get_employee_id: { Args: { _user_id: string }; Returns: string }
+      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -641,6 +755,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_belongs_to_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "responsible" | "employee"

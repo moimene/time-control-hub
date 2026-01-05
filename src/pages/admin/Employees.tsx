@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,6 +60,7 @@ export default function Employees() {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { companyId } = useCompany();
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees'],
@@ -73,7 +75,7 @@ export default function Employees() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { employee_code: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; department?: string | null; position?: string | null; status: EmployeeStatus }) => {
+    mutationFn: async (data: { employee_code: string; first_name: string; last_name: string; email?: string | null; phone?: string | null; department?: string | null; position?: string | null; status: EmployeeStatus; company_id: string }) => {
       const { error } = await supabase.from('employees').insert([data]);
       if (error) throw error;
     },
@@ -141,7 +143,11 @@ export default function Employees() {
     if (editingEmployee) {
       updateMutation.mutate({ id: editingEmployee.id, data });
     } else {
-      createMutation.mutate(data);
+      if (!companyId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No hay empresa configurada' });
+        return;
+      }
+      createMutation.mutate({ ...data, company_id: companyId });
     }
   };
 
