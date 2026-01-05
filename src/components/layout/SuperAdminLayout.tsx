@@ -43,6 +43,7 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     { href: '/super-admin/companies', label: 'Empresas', icon: <Building2 className="h-5 w-5" /> },
     { href: '/super-admin/users', label: 'Usuarios', icon: <Users className="h-5 w-5" /> },
     { href: '/super-admin/activity', label: 'Actividad', icon: <Activity className="h-5 w-5" /> },
+    { href: '/super-admin/qtsp', label: 'Monitor QTSP', icon: <Shield className="h-5 w-5" /> },
   ];
 
   return (

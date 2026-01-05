@@ -32,6 +32,7 @@ import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import SuperAdminCompanies from "./pages/super-admin/Companies";
 import SuperAdminUsers from "./pages/super-admin/Users";
 import SuperAdminActivity from "./pages/super-admin/Activity";
+import SuperAdminQTSPMonitor from "./pages/super-admin/QTSPMonitor";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +141,11 @@ function AppRoutes() {
       <Route path="/super-admin/activity" element={
         <ProtectedRoute requiredRoles={['super_admin']}>
           <SuperAdminActivity />
+        </ProtectedRoute>
+      } />
+      <Route path="/super-admin/qtsp" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminQTSPMonitor />
         </ProtectedRoute>
       } />
 
