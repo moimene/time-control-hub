@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.generate-daily-root]
 verify_jwt = false
+
+[functions.qtsp-notarize]
+verify_jwt = false
+
+[functions.qtsp-scheduler]
+verify_jwt = false
+
+[functions.qtsp-export-package]
+verify_jwt = false

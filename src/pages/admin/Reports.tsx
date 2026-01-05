@@ -333,6 +333,7 @@ export default function Reports() {
       const { data, error } = await supabase.functions.invoke('qtsp-notarize', {
         body: {
           action: 'seal_pdf',
+          company_id: company?.id,
           pdf_base64: pdfBase64,
           report_month: reportMonth,
           file_name: fileName,

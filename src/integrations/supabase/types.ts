@@ -546,6 +546,60 @@ export type Database = {
           },
         ]
       }
+      qtsp_audit_log: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          evidence_id: string | null
+          id: string
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          evidence_id?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          evidence_id?: string | null
+          id?: string
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qtsp_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qtsp_audit_log_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terminals: {
         Row: {
           auth_token_hash: string | null
