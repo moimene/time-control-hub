@@ -428,8 +428,8 @@ serve(async (req) => {
       finalEventType = lastEvent?.event_type === 'entry' ? 'exit' : 'entry';
     }
 
-    // Validate: prevent duplicate consecutive events of the same type
-    if (lastEvent && lastEvent.event_type === finalEventType) {
+    // Validate: prevent duplicate consecutive events of the same type (unless override_reason is provided)
+    if (lastEvent && lastEvent.event_type === finalEventType && !override_reason) {
       const lastTypeEs = finalEventType === 'entry' ? 'Entrada' : 'Salida';
       const expectedTypeEs = finalEventType === 'entry' ? 'Salida' : 'Entrada';
       const lastTime = new Date(lastEvent.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -446,6 +446,11 @@ serve(async (req) => {
         }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    
+    // Log when override is used
+    if (override_reason && lastEvent && lastEvent.event_type === finalEventType) {
+      console.log(`Override allowed: ${employee.employee_code} registering ${finalEventType} with reason: ${override_reason}`);
     }
 
     // ========== RECORD TIME EVENT ==========
