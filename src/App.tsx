@@ -26,6 +26,12 @@ import EmployeeSettings from "./pages/employee/Settings";
 import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
 
+// Super Admin Pages
+import SuperAdminDashboard from "./pages/super-admin/Dashboard";
+import SuperAdminCompanies from "./pages/super-admin/Companies";
+import SuperAdminUsers from "./pages/super-admin/Users";
+import SuperAdminActivity from "./pages/super-admin/Activity";
+
 const queryClient = new QueryClient();
 
 function AppRoutes() {
@@ -43,8 +49,8 @@ function AppRoutes() {
   // Redirect logic for root
   const getDefaultRoute = () => {
     if (!user) return "/auth";
-    // Super admin can access without company
-    if (isSuperAdmin) return "/admin";
+    // Super admin goes to super admin panel
+    if (isSuperAdmin) return "/super-admin";
     // If user has no company, redirect to setup
     if (!hasCompany && (isAdmin || !isEmployee)) return "/company-setup";
     if (isAdmin || isResponsible) return "/admin";
@@ -108,6 +114,28 @@ function AppRoutes() {
       <Route path="/admin/settings" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <Settings />
+        </ProtectedRoute>
+      } />
+
+      {/* Super Admin routes */}
+      <Route path="/super-admin" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/super-admin/companies" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminCompanies />
+        </ProtectedRoute>
+      } />
+      <Route path="/super-admin/users" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminUsers />
+        </ProtectedRoute>
+      } />
+      <Route path="/super-admin/activity" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminActivity />
         </ProtectedRoute>
       } />
 

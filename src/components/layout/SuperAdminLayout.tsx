@@ -1,26 +1,23 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
+  Building2, 
   Users, 
-  Monitor, 
   Clock, 
-  FileEdit, 
-  FileText, 
-  Settings, 
   LogOut,
   Menu,
   X,
   Shield,
-  Building2
+  Activity,
+  ArrowLeft
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-interface AppLayoutProps {
+interface SuperAdminLayoutProps {
   children: ReactNode;
 }
 
@@ -28,13 +25,10 @@ interface NavItem {
   href: string;
   label: string;
   icon: ReactNode;
-  adminOnly?: boolean;
-  responsibleOnly?: boolean;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
-  const { user, signOut, isAdmin, isResponsible, isSuperAdmin } = useAuth();
-  const { company } = useCompany();
+export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
+  const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,22 +39,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   const navItems: NavItem[] = [
-    { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { href: '/admin/employees', label: 'Empleados', icon: <Users className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/terminals', label: 'Terminales', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
-    { href: '/admin/corrections', label: 'Correcciones', icon: <FileEdit className="h-5 w-5" /> },
-    { href: '/admin/reports', label: 'Informes', icon: <FileText className="h-5 w-5" /> },
-    { href: '/admin/audit', label: 'Auditoría', icon: <Shield className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/qtsp', label: 'Evidencias QTSP', icon: <Shield className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/settings', label: 'Configuración', icon: <Settings className="h-5 w-5" />, adminOnly: true },
+    { href: '/super-admin', label: 'Dashboard Global', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { href: '/super-admin/companies', label: 'Empresas', icon: <Building2 className="h-5 w-5" /> },
+    { href: '/super-admin/users', label: 'Usuarios', icon: <Users className="h-5 w-5" /> },
+    { href: '/super-admin/activity', label: 'Actividad', icon: <Activity className="h-5 w-5" /> },
   ];
-
-  const filteredNavItems = navItems.filter(item => {
-    if (item.adminOnly && !isAdmin) return false;
-    if (item.responsibleOnly && !isResponsible && !isAdmin) return false;
-    return true;
-  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +56,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         >
           {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
-        <span className="font-semibold">Control Horario</span>
+        <span className="font-semibold">Super Admin</span>
       </header>
 
       <div className="flex">
@@ -83,35 +66,21 @@ export function AppLayout({ children }: AppLayoutProps) {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="flex h-14 items-center border-b px-6">
-            <Link to="/admin" className="flex items-center gap-2">
-              <Clock className="h-6 w-6 text-primary" />
-              <span className="font-semibold">Control Horario</span>
+            <Link to="/super-admin" className="flex items-center gap-2">
+              <Shield className="h-6 w-6 text-destructive" />
+              <span className="font-semibold">Super Admin</span>
             </Link>
           </div>
           
-          {company && (
-            <div className="border-b px-6 py-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Building2 className="h-4 w-4" />
-                <span className="truncate font-medium">{company.name}</span>
-              </div>
+          <div className="border-b px-6 py-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span className="truncate font-medium">Control Horario Platform</span>
             </div>
-          )}
-
-          {isSuperAdmin && (
-            <div className="border-b px-6 py-3">
-              <Link
-                to="/super-admin"
-                className="flex items-center gap-2 text-sm text-destructive hover:underline"
-              >
-                <Shield className="h-4 w-4" />
-                <span className="font-medium">Panel Super Admin</span>
-              </Link>
-            </div>
-          )}
+          </div>
 
           <nav className="flex flex-col gap-1 p-4">
-            {filteredNavItems.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
@@ -119,7 +88,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   location.pathname === item.href
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-destructive text-destructive-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
@@ -127,6 +96,17 @@ export function AppLayout({ children }: AppLayoutProps) {
                 {item.label}
               </Link>
             ))}
+
+            <div className="my-4 border-t" />
+            
+            <Link
+              to="/admin"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Panel Admin Normal
+            </Link>
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 border-t p-4">
