@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Delete, KeyRound, User } from 'lucide-react';
+import { ArrowLeft, Delete, KeyRound, User, LogIn, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface KioskPinPadProps {
@@ -12,6 +12,7 @@ interface KioskPinPadProps {
   isLoading: boolean;
   isValidating?: boolean;
   employeeName?: string;
+  nextEventType?: 'entry' | 'exit';
 }
 
 export function KioskPinPad({ 
@@ -20,7 +21,8 @@ export function KioskPinPad({
   onValidateCode,
   isLoading, 
   isValidating = false,
-  employeeName 
+  employeeName,
+  nextEventType
 }: KioskPinPadProps) {
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [pin, setPin] = useState('');
@@ -143,6 +145,26 @@ export function KioskPinPad({
               ? 'Teclea tu número (ej: 1, 2, 3...)' 
               : 'Introduce tu PIN de 4 dígitos'}
           </p>
+          {!isCodeStep && nextEventType && (
+            <div className={cn(
+              "mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
+              nextEventType === 'entry' 
+                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+            )}>
+              {nextEventType === 'entry' ? (
+                <>
+                  <LogIn className="h-4 w-4" />
+                  Vas a fichar ENTRADA
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-4 w-4" />
+                  Vas a fichar SALIDA
+                </>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Display */}
