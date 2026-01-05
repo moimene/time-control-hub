@@ -15,6 +15,7 @@ export function KioskQrScanner({ onScan, onCancel, isLoading }: KioskQrScannerPr
   const [isStarting, setIsStarting] = useState(true);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isRunningRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -49,7 +50,8 @@ export function KioskQrScanner({ onScan, onCancel, isLoading }: KioskQrScannerPr
             aspectRatio: 1,
           },
           (decodedText) => {
-            if (mounted && !isLoading) {
+            if (mounted && !isLoading && isRunningRef.current) {
+              isRunningRef.current = false;
               scanner.stop().catch(console.error);
               onScan(decodedText);
             }
@@ -60,12 +62,14 @@ export function KioskQrScanner({ onScan, onCancel, isLoading }: KioskQrScannerPr
         );
 
         if (mounted) {
+          isRunningRef.current = true;
           setIsStarting(false);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Scanner error:', err);
         if (mounted) {
-          setError(err.message || 'Error al iniciar la cámara');
+          const errorMessage = err instanceof Error ? err.message : 'Error al iniciar la cámara';
+          setError(errorMessage);
           setIsStarting(false);
         }
       }
@@ -75,7 +79,8 @@ export function KioskQrScanner({ onScan, onCancel, isLoading }: KioskQrScannerPr
 
     return () => {
       mounted = false;
-      if (scannerRef.current) {
+      if (scannerRef.current && isRunningRef.current) {
+        isRunningRef.current = false;
         scannerRef.current.stop().catch(() => {});
       }
     };
