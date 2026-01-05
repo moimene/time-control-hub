@@ -38,9 +38,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { action, employee_code, pin, qr_token, terminal_id, event_type, override_reason, events } = body;
+    const { action, employee_code, pin, qr_token, terminal_id, event_type, override_reason, events, company_id: requestCompanyId } = body;
     
     console.log(`Kiosk clock action: ${action}, employee_code: ${employee_code}, terminal: ${terminal_id}${override_reason ? `, override_reason: ${override_reason}` : ''}`);
+
+    // Get company_id from terminal if provided
+    let companyId = requestCompanyId || null;
+    if (terminal_id && !companyId) {
+      const { data: terminal } = await supabase
+        .from('terminals')
+        .select('company_id')
+        .eq('id', terminal_id)
+        .maybeSingle();
+      if (terminal?.company_id) {
+        companyId = terminal.company_id;
+      }
+    }
 
     // ========== SYNC OFFLINE EVENTS ==========
     if (action === 'sync_offline' && events && Array.isArray(events)) {
@@ -64,12 +77,17 @@ serve(async (req) => {
             continue;
           }
 
-          // Get employee
-          const { data: emp, error: empError } = await supabase
+          // Get employee - filter by company if known
+          let empQuery = supabase
             .from('employees')
-            .select('id, first_name, last_name, employee_code, pin_hash, pin_salt, status')
-            .eq('employee_code', empCode)
-            .maybeSingle();
+            .select('id, first_name, last_name, employee_code, pin_hash, pin_salt, status, company_id')
+            .eq('employee_code', empCode);
+          
+          if (companyId) {
+            empQuery = empQuery.eq('company_id', companyId);
+          }
+          
+          const { data: emp, error: empError } = await empQuery.maybeSingle();
 
           if (empError || !emp) {
             console.error(`Employee not found for offline event: ${empCode}`);
@@ -81,6 +99,9 @@ serve(async (req) => {
             results.push({ offline_uuid, success: false, error: 'Empleado no activo' });
             continue;
           }
+
+          // Use employee's company_id if not set
+          const eventCompanyId = companyId || emp.company_id;
 
           // Authenticate based on method
           if (auth_method === 'pin') {
@@ -97,12 +118,17 @@ serve(async (req) => {
             }
           } else if (auth_method === 'qr') {
             const [, tokenHash] = auth_data.split(':');
-            const { data: qrData, error: qrError } = await supabase
+            let qrQuery = supabase
               .from('employee_qr')
               .select('employee_id, is_active')
               .eq('token_hash', tokenHash)
-              .eq('is_active', true)
-              .maybeSingle();
+              .eq('is_active', true);
+            
+            if (eventCompanyId) {
+              qrQuery = qrQuery.eq('company_id', eventCompanyId);
+            }
+            
+            const { data: qrData, error: qrError } = await qrQuery.maybeSingle();
 
             if (qrError || !qrData || qrData.employee_id !== emp.id) {
               console.log(`QR verification failed for offline event ${offline_uuid}`);
@@ -148,6 +174,7 @@ serve(async (req) => {
               previous_hash: previousHash,
               offline_uuid: offline_uuid,
               synced_at: new Date().toISOString(),
+              company_id: eventCompanyId,
             })
             .select()
             .single();
@@ -179,11 +206,16 @@ serve(async (req) => {
 
     // ========== VALIDATE EMPLOYEE ==========
     if (action === 'validate' && employee_code) {
-      const { data: emp, error: empError } = await supabase
+      let empQuery = supabase
         .from('employees')
-        .select('id, first_name, last_name, status')
-        .eq('employee_code', employee_code)
-        .maybeSingle();
+        .select('id, first_name, last_name, status, company_id')
+        .eq('employee_code', employee_code);
+      
+      if (companyId) {
+        empQuery = empQuery.eq('company_id', companyId);
+      }
+      
+      const { data: emp, error: empError } = await empQuery.maybeSingle();
 
       if (empError || !emp) {
         console.error('Employee not found for validation:', empError);
@@ -234,7 +266,7 @@ serve(async (req) => {
     if (terminal_id) {
       const { data: terminal, error: terminalError } = await supabase
         .from('terminals')
-        .select('id, status')
+        .select('id, status, company_id')
         .eq('id', terminal_id)
         .maybeSingle();
       
@@ -245,17 +277,27 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
+      // Use terminal's company_id
+      if (!companyId && terminal.company_id) {
+        companyId = terminal.company_id;
+      }
     }
 
     let employee = null;
 
     // ========== AUTHENTICATE BY PIN ==========
     if (action === 'pin' && employee_code && pin) {
-      const { data: emp, error: empError } = await supabase
+      let empQuery = supabase
         .from('employees')
-        .select('id, first_name, last_name, employee_code, pin_hash, pin_salt, pin_locked_until, pin_failed_attempts, status')
-        .eq('employee_code', employee_code)
-        .maybeSingle();
+        .select('id, first_name, last_name, employee_code, pin_hash, pin_salt, pin_locked_until, pin_failed_attempts, status, company_id')
+        .eq('employee_code', employee_code);
+      
+      if (companyId) {
+        empQuery = empQuery.eq('company_id', companyId);
+      }
+      
+      const { data: emp, error: empError } = await empQuery.maybeSingle();
 
       if (empError || !emp) {
         console.error('Employee not found:', empError);
@@ -314,6 +356,10 @@ serve(async (req) => {
         .eq('id', emp.id);
 
       employee = emp;
+      // Set company_id from employee if not already set
+      if (!companyId && emp.company_id) {
+        companyId = emp.company_id;
+      }
     }
 
     // ========== AUTHENTICATE BY QR ==========
@@ -321,12 +367,17 @@ serve(async (req) => {
       // Parse QR token (format: employee_code:token_hash)
       const [empCode, tokenHash] = qr_token.split(':');
       
-      const { data: qrData, error: qrError } = await supabase
+      let qrQuery = supabase
         .from('employee_qr')
-        .select('employee_id, is_active, employees(id, first_name, last_name, employee_code, status)')
+        .select('employee_id, is_active, company_id, employees(id, first_name, last_name, employee_code, status, company_id)')
         .eq('token_hash', tokenHash)
-        .eq('is_active', true)
-        .maybeSingle();
+        .eq('is_active', true);
+      
+      if (companyId) {
+        qrQuery = qrQuery.eq('company_id', companyId);
+      }
+      
+      const { data: qrData, error: qrError } = await qrQuery.maybeSingle();
 
       if (qrError || !qrData || !qrData.employees) {
         console.error('QR not found or invalid:', qrError);
@@ -345,6 +396,10 @@ serve(async (req) => {
       }
 
       employee = emp;
+      // Set company_id from employee if not already set
+      if (!companyId && emp.company_id) {
+        companyId = emp.company_id;
+      }
     }
 
     if (!employee) {
@@ -430,6 +485,7 @@ serve(async (req) => {
         raw_payload: rawPayload,
         event_hash: eventHash,
         previous_hash: previousHash,
+        company_id: companyId,
       })
       .select()
       .single();
@@ -442,7 +498,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Time event created: ${timeEvent.id} - ${employee.first_name} ${employee.last_name} - ${finalEventType} - hash: ${eventHash.substring(0, 8)}...`);
+    console.log(`Time event created: ${timeEvent.id} - ${employee.first_name} ${employee.last_name} - ${finalEventType} - hash: ${eventHash.substring(0, 8)}... - company: ${companyId}`);
 
     return new Response(
       JSON.stringify({

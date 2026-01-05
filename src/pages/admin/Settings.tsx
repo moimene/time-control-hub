@@ -7,42 +7,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useCompany } from '@/hooks/useCompany';
 import { Building2 } from 'lucide-react';
-import type { Company } from '@/types/database';
 
 export default function Settings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const { data: company, isLoading } = useQuery({
-    queryKey: ['company'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company')
-        .select('*')
-        .maybeSingle();
-      if (error) throw error;
-      return data as Company | null;
-    },
-  });
+  const { company, isLoading } = useCompany();
 
   const saveMutation = useMutation({
     mutationFn: async (data: { name: string; cif?: string | null; address?: string | null; city?: string | null; postal_code?: string | null; timezone: string }) => {
-      if (company) {
-        const { error } = await supabase
-          .from('company')
-          .update(data)
-          .eq('id', company.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('company')
-          .insert([data]);
-        if (error) throw error;
-      }
+      if (!company) throw new Error('No hay empresa configurada');
+      
+      const { error } = await supabase
+        .from('company')
+        .update(data)
+        .eq('id', company.id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company'] });
+      queryClient.invalidateQueries({ queryKey: ['user-company'] });
       toast({ title: 'Configuración guardada correctamente' });
     },
     onError: (error) => {
@@ -68,6 +53,17 @@ export default function Settings() {
       <AppLayout>
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!company) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">No hay empresa configurada</p>
         </div>
       </AppLayout>
     );
@@ -99,7 +95,7 @@ export default function Settings() {
                   <Input
                     id="name"
                     name="name"
-                    defaultValue={company?.name || ''}
+                    defaultValue={company.name || ''}
                     required
                   />
                 </div>
@@ -108,7 +104,7 @@ export default function Settings() {
                   <Input
                     id="cif"
                     name="cif"
-                    defaultValue={company?.cif || ''}
+                    defaultValue={company.cif || ''}
                   />
                 </div>
               </div>
@@ -118,7 +114,7 @@ export default function Settings() {
                 <Input
                   id="address"
                   name="address"
-                  defaultValue={company?.address || ''}
+                  defaultValue={company.address || ''}
                 />
               </div>
 
@@ -128,7 +124,7 @@ export default function Settings() {
                   <Input
                     id="city"
                     name="city"
-                    defaultValue={company?.city || ''}
+                    defaultValue={company.city || ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -136,7 +132,7 @@ export default function Settings() {
                   <Input
                     id="postal_code"
                     name="postal_code"
-                    defaultValue={company?.postal_code || ''}
+                    defaultValue={company.postal_code || ''}
                   />
                 </div>
               </div>

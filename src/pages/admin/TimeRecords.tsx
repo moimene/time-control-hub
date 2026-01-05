@@ -26,6 +26,7 @@ import { CalendarIcon, Download, Search } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useCompany } from '@/hooks/useCompany';
 import type { EventType, EventSource } from '@/types/database';
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -46,13 +47,16 @@ export default function TimeRecords() {
   });
   const [search, setSearch] = useState('');
   const [eventType, setEventType] = useState<string>('all');
+  const { company } = useCompany();
 
   const { data: records, isLoading } = useQuery({
-    queryKey: ['time-records', dateRange, eventType],
+    queryKey: ['time-records', dateRange, eventType, company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       let query = supabase
         .from('time_events')
         .select('*, employees(first_name, last_name, employee_code)')
+        .eq('company_id', company!.id)
         .gte('timestamp', startOfDay(dateRange.from).toISOString())
         .lte('timestamp', endOfDay(dateRange.to).toISOString())
         .order('timestamp', { ascending: false });

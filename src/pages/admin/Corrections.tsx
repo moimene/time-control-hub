@@ -29,6 +29,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompany } from '@/hooks/useCompany';
 import { Check, X, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import type { CorrectionStatus, EventType } from '@/types/database';
@@ -57,13 +58,16 @@ export default function Corrections() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { company } = useCompany();
 
   const { data: requests, isLoading } = useQuery({
-    queryKey: ['correction-requests', statusFilter],
+    queryKey: ['correction-requests', statusFilter, company?.id],
+    enabled: !!company?.id,
     queryFn: async () => {
       let query = supabase
         .from('correction_requests')
         .select('*, employees(first_name, last_name, employee_code)')
+        .eq('company_id', company!.id)
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
