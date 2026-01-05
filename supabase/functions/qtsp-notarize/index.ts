@@ -893,22 +893,86 @@ async function checkPendingEvidences(
   return { checked: pendingEvidences.length, completed };
 }
 
+// Health check - test Digital Trust API connectivity without creating entities
+async function healthCheck(): Promise<{
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  auth: boolean;
+  api: boolean;
+  latency_ms: number;
+  message: string;
+}> {
+  const startTime = Date.now();
+  let authOk = false;
+  let apiOk = false;
+
+  try {
+    // Test authentication
+    const token = await authenticate();
+    authOk = true;
+
+    // Test API connectivity with a simple GET request
+    const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files?limit=1`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    apiOk = response.ok;
+
+    const latency = Date.now() - startTime;
+
+    if (authOk && apiOk) {
+      return {
+        status: 'healthy',
+        auth: true,
+        api: true,
+        latency_ms: latency,
+        message: 'Digital Trust API is operational',
+      };
+    } else {
+      return {
+        status: 'degraded',
+        auth: authOk,
+        api: apiOk,
+        latency_ms: latency,
+        message: apiOk ? 'API accessible but with issues' : 'API endpoint not responding correctly',
+      };
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      status: 'unhealthy',
+      auth: authOk,
+      api: false,
+      latency_ms: Date.now() - startTime,
+      message: `Connection failed: ${errorMessage}`,
+    };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const { action, company_id, ...params } = await req.json();
 
-    // company_id is now REQUIRED for all actions
+    // Health check doesn't require company_id
+    if (action === 'health_check') {
+      const result = await healthCheck();
+      return new Response(
+        JSON.stringify({ success: true, ...result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // company_id is REQUIRED for all other actions
     if (!company_id) {
       throw new Error('company_id is required');
     }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get company info
     const { data: company } = await supabase
