@@ -43,6 +43,7 @@ async function authenticate(): Promise<string> {
       grant_type: 'client_credentials',
       client_id: clientId,
       client_secret: clientSecret,
+      scope: 'token',
     }),
   });
 
@@ -77,7 +78,7 @@ async function getOrCreateCaseFile(
   }
 
   // Create new case file in Digital Trust
-  const response = await fetch(`${apiUrl}/case-files`, {
+  const response = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/case-files`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -137,7 +138,7 @@ async function getOrCreateEvidenceGroup(
   }
 
   // Create new evidence group in Digital Trust
-  const response = await fetch(`${apiUrl}/case-files/${caseFileExternalId}/evidence-groups`, {
+  const response = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/case-files/${caseFileExternalId}/evidence-groups`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -201,7 +202,7 @@ async function createTSPEvidence(
 
   try {
     // Create evidence in Digital Trust with TSP
-    const response = await fetch(`${apiUrl}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
+    const response = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -233,7 +234,7 @@ async function createTSPEvidence(
     while (!tspToken && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const statusResponse = await fetch(`${apiUrl}/evidences/${dtEvidence.id}`, {
+      const statusResponse = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -307,7 +308,7 @@ async function sealPDF(
     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
     // Create evidence with qualified signature
-    const response = await fetch(`${apiUrl}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
+    const response = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -344,7 +345,7 @@ async function sealPDF(
     while (!sealedPdfBase64 && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      const statusResponse = await fetch(`${apiUrl}/evidences/${dtEvidence.id}`, {
+      const statusResponse = await fetch(`${apiUrl}/digital-trust/api/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
