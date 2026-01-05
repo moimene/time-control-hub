@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
@@ -13,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  Shield
+  Shield,
+  Building2
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -32,6 +34,7 @@ interface NavItem {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, signOut, isAdmin, isResponsible } = useAuth();
+  const { company } = useCompany();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -85,6 +88,15 @@ export function AppLayout({ children }: AppLayoutProps) {
               <span className="font-semibold">Control Horario</span>
             </Link>
           </div>
+          
+          {company && (
+            <div className="border-b px-6 py-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Building2 className="h-4 w-4" />
+                <span className="truncate font-medium">{company.name}</span>
+              </div>
+            </div>
+          )}
 
           <nav className="flex flex-col gap-1 p-4">
             {filteredNavItems.map((item) => (

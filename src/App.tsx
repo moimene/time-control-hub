@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useCompany } from "@/hooks/useCompany";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Pages
 import Auth from "./pages/Auth";
+import CompanySetup from "./pages/CompanySetup";
 import Dashboard from "./pages/admin/Dashboard";
 import Employees from "./pages/admin/Employees";
 import Terminals from "./pages/admin/Terminals";
@@ -27,9 +29,10 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, loading, isAdmin, isResponsible, isEmployee } = useAuth();
+  const { user, loading, isAdmin, isResponsible, isEmployee, isSuperAdmin } = useAuth();
+  const { hasCompany, isLoading: companyLoading } = useCompany();
 
-  if (loading) {
+  if (loading || (user && companyLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -40,16 +43,23 @@ function AppRoutes() {
   // Redirect logic for root
   const getDefaultRoute = () => {
     if (!user) return "/auth";
+    // Super admin can access without company
+    if (isSuperAdmin) return "/admin";
+    // If user has no company, redirect to setup
+    if (!hasCompany && (isAdmin || !isEmployee)) return "/company-setup";
     if (isAdmin || isResponsible) return "/admin";
     if (isEmployee) return "/employee";
-    // Users without roles go to auth to prevent redirect loop
-    return "/auth";
+    // Users without roles go to company setup
+    return "/company-setup";
   };
 
   return (
     <Routes>
       <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/company-setup" element={
+        user ? <CompanySetup /> : <Navigate to="/auth" replace />
+      } />
       
       {/* Kiosk route - no auth required */}
       <Route path="/kiosk" element={<KioskHome />} />

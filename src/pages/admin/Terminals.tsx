@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +49,7 @@ export default function Terminals() {
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { companyId } = useCompany();
 
   const { data: terminals, isLoading } = useQuery({
     queryKey: ['terminals'],
@@ -63,11 +65,13 @@ export default function Terminals() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; location: string }) => {
+      if (!companyId) throw new Error('No hay empresa configurada');
       const code = generatePairingCode();
       const { error, data: terminal } = await supabase
         .from('terminals')
         .insert({
           ...data,
+          company_id: companyId,
           pairing_code: code,
           pairing_expires_at: addMinutes(new Date(), 30).toISOString(),
           status: 'pending' as TerminalStatus,
