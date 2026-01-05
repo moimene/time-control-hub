@@ -71,28 +71,31 @@ serve(async (req) => {
         );
       }
 
-      // Simple PIN verification (in production, use proper hashing)
-      // For now, we'll just compare directly since we don't have hashed PINs set up
-      if (!emp.pin_hash) {
-        // If no PIN is set, use the last 4 digits of employee_code as default PIN
-        const defaultPin = emp.employee_code.slice(-4).padStart(4, '0');
-        if (pin !== defaultPin) {
-          // Increment failed attempts
-          await supabase
-            .from('employees')
-            .update({ 
-              pin_failed_attempts: (emp.pin_failed_attempts || 0) + 1,
-              pin_locked_until: (emp.pin_failed_attempts || 0) >= 4 
-                ? new Date(Date.now() + 15 * 60 * 1000).toISOString() 
-                : null
-            })
-            .eq('id', emp.id);
+      // Verify PIN with hash
+      const encoder = new TextEncoder();
+      const pinWithSalt = encoder.encode(pin + emp.pin_salt);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', pinWithSalt);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-          return new Response(
-            JSON.stringify({ success: false, error: 'PIN incorrecto' }),
-            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
+      if (computedHash !== emp.pin_hash) {
+        // Increment failed attempts
+        const newAttempts = (emp.pin_failed_attempts || 0) + 1;
+        await supabase
+          .from('employees')
+          .update({ 
+            pin_failed_attempts: newAttempts,
+            pin_locked_until: newAttempts >= 5 
+              ? new Date(Date.now() + 15 * 60 * 1000).toISOString() 
+              : null
+          })
+          .eq('id', emp.id);
+
+        console.log(`PIN failed for ${employee_code}, attempts: ${newAttempts}`);
+        return new Response(
+          JSON.stringify({ success: false, error: 'PIN incorrecto' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       // Reset failed attempts on successful login
