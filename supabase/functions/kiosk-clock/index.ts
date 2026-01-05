@@ -37,11 +37,147 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, employee_code, pin, qr_token, terminal_id, event_type, override_reason } = await req.json();
+    const body = await req.json();
+    const { action, employee_code, pin, qr_token, terminal_id, event_type, override_reason, events } = body;
     
     console.log(`Kiosk clock action: ${action}, employee_code: ${employee_code}, terminal: ${terminal_id}${override_reason ? `, override_reason: ${override_reason}` : ''}`);
 
-    // Validate employee code action - returns employee info and next event type
+    // ========== SYNC OFFLINE EVENTS ==========
+    if (action === 'sync_offline' && events && Array.isArray(events)) {
+      console.log(`Syncing ${events.length} offline events`);
+      const results: Array<{ offline_uuid: string; success: boolean; error?: string; event_id?: string }> = [];
+
+      for (const offlineEvent of events) {
+        try {
+          const { offline_uuid, employee_code: empCode, event_type: evtType, local_timestamp, auth_method, auth_data, override_reason: ovReason } = offlineEvent;
+
+          // Check if already synced (prevent duplicates)
+          const { data: existing } = await supabase
+            .from('time_events')
+            .select('id')
+            .eq('offline_uuid', offline_uuid)
+            .maybeSingle();
+
+          if (existing) {
+            console.log(`Event ${offline_uuid} already synced as ${existing.id}`);
+            results.push({ offline_uuid, success: true, event_id: existing.id });
+            continue;
+          }
+
+          // Get employee
+          const { data: emp, error: empError } = await supabase
+            .from('employees')
+            .select('id, first_name, last_name, employee_code, pin_hash, pin_salt, status')
+            .eq('employee_code', empCode)
+            .maybeSingle();
+
+          if (empError || !emp) {
+            console.error(`Employee not found for offline event: ${empCode}`);
+            results.push({ offline_uuid, success: false, error: 'Empleado no encontrado' });
+            continue;
+          }
+
+          if (emp.status !== 'active') {
+            results.push({ offline_uuid, success: false, error: 'Empleado no activo' });
+            continue;
+          }
+
+          // Authenticate based on method
+          if (auth_method === 'pin') {
+            const encoder = new TextEncoder();
+            const pinWithSalt = encoder.encode(auth_data + emp.pin_salt);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', pinWithSalt);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            if (computedHash !== emp.pin_hash) {
+              console.log(`PIN verification failed for offline event ${offline_uuid}`);
+              results.push({ offline_uuid, success: false, error: 'PIN incorrecto' });
+              continue;
+            }
+          } else if (auth_method === 'qr') {
+            const [, tokenHash] = auth_data.split(':');
+            const { data: qrData, error: qrError } = await supabase
+              .from('employee_qr')
+              .select('employee_id, is_active')
+              .eq('token_hash', tokenHash)
+              .eq('is_active', true)
+              .maybeSingle();
+
+            if (qrError || !qrData || qrData.employee_id !== emp.id) {
+              console.log(`QR verification failed for offline event ${offline_uuid}`);
+              results.push({ offline_uuid, success: false, error: 'QR no válido' });
+              continue;
+            }
+          }
+
+          // Get previous hash for chain integrity
+          const { data: lastEventForHash } = await supabase
+            .from('time_events')
+            .select('event_hash')
+            .eq('employee_id', emp.id)
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const previousHash = lastEventForHash?.event_hash || null;
+
+          // Compute hash for this event
+          const eventHash = await computeEventHash({
+            employee_id: emp.id,
+            event_type: evtType,
+            timestamp: local_timestamp,
+            previous_hash: previousHash,
+          });
+
+          // Insert the time event
+          const rawPayload = ovReason ? { override_reason: ovReason, offline_sync: true } : { offline_sync: true };
+          
+          const { data: timeEvent, error: eventError } = await supabase
+            .from('time_events')
+            .insert({
+              employee_id: emp.id,
+              event_type: evtType,
+              event_source: auth_method,
+              timestamp: local_timestamp,
+              local_timestamp: local_timestamp,
+              terminal_id: terminal_id || null,
+              timezone: 'Europe/Madrid',
+              raw_payload: rawPayload,
+              event_hash: eventHash,
+              previous_hash: previousHash,
+              offline_uuid: offline_uuid,
+              synced_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (eventError) {
+            console.error(`Error creating offline event ${offline_uuid}:`, eventError);
+            results.push({ offline_uuid, success: false, error: 'Error al registrar' });
+            continue;
+          }
+
+          console.log(`Offline event ${offline_uuid} synced as ${timeEvent.id}`);
+          results.push({ offline_uuid, success: true, event_id: timeEvent.id });
+
+        } catch (err) {
+          console.error(`Error processing offline event:`, err);
+          results.push({ offline_uuid: offlineEvent.offline_uuid, success: false, error: 'Error interno' });
+        }
+      }
+
+      const synced = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+      console.log(`Sync complete: ${synced} synced, ${failed} failed`);
+
+      return new Response(
+        JSON.stringify({ success: true, results, synced, failed }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ========== VALIDATE EMPLOYEE ==========
     if (action === 'validate' && employee_code) {
       const { data: emp, error: empError } = await supabase
         .from('employees')
@@ -113,7 +249,7 @@ serve(async (req) => {
 
     let employee = null;
 
-    // Authenticate by PIN
+    // ========== AUTHENTICATE BY PIN ==========
     if (action === 'pin' && employee_code && pin) {
       const { data: emp, error: empError } = await supabase
         .from('employees')
@@ -180,7 +316,7 @@ serve(async (req) => {
       employee = emp;
     }
 
-    // Authenticate by QR
+    // ========== AUTHENTICATE BY QR ==========
     if (action === 'qr' && qr_token) {
       // Parse QR token (format: employee_code:token_hash)
       const [empCode, tokenHash] = qr_token.split(':');
@@ -218,7 +354,7 @@ serve(async (req) => {
       );
     }
 
-    // Determine event type and validate against last event
+    // ========== DETERMINE EVENT TYPE ==========
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -257,7 +393,7 @@ serve(async (req) => {
       );
     }
 
-    // Record the time event with hash chain
+    // ========== RECORD TIME EVENT ==========
     const now = new Date();
     const rawPayload = override_reason ? { override_reason } : null;
     

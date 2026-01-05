@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, LogIn, LogOut, AlertCircle } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, AlertCircle, CloudOff } from 'lucide-react';
 
 const OVERRIDE_REASON_LABELS: Record<string, string> = {
   'forgot_mark': 'Olvidé marcar',
@@ -21,6 +21,7 @@ interface ClockResult {
     type: 'entry' | 'exit';
     timestamp: string;
   };
+  isOffline?: boolean;
 }
 
 interface OverrideInfo {
@@ -32,6 +33,7 @@ interface KioskSuccessProps {
   result: ClockResult;
   onClose: () => void;
   overrideInfo?: OverrideInfo;
+  isOffline?: boolean;
 }
 
 function getReasonLabel(reason: string): string {
@@ -41,7 +43,7 @@ function getReasonLabel(reason: string): string {
   return OVERRIDE_REASON_LABELS[reason] || reason;
 }
 
-export function KioskSuccess({ result, onClose, overrideInfo }: KioskSuccessProps) {
+export function KioskSuccess({ result, onClose, overrideInfo, isOffline }: KioskSuccessProps) {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
@@ -93,6 +95,19 @@ export function KioskSuccess({ result, onClose, overrideInfo }: KioskSuccessProp
               </>
             )}
           </div>
+
+          {/* Offline Notice */}
+          {isOffline && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-400 mb-1">
+                <CloudOff className="h-4 w-4" />
+                <span className="text-sm font-medium">Fichaje guardado localmente</span>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-500">
+                Se sincronizará automáticamente cuando vuelva la conexión
+              </p>
+            </div>
+          )}
 
           {/* Override Notice */}
           {overrideInfo && (
