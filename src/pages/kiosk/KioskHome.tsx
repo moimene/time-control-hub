@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +6,10 @@ import { Clock, QrCode, KeyRound } from 'lucide-react';
 import { KioskPinPad } from '@/components/kiosk/KioskPinPad';
 import { KioskQrScanner } from '@/components/kiosk/KioskQrScanner';
 import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
+import { OfflineIndicator } from '@/components/kiosk/OfflineIndicator';
 import { useToast } from '@/hooks/use-toast';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { supabase } from '@/integrations/supabase/client';
 
 type KioskMode = 'home' | 'pin' | 'qr' | 'success';
@@ -22,6 +25,7 @@ interface ClockResult {
     type: 'entry' | 'exit';
     timestamp: string;
   };
+  isOffline?: boolean;
 }
 
 export default function KioskHome() {
@@ -34,6 +38,9 @@ export default function KioskHome() {
   const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
   const [overrideInfo, setOverrideInfo] = useState<{ eventType: 'entry' | 'exit'; reason: string } | null>(null);
   const { toast } = useToast();
+  
+  const { isOnline } = useConnectionStatus();
+  const { queueSize, isSyncing, lastSync, addToQueue, syncQueue } = useOfflineQueue();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,8 +49,35 @@ export default function KioskHome() {
     return () => clearInterval(timer);
   }, []);
 
-  // Validate employee code and get name + determine next event type via Edge Function
-  const handleValidateCode = async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && queueSize > 0) {
+      syncQueue().then(({ synced, failed }) => {
+        if (synced > 0) {
+          toast({
+            title: 'Sincronización completada',
+            description: `${synced} fichaje${synced !== 1 ? 's' : ''} sincronizado${synced !== 1 ? 's' : ''}`,
+          });
+        }
+        if (failed > 0) {
+          toast({
+            variant: 'destructive',
+            title: 'Error de sincronización',
+            description: `${failed} fichaje${failed !== 1 ? 's' : ''} no se pudo${failed !== 1 ? 'ieron' : ''} sincronizar`,
+          });
+        }
+      });
+    }
+  }, [isOnline, queueSize, syncQueue, toast]);
+
+  // Validate employee code - works offline with cached validation
+  const handleValidateCode = useCallback(async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
+    if (!isOnline) {
+      // In offline mode, we accept the code without validation
+      // The server will validate when syncing
+      return { valid: true, name: 'Empleado' };
+    }
+
     setIsValidating(true);
     try {
       const { data, error } = await supabase.functions.invoke('kiosk-clock', {
@@ -66,6 +100,10 @@ export default function KioskHome() {
       setEmployeeName(data.employee.first_name);
       return { valid: true, name: data.employee.first_name };
     } catch (err) {
+      // If connection fails, allow offline mode
+      if (!isOnline) {
+        return { valid: true, name: 'Empleado' };
+      }
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -75,14 +113,60 @@ export default function KioskHome() {
     } finally {
       setIsValidating(false);
     }
-  };
+  }, [isOnline, toast]);
 
-  const handlePinSubmit = async (
+  const handlePinSubmit = useCallback(async (
     employeeCode: string, 
     pin: string, 
     overrideData?: { eventType: 'entry' | 'exit'; reason: string }
   ) => {
     setIsLoading(true);
+    
+    // If offline, store in queue
+    if (!isOnline) {
+      try {
+        const eventType = overrideData?.eventType || nextEventType;
+        const offlineEvent = await addToQueue(
+          employeeCode,
+          eventType,
+          'pin',
+          pin,
+          overrideData?.reason
+        );
+
+        setClockResult({
+          employee: {
+            first_name: employeeName || 'Empleado',
+            last_name: '',
+            employee_code: employeeCode,
+          },
+          event: {
+            id: offlineEvent.id,
+            type: eventType,
+            timestamp: offlineEvent.local_timestamp,
+          },
+          isOffline: true,
+        });
+        setOverrideInfo(overrideData || null);
+        setMode('success');
+        
+        toast({
+          title: 'Fichaje guardado localmente',
+          description: 'Se sincronizará automáticamente cuando vuelva la conexión',
+        });
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo guardar el fichaje offline',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Online mode - send directly
     try {
       const body: Record<string, unknown> = {
         action: 'pin',
@@ -90,7 +174,6 @@ export default function KioskHome() {
         pin: pin,
       };
 
-      // If manual override, add the event type and reason
       if (overrideData) {
         body.event_type = overrideData.eventType;
         body.override_reason = overrideData.reason;
@@ -109,22 +192,104 @@ export default function KioskHome() {
         return;
       }
 
-      setClockResult(data);
+      setClockResult({ ...data, isOffline: false });
       setOverrideInfo(overrideData || null);
       setMode('success');
     } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Error de conexión',
-      });
+      // If request fails, try offline mode
+      const eventType = overrideData?.eventType || nextEventType;
+      try {
+        const offlineEvent = await addToQueue(
+          employeeCode,
+          eventType,
+          'pin',
+          pin,
+          overrideData?.reason
+        );
+
+        setClockResult({
+          employee: {
+            first_name: employeeName || 'Empleado',
+            last_name: '',
+            employee_code: employeeCode,
+          },
+          event: {
+            id: offlineEvent.id,
+            type: eventType,
+            timestamp: offlineEvent.local_timestamp,
+          },
+          isOffline: true,
+        });
+        setOverrideInfo(overrideData || null);
+        setMode('success');
+        
+        toast({
+          title: 'Conexión perdida',
+          description: 'Fichaje guardado localmente, se sincronizará automáticamente',
+        });
+      } catch (offlineErr) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Error de conexión y no se pudo guardar offline',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isOnline, nextEventType, employeeName, addToQueue, toast]);
 
-  const handleQrScan = async (qrToken: string) => {
+  const handleQrScan = useCallback(async (qrToken: string) => {
     setIsLoading(true);
+    
+    // Parse QR token to get employee code
+    const [empCode] = qrToken.split(':');
+    
+    // If offline, store in queue
+    if (!isOnline) {
+      try {
+        const eventType = nextEventType;
+        const offlineEvent = await addToQueue(
+          empCode,
+          eventType,
+          'qr',
+          qrToken
+        );
+
+        setClockResult({
+          employee: {
+            first_name: 'Empleado',
+            last_name: '',
+            employee_code: empCode,
+          },
+          event: {
+            id: offlineEvent.id,
+            type: eventType,
+            timestamp: offlineEvent.local_timestamp,
+          },
+          isOffline: true,
+        });
+        setOverrideInfo(null);
+        setMode('success');
+        
+        toast({
+          title: 'Fichaje guardado localmente',
+          description: 'Se sincronizará automáticamente cuando vuelva la conexión',
+        });
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No se pudo guardar el fichaje offline',
+        });
+        setMode('home');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Online mode
     try {
       const { data, error } = await supabase.functions.invoke('kiosk-clock', {
         body: {
@@ -143,71 +308,135 @@ export default function KioskHome() {
         return;
       }
 
-      setClockResult(data);
+      setClockResult({ ...data, isOffline: false });
       setOverrideInfo(null);
       setMode('success');
     } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Error de conexión',
-      });
-      setMode('home');
+      // If request fails, try offline mode
+      try {
+        const eventType = nextEventType;
+        const offlineEvent = await addToQueue(
+          empCode,
+          eventType,
+          'qr',
+          qrToken
+        );
+
+        setClockResult({
+          employee: {
+            first_name: 'Empleado',
+            last_name: '',
+            employee_code: empCode,
+          },
+          event: {
+            id: offlineEvent.id,
+            type: eventType,
+            timestamp: offlineEvent.local_timestamp,
+          },
+          isOffline: true,
+        });
+        setOverrideInfo(null);
+        setMode('success');
+        
+        toast({
+          title: 'Conexión perdida',
+          description: 'Fichaje guardado localmente, se sincronizará automáticamente',
+        });
+      } catch (offlineErr) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Error de conexión',
+        });
+        setMode('home');
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isOnline, nextEventType, addToQueue, toast]);
 
-  const handleSuccessClose = () => {
+  const handleSuccessClose = useCallback(() => {
     setClockResult(null);
     setOverrideInfo(null);
     setEmployeeName('');
     setNextEventType('entry');
     setMode('home');
-  };
+  }, []);
 
-  const handlePinCancel = () => {
+  const handlePinCancel = useCallback(() => {
     setEmployeeName('');
     setNextEventType('entry');
     setMode('home');
-  };
+  }, []);
 
   if (mode === 'pin') {
     return (
-      <KioskPinPad
-        onSubmit={handlePinSubmit}
-        onCancel={handlePinCancel}
-        onValidateCode={handleValidateCode}
-        isLoading={isLoading}
-        isValidating={isValidating}
-        employeeName={employeeName}
-        nextEventType={nextEventType}
-      />
+      <>
+        <OfflineIndicator 
+          isOnline={isOnline} 
+          queueSize={queueSize} 
+          isSyncing={isSyncing}
+          lastSync={lastSync}
+        />
+        <KioskPinPad
+          onSubmit={handlePinSubmit}
+          onCancel={handlePinCancel}
+          onValidateCode={handleValidateCode}
+          isLoading={isLoading}
+          isValidating={isValidating}
+          employeeName={employeeName}
+          nextEventType={nextEventType}
+        />
+      </>
     );
   }
 
   if (mode === 'qr') {
     return (
-      <KioskQrScanner
-        onScan={handleQrScan}
-        onCancel={() => setMode('home')}
-        isLoading={isLoading}
-      />
+      <>
+        <OfflineIndicator 
+          isOnline={isOnline} 
+          queueSize={queueSize} 
+          isSyncing={isSyncing}
+          lastSync={lastSync}
+        />
+        <KioskQrScanner
+          onScan={handleQrScan}
+          onCancel={() => setMode('home')}
+          isLoading={isLoading}
+        />
+      </>
     );
   }
 
   if (mode === 'success' && clockResult) {
     return (
-      <KioskSuccess
-        result={clockResult}
-        onClose={handleSuccessClose}
-        overrideInfo={overrideInfo || undefined}
-      />
+      <>
+        <OfflineIndicator 
+          isOnline={isOnline} 
+          queueSize={queueSize} 
+          isSyncing={isSyncing}
+          lastSync={lastSync}
+        />
+        <KioskSuccess
+          result={clockResult}
+          onClose={handleSuccessClose}
+          overrideInfo={overrideInfo || undefined}
+          isOffline={clockResult.isOffline}
+        />
+      </>
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
+      <OfflineIndicator 
+        isOnline={isOnline} 
+        queueSize={queueSize} 
+        isSyncing={isSyncing}
+        lastSync={lastSync}
+      />
+      
       {/* Clock Display */}
       <div className="text-center mb-12">
         <div className="flex items-center justify-center gap-3 mb-4">
@@ -257,7 +486,7 @@ export default function KioskHome() {
 
       {/* Footer */}
       <div className="mt-12 text-sm text-muted-foreground">
-        Toca una opción para fichar
+        {!isOnline ? 'Modo sin conexión activo - Los fichajes se guardarán localmente' : 'Toca una opción para fichar'}
       </div>
     </div>
   );
