@@ -30,8 +30,9 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, QrCode } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, QrCode, KeyRound } from 'lucide-react';
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
+import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
 import type { Employee, EmployeeStatus } from '@/types/database';
 
 const statusLabels: Record<EmployeeStatus, string> = {
@@ -54,6 +55,8 @@ export default function Employees() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [pinEmployee, setPinEmployee] = useState<Employee | null>(null);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -327,6 +330,17 @@ export default function Employees() {
                         >
                           <QrCode className="h-4 w-4" />
                         </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Cambiar PIN"
+                          onClick={() => {
+                            setPinEmployee(employee);
+                            setPinDialogOpen(true);
+                          }}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -361,6 +375,12 @@ export default function Employees() {
           employee={qrEmployee}
           open={qrDialogOpen}
           onOpenChange={setQrDialogOpen}
+        />
+
+        <EmployeePinDialog
+          employee={pinEmployee}
+          open={pinDialogOpen}
+          onOpenChange={setPinDialogOpen}
         />
       </div>
     </AppLayout>
