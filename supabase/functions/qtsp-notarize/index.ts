@@ -14,7 +14,10 @@ interface DTAuthResponse {
 
 interface DTCaseFile {
   id: string;
-  name: string;
+  title: string;
+  code: string;
+  category: string;
+  owner: string;
 }
 
 interface DTEvidenceGroup {
@@ -93,7 +96,7 @@ async function getOrCreateCaseFile(
   companyName: string
 ): Promise<{ id: string; externalId: string }> {
   const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
-  
+
   // Check if we already have a case file for this company
   const { data: existing } = await supabase
     .from('dt_case_files')
@@ -107,24 +110,31 @@ async function getOrCreateCaseFile(
   }
 
   console.log(`Creating new case file for company ${companyId}`);
-  
+
   // Create new case file in Digital Trust
   // Generate a unique ID for the case file (UUID format required by DT API)
   const caseFileId = crypto.randomUUID();
-  
+
   // Normalize company name to avoid special character issues
   const normalizedName = companyName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9\s-]/g, '');
-  
+
   const requestBody = {
     id: caseFileId,
-    name: `Registro Horario - ${normalizedName}`.substring(0, 100),
-    description: `Evidencias de fichaje para ${normalizedName}`.substring(0, 255),
+    title: `Registro Horario - ${normalizedName}`.substring(0, 100),
+    code: `RH-${companyId.substring(0, 8).toUpperCase()}`,
+    category: 'TIME_TRACKING',
+    owner: 'time-control-hub',
+    metadata: {
+      system: 'time-control-hub',
+      company_id: companyId,
+      company_name: normalizedName,
+    },
   };
   console.log(`Creating case file with body: ${JSON.stringify(requestBody)}`);
-  
+
   const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files`, {
     method: 'POST',
     headers: {
@@ -148,7 +158,7 @@ async function getOrCreateCaseFile(
     .insert({
       external_id: caseFile.id,
       company_id: companyId,
-      name: caseFile.name,
+      name: caseFile.title,
       description: `Evidencias de fichaje para ${companyName}`,
     })
     .select()
@@ -186,7 +196,7 @@ async function getOrCreateEvidenceGroup(
 
   // Create new evidence group in Digital Trust
   const evidenceGroupId = crypto.randomUUID();
-  
+
   const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups`, {
     method: 'POST',
     headers: {
@@ -196,6 +206,8 @@ async function getOrCreateEvidenceGroup(
     body: JSON.stringify({
       id: evidenceGroupId,
       name: `Fichajes ${yearMonth}`,
+      type: 'VIDEO', // Valid type required by Digital Trust API
+      code: `GRP-${yearMonth.replace('-', '')}`,
     }),
   });
 
@@ -228,6 +240,7 @@ async function getOrCreateEvidenceGroup(
 async function createTSPEvidence(
   supabase: any,
   token: string,
+  caseFileExternalId: string,
   evidenceGroupExternalId: string,
   evidenceGroupId: string,
   dailyRootId: string,
@@ -247,13 +260,13 @@ async function createTSPEvidence(
 
   if (existingEvidence) {
     console.log(`Evidence already exists for daily_root ${dailyRootId}, status: ${existingEvidence.status}`);
-    
+
     if (existingEvidence.status === 'completed') {
-      await logQTSPOperation(supabase, companyId, 'timestamp', existingEvidence.id, 
+      await logQTSPOperation(supabase, companyId, 'timestamp', existingEvidence.id,
         { daily_root_id: dailyRootId }, { already_exists: true }, 'success', null, Date.now() - startTime);
       return { success: true, alreadyExists: true, evidence: existingEvidence };
     }
-    
+
     if (existingEvidence.status === 'processing') {
       // Check status in DT and update
       if (existingEvidence.external_id) {
@@ -261,7 +274,7 @@ async function createTSPEvidence(
         return { success: updated.status === 'completed', evidence: updated };
       }
     }
-    
+
     // If failed, we'll retry below
     console.log(`Retrying failed evidence for daily_root ${dailyRootId}`);
   }
@@ -284,34 +297,46 @@ async function createTSPEvidence(
     evidence = newEvidence;
   } else {
     // Reset status for retry
-    await supabase.from('dt_evidences').update({ 
-      status: 'processing', 
-      error_message: null 
+    await supabase.from('dt_evidences').update({
+      status: 'processing',
+      error_message: null
     }).eq('id', evidence.id);
   }
 
   try {
-    console.log(`Creating TSP evidence in Digital Trust for ${date}`);
-    
-    // Create evidence in Digital Trust with TSP
+    // Create evidence in Digital Trust with TSP using correct API schema
+    // Endpoint: /case-files/{caseFileId}/evidence-groups/{evidenceGroupId}/evidences
     const evidenceExternalId = crypto.randomUUID();
-    
-    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidence-groups/${evidenceGroupExternalId}/evidences`, {
+
+    const requestBody = {
+      evidenceId: evidenceExternalId,
+      hash: rootHash,
+      createdBy: 'time-control-hub',
+      title: `Merkle Root ${date}`,
+      capturedAt: new Date().toISOString(),
+      custodyType: 'EXTERNAL',
+      testimony: {
+        TSP: {
+          required: true,
+          providers: ['EADTrust']
+        }
+      },
+      metadata: {
+        system: 'time-control-hub',
+        daily_root_id: dailyRootId,
+        date: date,
+      }
+    };
+
+    console.log(`Creating evidence with body: ${JSON.stringify(requestBody)}`);
+
+    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        id: evidenceExternalId,
-        name: `Merkle Root ${date}`,
-        description: `Hash raíz del árbol Merkle de fichajes del día ${date}`,
-        data: rootHash,
-        tsp: {
-          provider: 'EADTRUST',
-          type: 'TIMESTAMP',
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -329,7 +354,7 @@ async function createTSPEvidence(
 
     while (!tspToken && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -366,7 +391,7 @@ async function createTSPEvidence(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error creating TSP evidence:', error);
-    
+
     await supabase.from('dt_evidences').update({
       status: 'failed',
       error_message: errorMessage,
@@ -405,9 +430,9 @@ async function checkAndUpdateEvidence(
     }
 
     const dtEvidence = await response.json();
-    
+
     const updateData: any = {};
-    
+
     if (evidence.evidence_type === 'daily_timestamp' && dtEvidence.tspToken && !evidence.tsp_token) {
       updateData.tsp_token = dtEvidence.tspToken;
       updateData.tsp_timestamp = new Date().toISOString();
@@ -436,10 +461,10 @@ async function checkAndUpdateEvidence(
 
     if (Object.keys(updateData).length > 0) {
       await supabase.from('dt_evidences').update(updateData).eq('id', evidence.id);
-      
+
       await logQTSPOperation(supabase, companyId, 'check_status', evidence.id,
         { external_id: evidence.external_id }, updateData, 'success', null, Date.now() - startTime);
-      
+
       return { ...evidence, ...updateData };
     }
 
@@ -475,13 +500,13 @@ async function sealPDF(
 
   if (existingEvidence) {
     console.log(`PDF seal evidence already exists for ${reportMonth}, status: ${existingEvidence.status}`);
-    
+
     if (existingEvidence.status === 'completed' && existingEvidence.sealed_pdf_path) {
       await logQTSPOperation(supabase, companyId, 'seal_pdf', existingEvidence.id,
         { report_month: reportMonth }, { already_exists: true }, 'success', null, Date.now() - startTime);
       return { sealedPdfPath: existingEvidence.sealed_pdf_path, alreadyExists: true };
     }
-    
+
     if (existingEvidence.status === 'processing' && existingEvidence.external_id) {
       const updated = await checkAndUpdateEvidence(supabase, token, existingEvidence, companyId);
       if (updated.sealed_pdf_path) {
@@ -508,9 +533,9 @@ async function sealPDF(
     if (evidenceError) throw evidenceError;
     evidence = newEvidence;
   } else {
-    await supabase.from('dt_evidences').update({ 
-      status: 'processing', 
-      error_message: null 
+    await supabase.from('dt_evidences').update({
+      status: 'processing',
+      error_message: null
     }).eq('id', evidence.id);
   }
 
@@ -558,7 +583,7 @@ async function sealPDF(
 
     while (!sealedPdfBase64 && attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
+
       const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -578,7 +603,7 @@ async function sealPDF(
         external_id: dtEvidence.id,
         status: 'processing',
       }).eq('id', evidence.id);
-      
+
       throw new Error('Timeout waiting for sealed PDF - will retry later');
     }
 
@@ -615,7 +640,7 @@ async function sealPDF(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error sealing PDF:', error);
-    
+
     await supabase.from('dt_evidences').update({
       status: 'failed',
       error_message: errorMessage,
@@ -636,7 +661,7 @@ async function retryFailedEvidences(
   companyId: string
 ): Promise<{ retried: number; succeeded: number; failed: number }> {
   const startTime = Date.now();
-  
+
   // Get all failed evidences for this company
   const { data: failedEvidences, error } = await supabase
     .from('dt_evidences')
@@ -666,6 +691,7 @@ async function retryFailedEvidences(
       if (evidence.evidence_type === 'daily_timestamp' && evidence.daily_roots) {
         await createTSPEvidence(
           supabase, token,
+          evidence.evidence_group.case_file?.external_id || '',
           evidence.evidence_group.external_id,
           evidence.evidence_group.id,
           evidence.daily_root_id,
@@ -771,7 +797,7 @@ serve(async (req) => {
 
     if (action === 'timestamp_daily') {
       const { daily_root_id, root_hash, date } = params;
-      
+
       if (!daily_root_id || !root_hash || !date) {
         throw new Error('Missing required parameters: daily_root_id, root_hash, date');
       }
@@ -782,23 +808,23 @@ serve(async (req) => {
       );
 
       const result = await createTSPEvidence(
-        supabase, token, evidenceGroup.externalId, evidenceGroup.id,
+        supabase, token, caseFile.externalId, evidenceGroup.externalId, evidenceGroup.id,
         daily_root_id, root_hash, date, company.id
       );
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: result.alreadyExists ? 'Daily root already timestamped' : 'Daily root timestamped',
           already_exists: result.alreadyExists,
-          evidence: result.evidence 
+          evidence: result.evidence
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
     } else if (action === 'seal_pdf') {
       const { pdf_base64, report_month, file_name } = params;
-      
+
       if (!pdf_base64 || !report_month || !file_name) {
         throw new Error('Missing required parameters: pdf_base64, report_month, file_name');
       }
@@ -808,15 +834,15 @@ serve(async (req) => {
       );
 
       const pdfBytes = Uint8Array.from(atob(pdf_base64), c => c.charCodeAt(0));
-      
+
       const result = await sealPDF(
         supabase, token, evidenceGroup.externalId, evidenceGroup.id,
         pdfBytes.buffer, report_month, file_name, company.id
       );
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           sealed_pdf_path: result.sealedPdfPath,
           already_exists: result.alreadyExists
         }),
@@ -825,7 +851,7 @@ serve(async (req) => {
 
     } else if (action === 'check_status') {
       const { evidence_id } = params;
-      
+
       if (evidence_id) {
         const { data: evidence } = await supabase
           .from('dt_evidences')
