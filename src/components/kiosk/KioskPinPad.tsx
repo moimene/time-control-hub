@@ -121,12 +121,31 @@ export function KioskPinPad({
     }
   };
 
-  // Display value: show EMP prefix for code step
-  const displayValue = step === 'code' 
-    ? (employeeNumber ? 'EMP' + employeeNumber.padStart(3, '0') : '') 
-    : pin;
   const currentValue = step === 'code' ? employeeNumber : pin;
   const minLength = step === 'code' ? 1 : 4;
+
+  // Render digit boxes for employee code
+  const renderCodeDigits = () => {
+    const digits = employeeNumber.padEnd(3, '').split('');
+    return (
+      <div className="flex items-center justify-center gap-2">
+        <span className="text-2xl font-bold text-muted-foreground mr-2">EMP</span>
+        {[0, 1, 2].map((index) => (
+          <div
+            key={index}
+            className={cn(
+              "w-14 h-16 flex items-center justify-center rounded-lg border-2 text-3xl font-mono font-bold transition-all",
+              digits[index] 
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" 
+                : "border-dashed border-muted-foreground/30 text-muted-foreground/50"
+            )}
+          >
+            {digits[index] || '_'}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Theme colors based on step
   const isCodeStep = step === 'code';
@@ -180,7 +199,7 @@ export function KioskPinPad({
           </CardTitle>
           <p className="text-muted-foreground text-sm mt-2">
             {isCodeStep 
-              ? 'Teclea tu número (ej: 1, 2, 3...)' 
+              ? 'Introduce los 3 dígitos de tu código (ej: 001)' 
               : 'Introduce tu PIN de 4 dígitos'}
           </p>
           {!isCodeStep && currentEventType && (
@@ -255,18 +274,17 @@ export function KioskPinPad({
         <CardContent className="space-y-6">
           {/* Display */}
           <div className="relative">
-            <Input
-              type={step === 'pin' ? 'password' : 'text'}
-              value={displayValue}
-              readOnly
-              className={cn(
-                "text-center text-3xl font-mono h-16 tracking-widest transition-colors duration-300",
-                isCodeStep 
-                  ? 'focus-visible:ring-blue-500' 
-                  : 'focus-visible:ring-green-500'
-              )}
-              placeholder={isCodeStep ? 'EMP00_' : '••••'}
-            />
+            {isCodeStep ? (
+              renderCodeDigits()
+            ) : (
+              <Input
+                type="password"
+                value={pin}
+                readOnly
+                className="text-center text-3xl font-mono h-16 tracking-widest transition-colors duration-300 focus-visible:ring-green-500"
+                placeholder="••••"
+              />
+            )}
           </div>
 
           {/* Number Pad */}
