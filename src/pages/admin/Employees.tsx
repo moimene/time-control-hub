@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, QrCode } from 'lucide-react';
+import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import type { Employee, EmployeeStatus } from '@/types/database';
 
 const statusLabels: Record<EmployeeStatus, string> = {
@@ -51,6 +52,8 @@ export default function Employees() {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -313,7 +316,15 @@ export default function Employees() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="Generar QR">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Ver QR"
+                          onClick={() => {
+                            setQrEmployee(employee);
+                            setQrDialogOpen(true);
+                          }}
+                        >
                           <QrCode className="h-4 w-4" />
                         </Button>
                         <Button
@@ -345,6 +356,12 @@ export default function Employees() {
             </TableBody>
           </Table>
         </div>
+
+        <EmployeeQrDialog
+          employee={qrEmployee}
+          open={qrDialogOpen}
+          onOpenChange={setQrDialogOpen}
+        />
       </div>
     </AppLayout>
   );
