@@ -32,6 +32,7 @@ export default function KioskHome() {
   const [isValidating, setIsValidating] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>('');
   const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
+  const [overrideInfo, setOverrideInfo] = useState<{ eventType: 'entry' | 'exit'; reason: string } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function KioskHome() {
       }
 
       setClockResult(data);
+      setOverrideInfo(overrideData || null);
       setMode('success');
     } catch (err) {
       toast({
@@ -155,6 +157,7 @@ export default function KioskHome() {
       }
 
       setClockResult(data);
+      setOverrideInfo(null);
       setMode('success');
     } catch (err) {
       toast({
@@ -170,6 +173,7 @@ export default function KioskHome() {
 
   const handleSuccessClose = () => {
     setClockResult(null);
+    setOverrideInfo(null);
     setEmployeeName('');
     setNextEventType('entry');
     setMode('home');
@@ -210,6 +214,7 @@ export default function KioskHome() {
       <KioskSuccess
         result={clockResult}
         onClose={handleSuccessClose}
+        overrideInfo={overrideInfo || undefined}
       />
     );
   }
