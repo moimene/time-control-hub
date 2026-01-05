@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CalendarIcon, Download, FileText, Clock, Users, TrendingUp } from 'lucide-react';
+import { CalendarIcon, Download, FileText, Clock, Users, TrendingUp, Shield, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -46,6 +46,7 @@ const eventSourceLabels: Record<EventSource, string> = {
 export default function Reports() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
+  const [sealingPdf, setSealingPdf] = useState(false);
 
   const { data: employees } = useQuery({
     queryKey: ['employees-list'],
@@ -101,7 +102,7 @@ export default function Reports() {
   }, {});
 
   // Log export to audit_log
-  const logExport = async (exportFormat: 'csv' | 'pdf', recordCount: number) => {
+  const logExport = async (exportFormat: 'csv' | 'pdf' | 'pdf_sealed', recordCount: number) => {
     try {
       await supabase.functions.invoke('log-export', {
         body: {
@@ -225,11 +226,129 @@ export default function Reports() {
       );
     }
 
+    const pdfOutput = doc.output('arraybuffer');
     doc.save(`informe_${format(month, 'yyyy-MM')}.pdf`);
 
     // Log export
     await logExport('pdf', records.length);
     toast.success('Informe PDF exportado y registrado');
+    
+    return pdfOutput;
+  };
+
+  // Seal PDF with qualified signature via QTSP
+  const sealPdfWithQTSP = async () => {
+    if (!records || !employeeSummary.length) {
+      toast.error('No hay datos para sellar');
+      return;
+    }
+
+    setSealingPdf(true);
+    try {
+      // Generate PDF content
+      const doc = new jsPDF();
+      const monthStr = format(month, 'MMMM yyyy', { locale: es });
+      const now = new Date();
+      
+      // Header
+      doc.setFontSize(18);
+      doc.text('Informe de Fichajes - COPIA SELLADA', 14, 20);
+      doc.setFontSize(12);
+      doc.text(`Período: ${monthStr}`, 14, 30);
+      doc.setFontSize(10);
+      doc.text(`Generado: ${format(now, 'dd/MM/yyyy HH:mm:ss')}`, 14, 38);
+      
+      if (selectedEmployee !== 'all') {
+        const emp = employees?.find(e => e.id === selectedEmployee);
+        if (emp) {
+          doc.text(`Empleado: ${emp.first_name} ${emp.last_name} (${emp.employee_code})`, 14, 46);
+        }
+      }
+
+      // Summary table
+      doc.setFontSize(14);
+      doc.text('Resumen por Empleado', 14, 58);
+      
+      autoTable(doc, {
+        startY: 62,
+        head: [['Código', 'Empleado', 'Días', 'Total Horas', 'Media/Día']],
+        body: employeeSummary.map((summary) => [
+          summary.employee?.employee_code || '',
+          `${summary.employee?.first_name} ${summary.employee?.last_name}`,
+          summary.totalDays.toString(),
+          formatMinutes(summary.totalMinutes),
+          formatMinutes(summary.avgMinutesPerDay),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+
+      // Detailed records table
+      const finalY = (doc as any).lastAutoTable?.finalY || 100;
+      
+      doc.setFontSize(14);
+      doc.text('Detalle de Fichajes', 14, finalY + 15);
+      
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [['Código', 'Nombre', 'Fecha', 'Tipo', 'Hora', 'Origen']],
+        body: records.map((record: any) => [
+          record.employees?.employee_code || '',
+          `${record.employees?.first_name} ${record.employees?.last_name}`,
+          format(new Date(record.timestamp), 'dd/MM/yyyy'),
+          eventTypeLabels[record.event_type as EventType],
+          format(new Date(record.timestamp), 'HH:mm:ss'),
+          eventSourceLabels[record.event_source as EventSource],
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 8 },
+      });
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128);
+        doc.text(
+          `Documento con firma electrónica cualificada. Conservar durante 4 años. Página ${i} de ${pageCount}`,
+          14,
+          doc.internal.pageSize.height - 10
+        );
+      }
+
+      // Get PDF as base64
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+      const fileName = `informe_${format(month, 'yyyy-MM')}.pdf`;
+      const reportMonth = format(month, 'yyyy-MM');
+
+      // Call QTSP edge function to seal the PDF
+      const { data, error } = await supabase.functions.invoke('qtsp-notarize', {
+        body: {
+          action: 'seal_pdf',
+          pdf_base64: pdfBase64,
+          report_month: reportMonth,
+          file_name: fileName,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('PDF sellado con firma cualificada correctamente');
+        // Log the export with seal
+        await logExport('pdf_sealed', records.length);
+      } else {
+        throw new Error(data?.error || 'Error al sellar el PDF');
+      }
+    } catch (error: unknown) {
+      console.error('Error sealing PDF:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error(`Error al sellar PDF: ${errorMessage}`);
+    } finally {
+      setSealingPdf(false);
+    }
   };
 
   const calculateHours = (dayRecords: any[]): number => {
@@ -291,9 +410,17 @@ export default function Reports() {
             <Download className="mr-2 h-4 w-4" />
             CSV
           </Button>
-          <Button onClick={exportPDF}>
+          <Button variant="outline" onClick={exportPDF}>
             <FileText className="mr-2 h-4 w-4" />
-            Exportar PDF
+            PDF
+          </Button>
+          <Button onClick={sealPdfWithQTSP} disabled={sealingPdf}>
+            {sealingPdf ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Shield className="mr-2 h-4 w-4" />
+            )}
+            Sellar PDF (QTSP)
           </Button>
         </div>
         </div>

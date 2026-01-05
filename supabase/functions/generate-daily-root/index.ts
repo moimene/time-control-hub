@@ -101,17 +101,48 @@ serve(async (req) => {
     console.log(`Computed root hash for ${dateStr}: ${rootHash.substring(0, 16)}... (${eventCount} events)`);
 
     // Insert daily root
-    const { error: insertError } = await supabase
+    const { data: insertedRoot, error: insertError } = await supabase
       .from('daily_roots')
       .insert({
         date: dateStr,
         root_hash: rootHash,
         event_count: eventCount,
-      });
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.error('Error inserting daily root:', insertError);
       throw insertError;
+    }
+
+    // Trigger QTSP timestamp for the daily root (non-blocking)
+    let qtspResult = null;
+    try {
+      const qtspResponse = await fetch(`${supabaseUrl}/functions/v1/qtsp-notarize`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'timestamp_daily',
+          daily_root_id: insertedRoot.id,
+          root_hash: rootHash,
+          date: dateStr,
+        }),
+      });
+
+      if (qtspResponse.ok) {
+        qtspResult = await qtspResponse.json();
+        console.log(`QTSP timestamp requested for ${dateStr}`);
+      } else {
+        const error = await qtspResponse.text();
+        console.error('QTSP timestamp request failed:', error);
+      }
+    } catch (qtspError) {
+      console.error('Error calling QTSP notarize:', qtspError);
+      // Don't fail the entire operation if QTSP fails
     }
 
     return new Response(
@@ -120,6 +151,7 @@ serve(async (req) => {
         date: dateStr,
         root_hash: rootHash,
         event_count: eventCount,
+        qtsp_timestamped: qtspResult?.success || false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
