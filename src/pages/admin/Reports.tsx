@@ -28,6 +28,9 @@ import { cn } from '@/lib/utils';
 import type { EventType, EventSource } from '@/types/database';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -97,7 +100,31 @@ export default function Reports() {
     return acc;
   }, {});
 
-  const exportCSV = () => {
+  // Log export to audit_log
+  const logExport = async (exportFormat: 'csv' | 'pdf', recordCount: number) => {
+    try {
+      await supabase.functions.invoke('log-export', {
+        body: {
+          format: exportFormat,
+          entity_type: 'time_events',
+          date_range: {
+            start: startOfMonth(month).toISOString(),
+            end: endOfMonth(month).toISOString(),
+          },
+          employee_id: selectedEmployee === 'all' ? null : selectedEmployee,
+          record_count: recordCount,
+          filters: {
+            month: format(month, 'yyyy-MM'),
+            employee: selectedEmployee,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error logging export:', error);
+    }
+  };
+
+  const exportCSV = async () => {
     if (!records) return;
 
     const headers = ['Código', 'Nombre', 'Fecha', 'Tipo', 'Hora', 'Origen'];
@@ -117,6 +144,92 @@ export default function Reports() {
     a.href = url;
     a.download = `informe_${format(month, 'yyyy-MM')}.csv`;
     a.click();
+
+    // Log export
+    await logExport('csv', records.length);
+    toast.success('Informe CSV exportado y registrado');
+  };
+
+  const exportPDF = async () => {
+    if (!records || !employeeSummary.length) return;
+
+    const doc = new jsPDF();
+    const monthStr = format(month, 'MMMM yyyy', { locale: es });
+    const now = new Date();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.text('Informe de Fichajes', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Período: ${monthStr}`, 14, 30);
+    doc.setFontSize(10);
+    doc.text(`Generado: ${format(now, 'dd/MM/yyyy HH:mm:ss')}`, 14, 38);
+    
+    if (selectedEmployee !== 'all') {
+      const emp = employees?.find(e => e.id === selectedEmployee);
+      if (emp) {
+        doc.text(`Empleado: ${emp.first_name} ${emp.last_name} (${emp.employee_code})`, 14, 46);
+      }
+    }
+
+    // Summary table
+    doc.setFontSize(14);
+    doc.text('Resumen por Empleado', 14, 58);
+    
+    autoTable(doc, {
+      startY: 62,
+      head: [['Código', 'Empleado', 'Días', 'Total Horas', 'Media/Día']],
+      body: employeeSummary.map((summary) => [
+        summary.employee?.employee_code || '',
+        `${summary.employee?.first_name} ${summary.employee?.last_name}`,
+        summary.totalDays.toString(),
+        formatMinutes(summary.totalMinutes),
+        formatMinutes(summary.avgMinutesPerDay),
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    // Detailed records table
+    const finalY = (doc as any).lastAutoTable?.finalY || 100;
+    
+    doc.setFontSize(14);
+    doc.text('Detalle de Fichajes', 14, finalY + 15);
+    
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [['Código', 'Nombre', 'Fecha', 'Tipo', 'Hora', 'Origen']],
+      body: records.map((record: any) => [
+        record.employees?.employee_code || '',
+        `${record.employees?.first_name} ${record.employees?.last_name}`,
+        format(new Date(record.timestamp), 'dd/MM/yyyy'),
+        eventTypeLabels[record.event_type as EventType],
+        format(new Date(record.timestamp), 'HH:mm:ss'),
+        eventSourceLabels[record.event_source as EventSource],
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 8 },
+    });
+
+    // Footer with legal compliance note
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text(
+        `Documento generado automáticamente. Conservar durante 4 años según normativa laboral. Página ${i} de ${pageCount}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+
+    doc.save(`informe_${format(month, 'yyyy-MM')}.pdf`);
+
+    // Log export
+    await logExport('pdf', records.length);
+    toast.success('Informe PDF exportado y registrado');
   };
 
   const calculateHours = (dayRecords: any[]): number => {
@@ -173,10 +286,16 @@ export default function Reports() {
             <h1 className="text-3xl font-bold tracking-tight">Informes</h1>
             <p className="text-muted-foreground">Genera informes de fichajes por período</p>
           </div>
-          <Button onClick={exportCSV}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV}>
             <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
+            CSV
           </Button>
+          <Button onClick={exportPDF}>
+            <FileText className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
         </div>
 
         {/* Filters */}
