@@ -147,6 +147,47 @@ async function getOrCreateCaseFile(
   if (!response.ok) {
     const error = await response.text();
     console.error('Create case file failed:', error);
+    
+    // Handle 409 Conflict - Case File already exists in Digital Trust
+    if (response.status === 409) {
+      console.log(`Case file already exists in DT, searching by code...`);
+      const caseCode = `RH-${companyId.substring(0, 8).toUpperCase()}`;
+      
+      const searchResponse = await fetch(
+        `${apiUrl}/digital-trust/api/v1/private/case-files?code=${caseCode}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        // API uses pagination, find by code in records array
+        const existingCaseFile = searchData.records?.find(
+          (cf: any) => cf.code === caseCode
+        );
+        
+        if (existingCaseFile) {
+          console.log(`Found existing case file in DT: ${existingCaseFile.id}`);
+          
+          // Save to our local database
+          const { data: inserted, error: insertError } = await supabase
+            .from('dt_case_files')
+            .insert({
+              external_id: existingCaseFile.id,
+              company_id: companyId,
+              name: existingCaseFile.title,
+              description: `Evidencias de fichaje para ${companyName}`,
+            })
+            .select()
+            .single();
+          
+          if (insertError) throw insertError;
+          return { id: inserted.id, externalId: existingCaseFile.id };
+        }
+      }
+      
+      console.error('Could not find existing case file in DT after 409');
+    }
+    
     throw new Error(`Failed to create case file: ${response.status}`);
   }
 
@@ -214,6 +255,47 @@ async function getOrCreateEvidenceGroup(
   if (!response.ok) {
     const error = await response.text();
     console.error('Create evidence group failed:', error);
+    
+    // Handle 409 Conflict - Evidence Group already exists in Digital Trust
+    if (response.status === 409) {
+      console.log(`Evidence group already exists in DT, searching by code...`);
+      const groupCode = `GRP-${yearMonth.replace('-', '')}`;
+      
+      const searchResponse = await fetch(
+        `${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups?code=${groupCode}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        // API uses pagination, find by code in records array
+        const existingGroup = searchData.records?.find(
+          (eg: any) => eg.code === groupCode
+        );
+        
+        if (existingGroup) {
+          console.log(`Found existing evidence group in DT: ${existingGroup.id}`);
+          
+          // Save to our local database
+          const { data: inserted, error: insertError } = await supabase
+            .from('dt_evidence_groups')
+            .insert({
+              external_id: existingGroup.id,
+              case_file_id: caseFileId,
+              name: existingGroup.name,
+              year_month: yearMonth,
+            })
+            .select()
+            .single();
+          
+          if (insertError) throw insertError;
+          return { id: inserted.id, externalId: existingGroup.id };
+        }
+      }
+      
+      console.error('Could not find existing evidence group in DT after 409');
+    }
+    
     throw new Error(`Failed to create evidence group: ${response.status}`);
   }
 
