@@ -17,9 +17,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, employee_code, pin, qr_token, terminal_id, event_type } = await req.json();
+    const { action, employee_code, pin, qr_token, terminal_id, event_type, override_reason } = await req.json();
     
-    console.log(`Kiosk clock action: ${action}, employee_code: ${employee_code}, terminal: ${terminal_id}`);
+    console.log(`Kiosk clock action: ${action}, employee_code: ${employee_code}, terminal: ${terminal_id}${override_reason ? `, override_reason: ${override_reason}` : ''}`);
 
     // Validate terminal if provided
     if (terminal_id) {
@@ -167,6 +167,8 @@ serve(async (req) => {
 
     // Record the time event
     const now = new Date();
+    const rawPayload = override_reason ? { override_reason } : null;
+    
     const { data: timeEvent, error: eventError } = await supabase
       .from('time_events')
       .insert({
@@ -177,6 +179,7 @@ serve(async (req) => {
         local_timestamp: now.toISOString(),
         terminal_id: terminal_id || null,
         timezone: 'Europe/Madrid',
+        raw_payload: rawPayload,
       })
       .select()
       .single();

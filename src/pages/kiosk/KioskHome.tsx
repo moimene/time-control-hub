@@ -89,15 +89,27 @@ export default function KioskHome() {
     }
   };
 
-  const handlePinSubmit = async (employeeCode: string, pin: string) => {
+  const handlePinSubmit = async (
+    employeeCode: string, 
+    pin: string, 
+    overrideData?: { eventType: 'entry' | 'exit'; reason: string }
+  ) => {
     setIsLoading(true);
     try {
+      const body: Record<string, unknown> = {
+        action: 'pin',
+        employee_code: employeeCode,
+        pin: pin,
+      };
+
+      // If manual override, add the event type and reason
+      if (overrideData) {
+        body.event_type = overrideData.eventType;
+        body.override_reason = overrideData.reason;
+      }
+
       const { data, error } = await supabase.functions.invoke('kiosk-clock', {
-        body: {
-          action: 'pin',
-          employee_code: employeeCode,
-          pin: pin,
-        },
+        body,
       });
 
       if (error || !data.success) {
