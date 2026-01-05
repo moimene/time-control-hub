@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.setup-test-users]
 verify_jwt = false
+
+[functions.log-export]
+verify_jwt = false
