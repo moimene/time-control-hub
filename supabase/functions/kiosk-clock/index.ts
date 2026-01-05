@@ -6,6 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to compute SHA-256 hash
+async function computeHash(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Compute event hash for chain integrity
+async function computeEventHash(event: {
+  employee_id: string;
+  event_type: string;
+  timestamp: string;
+  previous_hash: string | null;
+}): Promise<string> {
+  const dataToHash = `${event.employee_id}|${event.event_type}|${event.timestamp}|${event.previous_hash || 'GENESIS'}`;
+  return computeHash(dataToHash);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -237,9 +257,29 @@ serve(async (req) => {
       );
     }
 
-    // Record the time event
+    // Record the time event with hash chain
     const now = new Date();
     const rawPayload = override_reason ? { override_reason } : null;
+    
+    // Get previous hash for chain integrity
+    const { data: lastEventForHash } = await supabase
+      .from('time_events')
+      .select('event_hash')
+      .eq('employee_id', employee.id)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    const previousHash = lastEventForHash?.event_hash || null;
+    const timestamp = now.toISOString();
+    
+    // Compute hash for this event
+    const eventHash = await computeEventHash({
+      employee_id: employee.id,
+      event_type: finalEventType,
+      timestamp,
+      previous_hash: previousHash,
+    });
     
     const { data: timeEvent, error: eventError } = await supabase
       .from('time_events')
@@ -247,11 +287,13 @@ serve(async (req) => {
         employee_id: employee.id,
         event_type: finalEventType,
         event_source: action,
-        timestamp: now.toISOString(),
-        local_timestamp: now.toISOString(),
+        timestamp,
+        local_timestamp: timestamp,
         terminal_id: terminal_id || null,
         timezone: 'Europe/Madrid',
         raw_payload: rawPayload,
+        event_hash: eventHash,
+        previous_hash: previousHash,
       })
       .select()
       .single();
@@ -264,7 +306,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Time event created: ${timeEvent.id} - ${employee.first_name} ${employee.last_name} - ${finalEventType}`);
+    console.log(`Time event created: ${timeEvent.id} - ${employee.first_name} ${employee.last_name} - ${finalEventType} - hash: ${eventHash.substring(0, 8)}...`);
 
     return new Response(
       JSON.stringify({
