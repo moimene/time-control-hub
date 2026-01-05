@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw, Package, RotateCcw } from "lucide-react";
+import { Shield, Clock, FileText, CheckCircle, AlertCircle, Loader2, Download, RefreshCw, Package, RotateCcw, CalendarDays } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
+import { EvidenceCalendar } from "@/components/admin/EvidenceCalendar";
 
 export default function QTSPEvidence() {
   const { company, isLoading: loadingCompany } = useCompany();
@@ -75,6 +76,23 @@ export default function QTSPEvidence() {
       return data;
     },
     enabled: !!evidenceGroups && evidenceGroups.length > 0,
+  });
+
+  // Get all daily_roots for calendar (even those without evidences yet)
+  const { data: dailyRoots } = useQuery({
+    queryKey: ['daily-roots-calendar', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const { data, error } = await supabase
+        .from('daily_roots')
+        .select('id, date, root_hash, event_count')
+        .eq('company_id', company.id)
+        .order('date', { ascending: false })
+        .limit(365);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!company?.id,
   });
 
   const { data: auditLogs } = useQuery({
@@ -321,8 +339,12 @@ export default function QTSPEvidence() {
           </Card>
         </div>
 
-        <Tabs defaultValue="timestamps" className="space-y-4">
+        <Tabs defaultValue="calendar" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4" />
+              Calendario
+            </TabsTrigger>
             <TabsTrigger value="timestamps" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Timestamps Diarios
@@ -336,6 +358,13 @@ export default function QTSPEvidence() {
               Auditoría
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="calendar">
+            <EvidenceCalendar 
+              evidences={dailyTimestamps as any} 
+              dailyRoots={dailyRoots || []} 
+            />
+          </TabsContent>
 
           <TabsContent value="timestamps">
             <Card>
