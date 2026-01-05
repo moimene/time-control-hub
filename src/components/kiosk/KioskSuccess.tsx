@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, LogIn, LogOut } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, AlertCircle } from 'lucide-react';
+
+const OVERRIDE_REASON_LABELS: Record<string, string> = {
+  'forgot_mark': 'Olvidé marcar',
+  'system_unavailable': 'No estaba disponible el sistema',
+  'error_correction': 'Corrección de error',
+};
 
 interface ClockResult {
   employee: {
@@ -17,12 +23,25 @@ interface ClockResult {
   };
 }
 
+interface OverrideInfo {
+  eventType: 'entry' | 'exit';
+  reason: string;
+}
+
 interface KioskSuccessProps {
   result: ClockResult;
   onClose: () => void;
+  overrideInfo?: OverrideInfo;
 }
 
-export function KioskSuccess({ result, onClose }: KioskSuccessProps) {
+function getReasonLabel(reason: string): string {
+  if (reason.startsWith('other: ')) {
+    return reason.substring(7); // Remove "other: " prefix
+  }
+  return OVERRIDE_REASON_LABELS[reason] || reason;
+}
+
+export function KioskSuccess({ result, onClose, overrideInfo }: KioskSuccessProps) {
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
@@ -74,6 +93,19 @@ export function KioskSuccess({ result, onClose }: KioskSuccessProps) {
               </>
             )}
           </div>
+
+          {/* Override Notice */}
+          {overrideInfo && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <div className="flex items-center justify-center gap-2 text-amber-700 dark:text-amber-400 mb-1">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Fichaje modificado manualmente</span>
+              </div>
+              <p className="text-xs text-amber-600 dark:text-amber-500">
+                Motivo: {getReasonLabel(overrideInfo.reason)}
+              </p>
+            </div>
+          )}
 
           {/* Employee Name */}
           <div>
