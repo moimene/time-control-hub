@@ -198,24 +198,43 @@ serve(async (req) => {
       );
     }
 
-    // Determine event type if not provided
+    // Determine event type and validate against last event
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { data: lastEvent } = await supabase
+      .from('time_events')
+      .select('event_type, timestamp')
+      .eq('employee_id', employee.id)
+      .gte('timestamp', today.toISOString())
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     let finalEventType = event_type;
     if (!finalEventType) {
-      // Get last event for employee today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const { data: lastEvent } = await supabase
-        .from('time_events')
-        .select('event_type')
-        .eq('employee_id', employee.id)
-        .gte('timestamp', today.toISOString())
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
       // Toggle: if last was entry, next is exit; otherwise, entry
       finalEventType = lastEvent?.event_type === 'entry' ? 'exit' : 'entry';
+    }
+
+    // Validate: prevent duplicate consecutive events of the same type
+    if (lastEvent && lastEvent.event_type === finalEventType) {
+      const lastTypeEs = finalEventType === 'entry' ? 'Entrada' : 'Salida';
+      const expectedTypeEs = finalEventType === 'entry' ? 'Salida' : 'Entrada';
+      const lastTime = new Date(lastEvent.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      
+      console.log(`Conflict: ${employee.employee_code} tried to register ${finalEventType} but last event was also ${lastEvent.event_type}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          conflict: true,
+          error: `No puedes registrar otra ${lastTypeEs}. Tu último fichaje de hoy (${lastTime}) ya fue ${lastTypeEs}. Deberías registrar ${expectedTypeEs}.`,
+          last_event_type: lastEvent.event_type,
+          last_event_time: lastEvent.timestamp,
+        }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Record the time event
