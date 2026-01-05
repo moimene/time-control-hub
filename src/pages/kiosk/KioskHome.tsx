@@ -103,7 +103,7 @@ export default function KioskHome() {
       if (error || !data.success) {
         toast({
           variant: 'destructive',
-          title: 'Error',
+          title: data?.conflict ? 'Fichaje duplicado' : 'Error',
           description: data?.error || 'Error al fichar',
         });
         return;
@@ -136,7 +136,7 @@ export default function KioskHome() {
       if (error || !data.success) {
         toast({
           variant: 'destructive',
-          title: 'Error',
+          title: data?.conflict ? 'Fichaje duplicado' : 'Error',
           description: data?.error || 'Error al fichar',
         });
         setMode('home');
