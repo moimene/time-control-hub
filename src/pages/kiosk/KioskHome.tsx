@@ -42,42 +42,29 @@ export default function KioskHome() {
     return () => clearInterval(timer);
   }, []);
 
-  // Validate employee code and get name + determine next event type
+  // Validate employee code and get name + determine next event type via Edge Function
   const handleValidateCode = async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
     setIsValidating(true);
     try {
-      // Get employee info
-      const { data: employee, error: empError } = await supabase
-        .from('employees')
-        .select('id, first_name, last_name')
-        .eq('employee_code', employeeCode)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('kiosk-clock', {
+        body: {
+          action: 'validate',
+          employee_code: employeeCode,
+        },
+      });
 
-      if (empError || !employee) {
+      if (error || !data?.success) {
         toast({
           variant: 'destructive',
           title: 'Empleado no encontrado',
-          description: 'Verifica tu número de empleado',
+          description: data?.error || 'Verifica tu número de empleado',
         });
         return { valid: false };
       }
 
-      // Get last time event to determine next type
-      const { data: lastEvent } = await supabase
-        .from('time_events')
-        .select('event_type')
-        .eq('employee_id', employee.id)
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      // If last event was entry, next is exit; otherwise entry
-      const nextType: 'entry' | 'exit' = lastEvent?.event_type === 'entry' ? 'exit' : 'entry';
-      setNextEventType(nextType);
-
-      const fullName = employee.first_name;
-      setEmployeeName(fullName);
-      return { valid: true, name: fullName };
+      setNextEventType(data.next_event_type);
+      setEmployeeName(data.employee.first_name);
+      return { valid: true, name: data.employee.first_name };
     } catch (err) {
       toast({
         variant: 'destructive',

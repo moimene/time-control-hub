@@ -21,6 +21,59 @@ serve(async (req) => {
     
     console.log(`Kiosk clock action: ${action}, employee_code: ${employee_code}, terminal: ${terminal_id}${override_reason ? `, override_reason: ${override_reason}` : ''}`);
 
+    // Validate employee code action - returns employee info and next event type
+    if (action === 'validate' && employee_code) {
+      const { data: emp, error: empError } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, status')
+        .eq('employee_code', employee_code)
+        .maybeSingle();
+
+      if (empError || !emp) {
+        console.error('Employee not found for validation:', empError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Empleado no encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (emp.status !== 'active') {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Empleado no activo' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get last event to determine next type
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: lastEvent } = await supabase
+        .from('time_events')
+        .select('event_type')
+        .eq('employee_id', emp.id)
+        .gte('timestamp', today.toISOString())
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const nextEventType = lastEvent?.event_type === 'entry' ? 'exit' : 'entry';
+
+      console.log(`Validated employee ${employee_code}: ${emp.first_name} ${emp.last_name}, next event: ${nextEventType}`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          employee: {
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+          },
+          next_event_type: nextEventType,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validate terminal if provided
     if (terminal_id) {
       const { data: terminal, error: terminalError } = await supabase
