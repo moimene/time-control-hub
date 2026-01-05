@@ -1108,10 +1108,17 @@ sequenceDiagram
 
 | Prueba | Estado | Notas |
 |--------|--------|-------|
-| Sellado PDF mensual | 🔜 Pendiente | Requiere generación de reporte |
+| Sellado PDF mensual | ❌ Bloqueado | Error 404 en endpoint evidence-groups. La API de DT devuelve ID en búsqueda que no corresponde a evidence group válido. Requiere investigación de endpoints correctos. |
 | Retry de evidencias fallidas | ✅ Validado (sin fallos) | Simular fallo para test completo |
 | Exportación paquete probatorio | 🔜 Pendiente | Requiere evidencias completadas |
 | Alertas por email | 🔜 Pendiente | Requiere configuración Resend |
+
+### Incidencias Detectadas
+
+| Incidencia | Descripción | Acción Requerida |
+|------------|-------------|------------------|
+| Evidence Group ID inconsistente | La búsqueda global de evidence-groups en DT devuelve IDs que no funcionan en el endpoint de creación de evidencias | Verificar documentación de API Digital Trust para endpoints correctos |
+| Constraint daily_roots | El constraint unique es solo por `date`, debería ser por `(date, company_id)` | Migración para corregir constraint |
 
 ---
 
