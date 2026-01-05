@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompany";
@@ -35,6 +35,7 @@ export default function QTSPEvidence() {
   const [exportEndDate, setExportEndDate] = useState(() => 
     format(endOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')
   );
+  const [lastHealthStatus, setLastHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | null>(null);
 
   // Health check query - auto-refresh every 60 seconds
   const { data: healthStatus, isLoading: loadingHealth, refetch: refetchHealth } = useQuery({
@@ -49,6 +50,32 @@ export default function QTSPEvidence() {
     refetchInterval: 60000, // Every 60 seconds
     staleTime: 30000,
   });
+
+  // Auto-notification when health status changes to degraded/unhealthy
+  useEffect(() => {
+    if (!healthStatus) return;
+
+    if (lastHealthStatus !== null && lastHealthStatus !== healthStatus.status) {
+      if (healthStatus.status === 'unhealthy') {
+        toast.error('⚠️ API QTSP No Disponible', {
+          description: healthStatus.message,
+          duration: 10000,
+        });
+      } else if (healthStatus.status === 'degraded') {
+        toast.warning('⚠️ API QTSP Degradada', {
+          description: healthStatus.message,
+          duration: 8000,
+        });
+      } else if (healthStatus.status === 'healthy' && lastHealthStatus !== 'healthy') {
+        toast.success('✅ API QTSP Recuperada', {
+          description: 'La conexión con Digital Trust se ha restablecido',
+          duration: 5000,
+        });
+      }
+    }
+
+    setLastHealthStatus(healthStatus.status);
+  }, [healthStatus, lastHealthStatus]);
 
   const { data: caseFile, isLoading: loadingCaseFile } = useQuery({
     queryKey: ['dt-case-file', company?.id],
