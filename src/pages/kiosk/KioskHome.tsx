@@ -31,6 +31,7 @@ export default function KioskHome() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>('');
+  const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,17 +41,18 @@ export default function KioskHome() {
     return () => clearInterval(timer);
   }, []);
 
-  // Validate employee code and get name
+  // Validate employee code and get name + determine next event type
   const handleValidateCode = async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
     setIsValidating(true);
     try {
-      const { data, error } = await supabase
+      // Get employee info
+      const { data: employee, error: empError } = await supabase
         .from('employees')
-        .select('first_name, last_name')
+        .select('id, first_name, last_name')
         .eq('employee_code', employeeCode)
         .maybeSingle();
 
-      if (error || !data) {
+      if (empError || !employee) {
         toast({
           variant: 'destructive',
           title: 'Empleado no encontrado',
@@ -59,7 +61,20 @@ export default function KioskHome() {
         return { valid: false };
       }
 
-      const fullName = data.first_name;
+      // Get last time event to determine next type
+      const { data: lastEvent } = await supabase
+        .from('time_events')
+        .select('event_type')
+        .eq('employee_id', employee.id)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // If last event was entry, next is exit; otherwise entry
+      const nextType: 'entry' | 'exit' = lastEvent?.event_type === 'entry' ? 'exit' : 'entry';
+      setNextEventType(nextType);
+
+      const fullName = employee.first_name;
       setEmployeeName(fullName);
       return { valid: true, name: fullName };
     } catch (err) {
@@ -144,11 +159,13 @@ export default function KioskHome() {
   const handleSuccessClose = () => {
     setClockResult(null);
     setEmployeeName('');
+    setNextEventType('entry');
     setMode('home');
   };
 
   const handlePinCancel = () => {
     setEmployeeName('');
+    setNextEventType('entry');
     setMode('home');
   };
 
@@ -161,6 +178,7 @@ export default function KioskHome() {
         isLoading={isLoading}
         isValidating={isValidating}
         employeeName={employeeName}
+        nextEventType={nextEventType}
       />
     );
   }
