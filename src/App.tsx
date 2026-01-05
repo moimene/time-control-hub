@@ -14,6 +14,7 @@ import Terminals from "./pages/admin/Terminals";
 import TimeRecords from "./pages/admin/TimeRecords";
 import Corrections from "./pages/admin/Corrections";
 import Reports from "./pages/admin/Reports";
+import AuditLog from "./pages/admin/AuditLog";
 import Settings from "./pages/admin/Settings";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import RequestCorrection from "./pages/employee/RequestCorrection";
@@ -81,6 +82,11 @@ function AppRoutes() {
       <Route path="/admin/reports" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin', 'responsible']}>
           <Reports />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/audit" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <AuditLog />
         </ProtectedRoute>
       } />
       <Route path="/admin/settings" element={

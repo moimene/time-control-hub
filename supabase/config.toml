@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.log-export]
 verify_jwt = false
+
+[functions.generate-daily-root]
+verify_jwt = false
