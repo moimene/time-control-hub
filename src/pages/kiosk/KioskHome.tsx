@@ -3,17 +3,19 @@ import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Clock, QrCode, KeyRound } from 'lucide-react';
 import { KioskPinPad } from '@/components/kiosk/KioskPinPad';
 import { KioskQrScanner } from '@/components/kiosk/KioskQrScanner';
 import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
 import { OfflineIndicator } from '@/components/kiosk/OfflineIndicator';
+import { KioskTerminalSelector } from '@/components/kiosk/KioskTerminalSelector';
 import { useToast } from '@/hooks/use-toast';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { supabase } from '@/integrations/supabase/client';
 
-type KioskMode = 'home' | 'pin' | 'qr' | 'success';
+type KioskMode = 'select' | 'home' | 'pin' | 'qr' | 'success';
 
 interface ClockResult {
   employee: {
@@ -31,10 +33,11 @@ interface ClockResult {
 
 export default function KioskHome() {
   const [searchParams] = useSearchParams();
-  const terminalId = searchParams.get('terminal');
+  const urlTerminalId = searchParams.get('terminal');
   
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [mode, setMode] = useState<KioskMode>('home');
+  const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
+  const [mode, setMode] = useState<KioskMode>('select');
   const [clockResult, setClockResult] = useState<ClockResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -48,6 +51,17 @@ export default function KioskHome() {
   const { isOnline } = useConnectionStatus();
   const { queueSize, isSyncing, lastSync, addToQueue, syncQueue } = useOfflineQueue();
 
+  // Check for terminal from URL or localStorage on mount
+  useEffect(() => {
+    const savedTerminalId = localStorage.getItem('kiosk_terminal_id');
+    const terminalToUse = urlTerminalId || savedTerminalId;
+    
+    if (terminalToUse) {
+      setSelectedTerminalId(terminalToUse);
+      setMode('home');
+    }
+  }, [urlTerminalId]);
+
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -58,13 +72,13 @@ export default function KioskHome() {
   // Fetch company prefix from terminal
   useEffect(() => {
     const fetchCompanyPrefix = async () => {
-      if (!terminalId) return;
+      if (!selectedTerminalId) return;
       
       try {
         const { data: terminalData, error: terminalError } = await supabase
           .from('terminals')
           .select('company_id')
-          .eq('id', terminalId)
+          .eq('id', selectedTerminalId)
           .single();
         
         if (terminalError || !terminalData) return;
@@ -85,7 +99,7 @@ export default function KioskHome() {
     };
     
     fetchCompanyPrefix();
-  }, [terminalId]);
+  }, [selectedTerminalId]);
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -407,6 +421,30 @@ export default function KioskHome() {
     setMode('home');
   }, []);
 
+  const handleTerminalSelect = useCallback((terminalId: string) => {
+    setSelectedTerminalId(terminalId);
+    setMode('home');
+  }, []);
+
+  const handleChangeTerminal = useCallback(() => {
+    localStorage.removeItem('kiosk_terminal_id');
+    setSelectedTerminalId(null);
+    setCompanyName('');
+    setEmployeeCodePrefix('EMP');
+    setMode('select');
+  }, []);
+
+  // Show terminal selector if no terminal selected
+  if (mode === 'select') {
+    const savedTerminalId = localStorage.getItem('kiosk_terminal_id');
+    return (
+      <KioskTerminalSelector 
+        onSelect={handleTerminalSelect}
+        savedTerminalId={savedTerminalId}
+      />
+    );
+  }
+
   if (mode === 'pin') {
     return (
       <>
@@ -527,8 +565,18 @@ export default function KioskHome() {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 text-sm text-muted-foreground">
-        {!isOnline ? 'Modo sin conexión activo - Los fichajes se guardarán localmente' : 'Toca una opción para fichar'}
+      <div className="mt-12 flex flex-col items-center gap-3">
+        <div className="text-sm text-muted-foreground">
+          {!isOnline ? 'Modo sin conexión activo - Los fichajes se guardarán localmente' : 'Toca una opción para fichar'}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs text-muted-foreground hover:text-foreground"
+          onClick={handleChangeTerminal}
+        >
+          Cambiar terminal
+        </Button>
       </div>
     </div>
   );
