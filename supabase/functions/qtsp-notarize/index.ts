@@ -258,25 +258,26 @@ async function getOrCreateEvidenceGroup(
     
     // Handle 409 Conflict - Evidence Group already exists in Digital Trust
     if (response.status === 409) {
-      console.log(`Evidence group already exists in DT, searching by code...`);
       const groupCode = `GRP-${yearMonth.replace('-', '')}`;
+      console.log(`Evidence group already exists in DT (code: ${groupCode}), trying global search...`);
       
+      // Try global evidence-groups endpoint with code filter
       const searchResponse = await fetch(
-        `${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups?code=${groupCode}`,
+        `${apiUrl}/digital-trust/api/v1/private/evidence-groups?code=${groupCode}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
-        // API uses pagination, find by code in records array
-        const existingGroup = searchData.records?.find(
-          (eg: any) => eg.code === groupCode
-        );
+        console.log(`Evidence groups global search response: ${JSON.stringify(searchData).substring(0, 500)}`);
+        
+        // Try different response formats
+        const groups = searchData.records || searchData.content || (Array.isArray(searchData) ? searchData : []);
+        const existingGroup = groups.find((eg: any) => eg.code === groupCode);
         
         if (existingGroup) {
           console.log(`Found existing evidence group in DT: ${existingGroup.id}`);
           
-          // Save to our local database
           const { data: inserted, error: insertError } = await supabase
             .from('dt_evidence_groups')
             .insert({
@@ -290,6 +291,48 @@ async function getOrCreateEvidenceGroup(
           
           if (insertError) throw insertError;
           return { id: inserted.id, externalId: existingGroup.id };
+        }
+      } else {
+        const searchStatus = searchResponse.status;
+        const searchError = await searchResponse.text();
+        console.log(`Global evidence-groups search failed: ${searchStatus} - ${searchError}`);
+        
+        // Try extracting ID from error message if possible
+        // Error format: "EvidenceGroup already exists with code GRP-202601"
+        // Unfortunately the error doesn't include the ID, so we need an alternative
+        
+        // As a last resort, try to get the case file details which may include evidence groups
+        console.log(`Trying to get case file details to find evidence group...`);
+        const caseFileResponse = await fetch(
+          `${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        if (caseFileResponse.ok) {
+          const caseFileData = await caseFileResponse.json();
+          console.log(`Case file details: ${JSON.stringify(caseFileData).substring(0, 800)}`);
+          
+          // Check if evidence groups are included in case file response
+          const evidenceGroups = caseFileData.evidenceGroups || caseFileData.groups || [];
+          const existingGroup = evidenceGroups.find((eg: any) => eg.code === groupCode);
+          
+          if (existingGroup) {
+            console.log(`Found evidence group in case file details: ${existingGroup.id}`);
+            
+            const { data: inserted, error: insertError } = await supabase
+              .from('dt_evidence_groups')
+              .insert({
+                external_id: existingGroup.id,
+                case_file_id: caseFileId,
+                name: existingGroup.name || `Fichajes ${yearMonth}`,
+                year_month: yearMonth,
+              })
+              .select()
+              .single();
+            
+            if (insertError) throw insertError;
+            return { id: inserted.id, externalId: existingGroup.id };
+          }
         }
       }
       
@@ -426,7 +469,16 @@ async function createTSPEvidence(
       throw new Error(`Failed to create evidence: ${error}`);
     }
 
-    const dtEvidence: DTEvidence = await response.json();
+    // Handle response - may be empty body with 201 status
+    let dtEvidence: DTEvidence;
+    const responseText = await response.text();
+    if (responseText) {
+      dtEvidence = JSON.parse(responseText);
+    } else {
+      // If response is empty, use the ID we generated
+      console.log(`Evidence created with empty response, using generated ID: ${evidenceExternalId}`);
+      dtEvidence = { id: evidenceExternalId, status: 'pending' };
+    }
     console.log(`DT evidence created: ${dtEvidence.id}`);
 
     // Poll for TSP token (may take a few seconds)
