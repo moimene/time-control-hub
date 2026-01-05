@@ -109,16 +109,29 @@ async function getOrCreateCaseFile(
   console.log(`Creating new case file for company ${companyId}`);
   
   // Create new case file in Digital Trust
+  // Generate a unique ID for the case file (UUID format required by DT API)
+  const caseFileId = crypto.randomUUID();
+  
+  // Normalize company name to avoid special character issues
+  const normalizedName = companyName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s-]/g, '');
+  
+  const requestBody = {
+    id: caseFileId,
+    name: `Registro Horario - ${normalizedName}`.substring(0, 100),
+    description: `Evidencias de fichaje para ${normalizedName}`.substring(0, 255),
+  };
+  console.log(`Creating case file with body: ${JSON.stringify(requestBody)}`);
+  
   const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      name: `Registro Horario - ${companyName}`,
-      description: `Evidencias de fichaje para ${companyName}`,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -172,6 +185,8 @@ async function getOrCreateEvidenceGroup(
   console.log(`Creating new evidence group for ${yearMonth}`);
 
   // Create new evidence group in Digital Trust
+  const evidenceGroupId = crypto.randomUUID();
+  
   const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups`, {
     method: 'POST',
     headers: {
@@ -179,6 +194,7 @@ async function getOrCreateEvidenceGroup(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      id: evidenceGroupId,
       name: `Fichajes ${yearMonth}`,
     }),
   });
@@ -278,6 +294,8 @@ async function createTSPEvidence(
     console.log(`Creating TSP evidence in Digital Trust for ${date}`);
     
     // Create evidence in Digital Trust with TSP
+    const evidenceExternalId = crypto.randomUUID();
+    
     const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
@@ -285,6 +303,7 @@ async function createTSPEvidence(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        id: evidenceExternalId,
         name: `Merkle Root ${date}`,
         description: `Hash raíz del árbol Merkle de fichajes del día ${date}`,
         data: rootHash,

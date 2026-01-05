@@ -25,6 +25,7 @@ import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
 import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
+import TestCredentials from "./pages/TestCredentials";
 
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
@@ -69,6 +70,9 @@ function AppRoutes() {
       
       {/* Kiosk route - no auth required */}
       <Route path="/kiosk" element={<KioskHome />} />
+      
+      {/* Test credentials page - no auth required */}
+      <Route path="/test-credentials" element={<TestCredentials />} />
       
       {/* Admin routes */}
       <Route path="/admin" element={
