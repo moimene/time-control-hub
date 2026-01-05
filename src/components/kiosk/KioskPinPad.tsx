@@ -44,6 +44,7 @@ export function KioskPinPad({
   const [isOverriding, setIsOverriding] = useState(false);
   const [overrideEventType, setOverrideEventType] = useState<'entry' | 'exit'>('entry');
   const [overrideReason, setOverrideReason] = useState<string>('');
+  const [customReason, setCustomReason] = useState<string>('');
 
   const handleNumberClick = (num: string) => {
     if (step === 'code') {
@@ -88,7 +89,8 @@ export function KioskPinPad({
     } else if (step === 'pin' && pin.length >= 4) {
       const fullEmployeeCode = 'EMP' + employeeNumber.padStart(3, '0');
       if (isOverriding && overrideReason) {
-        onSubmit(fullEmployeeCode, pin, { eventType: overrideEventType, reason: overrideReason });
+        const finalReason = overrideReason === 'other' ? `other: ${customReason}` : overrideReason;
+        onSubmit(fullEmployeeCode, pin, { eventType: overrideEventType, reason: finalReason });
       } else {
         onSubmit(fullEmployeeCode, pin);
       }
@@ -104,6 +106,7 @@ export function KioskPinPad({
       // Canceling override
       setIsOverriding(false);
       setOverrideReason('');
+      setCustomReason('');
     }
   };
 
@@ -212,11 +215,16 @@ export function KioskPinPad({
               </Button>
 
               {isOverriding && (
-                <div className="w-full max-w-xs space-y-2">
+                <div className="w-full max-w-xs space-y-3">
                   <p className="text-xs text-muted-foreground text-center">
                     Selecciona el motivo del cambio:
                   </p>
-                  <Select value={overrideReason} onValueChange={setOverrideReason}>
+                  <Select value={overrideReason} onValueChange={(value) => {
+                    setOverrideReason(value);
+                    if (value !== 'other') {
+                      setCustomReason('');
+                    }
+                  }}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecciona un motivo..." />
                     </SelectTrigger>
@@ -228,6 +236,17 @@ export function KioskPinPad({
                       ))}
                     </SelectContent>
                   </Select>
+                  
+                  {overrideReason === 'other' && (
+                    <Input
+                      type="text"
+                      placeholder="Describe el motivo..."
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                      className="w-full"
+                      maxLength={100}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -297,7 +316,7 @@ export function KioskPinPad({
           <Button
             className={cn("w-full h-14 text-lg text-white transition-colors", submitButtonBg)}
             onClick={handleNext}
-            disabled={isLoading || isValidating || currentValue.length < minLength || (isOverriding && !overrideReason)}
+            disabled={isLoading || isValidating || currentValue.length < minLength || (isOverriding && (!overrideReason || (overrideReason === 'other' && !customReason.trim())))}
           >
             {isLoading || isValidating 
               ? 'Procesando...' 
