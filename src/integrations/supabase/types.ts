@@ -144,6 +144,256 @@ export type Database = {
           },
         ]
       }
+      compliance_incidents: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assigned_to: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          linked_correction_id: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["violation_severity"]
+          sla_due_at: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          linked_correction_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["violation_severity"]
+          sla_due_at?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_to?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          linked_correction_id?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["violation_severity"]
+          sla_due_at?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          title?: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_incidents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_incidents_linked_correction_id_fkey"
+            columns: ["linked_correction_id"]
+            isOneToOne: false
+            referencedRelation: "correction_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_incidents_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_notifications: {
+        Row: {
+          body_json: Json
+          channel: Database["public"]["Enums"]["notification_channel"]
+          company_id: string
+          created_at: string
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          incident_id: string | null
+          notification_type: string
+          quiet_hours_delayed: boolean | null
+          recipient_email: string | null
+          recipient_employee_id: string | null
+          recipient_user_id: string | null
+          scheduled_for: string
+          sent_at: string | null
+          subject: string | null
+          violation_id: string | null
+        }
+        Insert: {
+          body_json?: Json
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          incident_id?: string | null
+          notification_type: string
+          quiet_hours_delayed?: boolean | null
+          recipient_email?: string | null
+          recipient_employee_id?: string | null
+          recipient_user_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          subject?: string | null
+          violation_id?: string | null
+        }
+        Update: {
+          body_json?: Json
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          incident_id?: string | null
+          notification_type?: string
+          quiet_hours_delayed?: boolean | null
+          recipient_email?: string | null
+          recipient_employee_id?: string | null
+          recipient_user_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          subject?: string | null
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notifications_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notifications_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notifications_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_violations: {
+        Row: {
+          auto_resolved_at: string | null
+          company_id: string
+          created_at: string
+          detected_at: string
+          employee_id: string
+          evidence_json: Json
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_code: string
+          rule_version_id: string | null
+          severity: Database["public"]["Enums"]["violation_severity"]
+          status: Database["public"]["Enums"]["violation_status"]
+          updated_at: string
+          violation_date: string
+        }
+        Insert: {
+          auto_resolved_at?: string | null
+          company_id: string
+          created_at?: string
+          detected_at?: string
+          employee_id: string
+          evidence_json?: Json
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_code: string
+          rule_version_id?: string | null
+          severity?: Database["public"]["Enums"]["violation_severity"]
+          status?: Database["public"]["Enums"]["violation_status"]
+          updated_at?: string
+          violation_date: string
+        }
+        Update: {
+          auto_resolved_at?: string | null
+          company_id?: string
+          created_at?: string
+          detected_at?: string
+          employee_id?: string
+          evidence_json?: Json
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_code?: string
+          rule_version_id?: string | null
+          severity?: Database["public"]["Enums"]["violation_severity"]
+          status?: Database["public"]["Enums"]["violation_status"]
+          updated_at?: string
+          violation_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_violations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corrected_events: {
         Row: {
           company_id: string | null
@@ -698,6 +948,186 @@ export type Database = {
           },
         ]
       }
+      rule_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          center_id: string | null
+          company_id: string
+          created_at: string
+          department: string | null
+          employee_id: string | null
+          fallback_policy: string | null
+          id: string
+          is_active: boolean
+          priority: number
+          rule_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          center_id?: string | null
+          company_id: string
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          fallback_policy?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: number
+          rule_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          center_id?: string | null
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          employee_id?: string | null
+          fallback_policy?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: number
+          rule_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_assignments_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_sets: {
+        Row: {
+          company_id: string | null
+          convenio: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_template: boolean
+          name: string
+          sector: string | null
+          status: Database["public"]["Enums"]["rule_set_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          convenio?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          name: string
+          sector?: string | null
+          status?: Database["public"]["Enums"]["rule_set_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          convenio?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          name?: string
+          sector?: string | null
+          status?: Database["public"]["Enums"]["rule_set_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_sets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_versions: {
+        Row: {
+          created_at: string
+          dt_evidence_id: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          payload_hash: string | null
+          payload_json: Json
+          published_at: string | null
+          published_by: string | null
+          rule_set_id: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          dt_evidence_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          payload_hash?: string | null
+          payload_json?: Json
+          published_at?: string | null
+          published_by?: string | null
+          rule_set_id: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          dt_evidence_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          payload_hash?: string | null
+          payload_json?: Json
+          published_at?: string | null
+          published_by?: string | null
+          rule_set_id?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_versions_dt_evidence_id_fkey"
+            columns: ["dt_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_versions_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terminals: {
         Row: {
           auth_token_hash: string | null
@@ -921,7 +1351,22 @@ export type Database = {
       event_type: "entry" | "exit"
       evidence_status: "pending" | "processing" | "completed" | "failed"
       evidence_type: "daily_timestamp" | "monthly_report"
+      incident_status:
+        | "open"
+        | "acknowledged"
+        | "in_progress"
+        | "resolved"
+        | "closed"
+      notification_channel: "in_app" | "email" | "both"
+      rule_set_status:
+        | "draft"
+        | "validating"
+        | "published"
+        | "active"
+        | "archived"
       terminal_status: "pending" | "active" | "inactive"
+      violation_severity: "info" | "warn" | "critical"
+      violation_status: "open" | "acknowledged" | "resolved" | "dismissed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1056,7 +1501,24 @@ export const Constants = {
       event_type: ["entry", "exit"],
       evidence_status: ["pending", "processing", "completed", "failed"],
       evidence_type: ["daily_timestamp", "monthly_report"],
+      incident_status: [
+        "open",
+        "acknowledged",
+        "in_progress",
+        "resolved",
+        "closed",
+      ],
+      notification_channel: ["in_app", "email", "both"],
+      rule_set_status: [
+        "draft",
+        "validating",
+        "published",
+        "active",
+        "archived",
+      ],
       terminal_status: ["pending", "active", "inactive"],
+      violation_severity: ["info", "warn", "critical"],
+      violation_status: ["open", "acknowledged", "resolved", "dismissed"],
     },
   },
 } as const
