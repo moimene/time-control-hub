@@ -21,13 +21,18 @@ import {
   Clock,
   Mail,
   HeartPulse,
-  BellOff
+  BellOff,
+  Eye,
+  FileText
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { QTSPLogDetailModal } from "@/components/admin/QTSPLogDetailModal";
+import { QTSPErrorReport } from "@/components/admin/QTSPErrorReport";
 
 interface LatencyDataPoint {
   time: string;
@@ -55,6 +60,18 @@ interface CompanyQTSPStatus {
   last_evidence_date: string | null;
 }
 
+interface QTSPLogType {
+  id: string;
+  created_at: string;
+  action: string;
+  status: string;
+  duration_ms?: number | null;
+  error_message?: string | null;
+  request_payload?: Record<string, unknown> | null;
+  response_payload?: Record<string, unknown> | null;
+  company?: { name: string } | null;
+}
+
 export default function QTSPMonitor() {
   const [lastHealthStatus, setLastHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -62,6 +79,8 @@ export default function QTSPMonitor() {
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const [lastAlertSent, setLastAlertSent] = useState<string | null>(null);
   const [togglingAlerts, setTogglingAlerts] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<QTSPLogType | null>(null);
+  const [showLogDetail, setShowLogDetail] = useState(false);
 
   // Get email alerts enabled status
   const { data: emailAlertsStatus, refetch: refetchEmailAlerts } = useQuery({
@@ -516,7 +535,7 @@ export default function QTSPMonitor() {
                     label={{ value: 'ms', angle: -90, position: 'insideLeft', fontSize: 11 }}
                     className="text-muted-foreground"
                   />
-                  <Tooltip 
+                  <RechartsTooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))', 
                       border: '1px solid hsl(var(--border))',
@@ -686,6 +705,12 @@ export default function QTSPMonitor() {
           </CardContent>
         </Card>
 
+        {/* QTSP Error Report */}
+        <QTSPErrorReport 
+          logs={(recentLogs || []) as QTSPLogType[]} 
+          healthCheckLogs={(healthCheckHistory || []) as QTSPLogType[]} 
+        />
+
         {/* Recent QTSP Operations */}
         <Card>
           <CardHeader>
@@ -693,7 +718,7 @@ export default function QTSPMonitor() {
               <Activity className="w-5 h-5" />
               Operaciones Recientes
             </CardTitle>
-            <CardDescription>Últimas 50 operaciones QTSP en la plataforma</CardDescription>
+            <CardDescription>Últimas 50 operaciones QTSP en la plataforma - Click en una fila para ver detalles técnicos</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="max-h-[400px] overflow-y-auto">
@@ -705,36 +730,72 @@ export default function QTSPMonitor() {
                     <TableHead>Acción</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Duración</TableHead>
-                    <TableHead>Error</TableHead>
+                    <TableHead>Error técnico</TableHead>
+                    <TableHead className="w-[60px]">Detalle</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentLogs?.map((log: any) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="text-sm">
-                        {format(new Date(log.created_at), 'dd/MM HH:mm:ss', { locale: es })}
-                      </TableCell>
-                      <TableCell className="text-sm">{log.company?.name || '-'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{log.action}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {log.status === 'success' ? (
-                          <Badge variant="default" className="bg-green-600">OK</Badge>
-                        ) : log.status === 'partial' ? (
-                          <Badge variant="secondary">Parcial</Badge>
-                        ) : (
-                          <Badge variant="destructive">Error</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {log.duration_ms ? `${log.duration_ms}ms` : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-destructive max-w-[200px] truncate">
-                        {log.error_message || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {recentLogs?.map((log: any) => {
+                    const errorMsg = log.response_payload?.message || log.error_message;
+                    return (
+                      <TableRow 
+                        key={log.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => {
+                          setSelectedLog(log as QTSPLogType);
+                          setShowLogDetail(true);
+                        }}
+                      >
+                        <TableCell className="text-sm">
+                          {format(new Date(log.created_at), 'dd/MM HH:mm:ss', { locale: es })}
+                        </TableCell>
+                        <TableCell className="text-sm">{log.company?.name || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{log.action}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {log.status === 'success' ? (
+                            <Badge variant="default" className="bg-green-600">OK</Badge>
+                          ) : log.status === 'partial' ? (
+                            <Badge variant="secondary">Parcial</Badge>
+                          ) : (
+                            <Badge variant="destructive">Error</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {log.duration_ms ? `${log.duration_ms}ms` : '-'}
+                        </TableCell>
+                        <TableCell className="text-sm text-destructive max-w-[200px]">
+                          {errorMsg ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="truncate block cursor-help">{errorMsg}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-md">
+                                  <p className="text-xs font-mono whitespace-pre-wrap">{errorMsg}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedLog(log as QTSPLogType);
+                              setShowLogDetail(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -769,7 +830,8 @@ export default function QTSPMonitor() {
                     <TableHead>Estado</TableHead>
                     <TableHead>Latencia</TableHead>
                     <TableHead>Fallos Consec.</TableHead>
-                    <TableHead>Detalles</TableHead>
+                    <TableHead>Mensaje técnico</TableHead>
+                    <TableHead className="w-[60px]">Ver</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -780,7 +842,14 @@ export default function QTSPMonitor() {
                     const isCheck = log.action === 'health_check_auto';
                     
                     return (
-                      <TableRow key={log.id} className={isAlert ? 'bg-destructive/5' : isRecovery ? 'bg-green-500/5' : ''}>
+                      <TableRow 
+                        key={log.id} 
+                        className={`cursor-pointer hover:bg-muted/50 ${isAlert ? 'bg-destructive/5' : isRecovery ? 'bg-green-500/5' : ''}`}
+                        onClick={() => {
+                          setSelectedLog(log as QTSPLogType);
+                          setShowLogDetail(true);
+                        }}
+                      >
                         <TableCell className="text-sm">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3 text-muted-foreground" />
@@ -826,26 +895,47 @@ export default function QTSPMonitor() {
                             </span>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-[200px]">
-                          {isAlert && payload.recipients_count && (
-                            <span>Enviado a {payload.recipients_count} admins</span>
+                        <TableCell className="text-xs max-w-[200px]">
+                          {payload.message ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="truncate block cursor-help text-destructive">{payload.message}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-md">
+                                  <p className="text-xs font-mono whitespace-pre-wrap">{payload.message}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {isAlert && payload.recipients_count && `Enviado a ${payload.recipients_count} admins`}
+                              {isRecovery && payload.downtime_minutes && `Caída de ${payload.downtime_minutes} min`}
+                              {isCheck && payload.was_unhealthy && <span className="text-yellow-600">Sistema en recuperación</span>}
+                              {!payload.message && !isAlert && !isRecovery && !payload.was_unhealthy && '-'}
+                            </span>
                           )}
-                          {isRecovery && payload.downtime_minutes && (
-                            <span>Caída de {payload.downtime_minutes} min</span>
-                          )}
-                          {isCheck && payload.was_unhealthy && (
-                            <span className="text-yellow-600">Sistema en recuperación</span>
-                          )}
-                          {log.error_message && (
-                            <span className="text-destructive">{log.error_message}</span>
-                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedLog(log as QTSPLogType);
+                              setShowLogDetail(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                   {(!healthCheckHistory || healthCheckHistory.length === 0) && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No hay registros de health checks automáticos aún
                       </TableCell>
                     </TableRow>
@@ -877,6 +967,13 @@ export default function QTSPMonitor() {
             </CardContent>
           </Card>
         )}
+
+        {/* Log Detail Modal */}
+        <QTSPLogDetailModal 
+          open={showLogDetail} 
+          onOpenChange={setShowLogDetail} 
+          log={selectedLog} 
+        />
       </div>
     </SuperAdminLayout>
   );
