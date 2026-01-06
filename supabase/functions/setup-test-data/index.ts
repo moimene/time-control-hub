@@ -411,11 +411,28 @@ serve(async (req) => {
     }
     results.terminals = terminalIds.length;
 
-    // Step 5: Generate time events for last 30 days
-    console.log('Generating time events...');
+    // Step 5: Generate time events for last 30 days with STRICT entry-exit integrity
+    console.log('Generating time events with integrity...');
     let eventCount = 0;
     const now = new Date();
-    const overrideReasons = ['forgot_mark', 'system_error', 'terminal_failure', null, null, null, null, null];
+
+    // First, delete all existing time_events for test employees to ensure clean data
+    console.log('Cleaning existing time events for test employees...');
+    const testEmployeeIds = Object.values(employeeMap).map(e => e.id);
+    
+    const { error: deleteError } = await supabaseAdmin
+      .from('time_events')
+      .delete()
+      .in('employee_id', testEmployeeIds);
+    
+    if (deleteError) {
+      console.error('Error deleting existing events:', deleteError);
+    } else {
+      console.log('Deleted existing time events for test employees');
+    }
+
+    // Track previous hash per employee for chain integrity
+    const lastHashByEmployee: Record<string, string> = {};
 
     for (let dayOffset = 30; dayOffset >= 0; dayOffset--) {
       const date = new Date(now);
@@ -435,46 +452,61 @@ serve(async (req) => {
         if ((i === 2 || i === 3) && dayOfWeek === 6) continue;
 
         for (const emp of employees) {
-          // Skip inactive/on_leave employees randomly
-          if (emp.status !== 'active' && Math.random() > 0.3) continue;
+          // Skip inactive employees more often, on_leave sometimes
+          if (emp.status === 'inactive') continue;
+          if (emp.status === 'on_leave' && Math.random() > 0.2) continue;
 
           const empInfo = employeeMap[emp.employee_code];
           if (!empInfo) continue;
 
-          // Determine shift (morning or evening, or both for bar)
+          // Determine shifts (guarantee complete entry-exit pairs)
           const shifts: Array<{ start: number; end: number }> = [];
           
-          if (i === 0) { // Bar: some work morning, some evening
+          if (i === 0) { // Bar: some work morning, some evening (one shift)
             if (Math.random() > 0.5) {
               shifts.push(schedule.morning);
             } else {
               shifts.push(schedule.evening);
             }
-          } else if (i === 1) { // Zapatería: split shift
+          } else if (i === 1) { // Zapatería: split shift (two shifts with gap)
             shifts.push(schedule.morning, schedule.evening);
           } else { // Clínica/Fisio: one shift
             shifts.push(Math.random() > 0.5 ? schedule.morning : schedule.evening);
           }
 
           for (const shift of shifts) {
+            // Calculate entry time with small variance
             const entryTime = new Date(date);
-            entryTime.setHours(Math.floor(shift.start), Math.floor((shift.start % 1) * 60) + Math.floor(Math.random() * 10) - 5, 0, 0);
+            const entryVariance = Math.floor(Math.random() * 8) - 3; // -3 to +5 minutes
+            entryTime.setHours(
+              Math.floor(shift.start), 
+              Math.floor((shift.start % 1) * 60) + entryVariance, 
+              Math.floor(Math.random() * 60), 
+              0
+            );
 
+            // Calculate exit time with small variance (always after entry)
             const exitTime = new Date(date);
-            exitTime.setHours(Math.floor(shift.end), Math.floor((shift.end % 1) * 60) + Math.floor(Math.random() * 15) - 5, 0, 0);
+            const exitVariance = Math.floor(Math.random() * 10) - 3; // -3 to +7 minutes
+            exitTime.setHours(
+              Math.floor(shift.end), 
+              Math.floor((shift.end % 1) * 60) + exitVariance, 
+              Math.floor(Math.random() * 60), 
+              0
+            );
 
-            // Skip if in the future
+            // Skip if entry is in the future
             if (entryTime > now) continue;
 
-            const eventSource = Math.random() > 0.7 ? 'qr' : 'pin';
-            const overrideReason = overrideReasons[Math.floor(Math.random() * overrideReasons.length)];
-
-            // Entry event
-            const entryPayload: Record<string, unknown> = {};
-            if (overrideReason && Math.random() > 0.9) {
-              entryPayload.override_reason = overrideReason;
+            // Ensure exit is always after entry (at least 1 hour shift)
+            if (exitTime <= entryTime) {
+              exitTime.setTime(entryTime.getTime() + (60 * 60 * 1000)); // Add 1 hour minimum
             }
 
+            const eventSource = Math.random() > 0.7 ? 'qr' : 'pin';
+
+            // === CREATE ENTRY EVENT ===
+            const previousHashForEntry = lastHashByEmployee[empInfo.id] || null;
             const entryHash = await computeHash(`${empInfo.id}|entry|${entryTime.toISOString()}`);
 
             const { error: entryError } = await supabaseAdmin
@@ -489,18 +521,16 @@ serve(async (req) => {
                 local_timestamp: entryTime.toISOString(),
                 timezone: 'Europe/Madrid',
                 event_hash: entryHash,
-                raw_payload: Object.keys(entryPayload).length > 0 ? entryPayload : null,
+                previous_hash: previousHashForEntry,
               });
 
-            if (!entryError) eventCount++;
+            if (!entryError) {
+              eventCount++;
+              lastHashByEmployee[empInfo.id] = entryHash;
+            }
 
-            // Exit event (skip if in the future)
+            // === CREATE EXIT EVENT (only if exit time is in the past) ===
             if (exitTime <= now) {
-              const exitPayload: Record<string, unknown> = {};
-              if (overrideReason && Math.random() > 0.95) {
-                exitPayload.override_reason = overrideReason;
-              }
-
               const exitHash = await computeHash(`${empInfo.id}|exit|${exitTime.toISOString()}`);
 
               const { error: exitError } = await supabaseAdmin
@@ -515,12 +545,15 @@ serve(async (req) => {
                   local_timestamp: exitTime.toISOString(),
                   timezone: 'Europe/Madrid',
                   event_hash: exitHash,
-                  previous_hash: entryHash,
-                  raw_payload: Object.keys(exitPayload).length > 0 ? exitPayload : null,
+                  previous_hash: entryHash, // Chain to entry
                 });
 
-              if (!exitError) eventCount++;
+              if (!exitError) {
+                eventCount++;
+                lastHashByEmployee[empInfo.id] = exitHash;
+              }
             }
+            // If exit is in the future, the entry is left "open" (employee is currently working)
           }
         }
       }
