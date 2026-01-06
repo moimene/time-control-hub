@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, QrCode, KeyRound } from 'lucide-react';
+import { Clock, QrCode, KeyRound, Loader2, LogOut } from 'lucide-react';
 import { KioskPinPad } from '@/components/kiosk/KioskPinPad';
 import { KioskQrScanner } from '@/components/kiosk/KioskQrScanner';
 import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
 import { OfflineIndicator } from '@/components/kiosk/OfflineIndicator';
 import { KioskTerminalSelector } from '@/components/kiosk/KioskTerminalSelector';
+import { KioskLogin } from '@/components/kiosk/KioskLogin';
 import { useToast } from '@/hooks/use-toast';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { useKioskSession } from '@/hooks/useKioskSession';
 import { supabase } from '@/integrations/supabase/client';
 
-type KioskMode = 'select' | 'home' | 'pin' | 'qr' | 'success';
+type KioskMode = 'loading' | 'login' | 'select' | 'home' | 'pin' | 'qr' | 'success';
 
 interface ClockResult {
   employee: {
@@ -32,35 +33,49 @@ interface ClockResult {
 }
 
 export default function KioskHome() {
-  const [searchParams] = useSearchParams();
-  const urlTerminalId = searchParams.get('terminal');
-  
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [selectedTerminalId, setSelectedTerminalId] = useState<string | null>(null);
-  const [mode, setMode] = useState<KioskMode>('select');
+  const [mode, setMode] = useState<KioskMode>('loading');
   const [clockResult, setClockResult] = useState<ClockResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>('');
   const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
   const [overrideInfo, setOverrideInfo] = useState<{ eventType: 'entry' | 'exit'; reason: string } | null>(null);
-  const [employeeCodePrefix, setEmployeeCodePrefix] = useState<string>('EMP');
-  const [companyName, setCompanyName] = useState<string>('');
   const { toast } = useToast();
   
   const { isOnline } = useConnectionStatus();
   const { queueSize, isSyncing, lastSync, addToQueue, syncQueue } = useOfflineQueue();
+  const { 
+    session, 
+    isLoading: sessionLoading, 
+    isValidating: sessionValidating,
+    error: sessionError,
+    login, 
+    logout, 
+    setTerminal 
+  } = useKioskSession();
 
-  // Check for terminal from URL or localStorage on mount
+  // Determine mode based on session state
   useEffect(() => {
-    const savedTerminalId = localStorage.getItem('kiosk_terminal_id');
-    const terminalToUse = urlTerminalId || savedTerminalId;
+    if (sessionLoading || sessionValidating) {
+      setMode('loading');
+      return;
+    }
     
-    if (terminalToUse) {
-      setSelectedTerminalId(terminalToUse);
+    if (!session) {
+      setMode('login');
+      return;
+    }
+    
+    if (!session.terminalId) {
+      setMode('select');
+      return;
+    }
+    
+    if (mode === 'loading' || mode === 'login' || mode === 'select') {
       setMode('home');
     }
-  }, [urlTerminalId]);
+  }, [session, sessionLoading, sessionValidating, mode]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -68,38 +83,6 @@ export default function KioskHome() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Fetch company prefix from terminal
-  useEffect(() => {
-    const fetchCompanyPrefix = async () => {
-      if (!selectedTerminalId) return;
-      
-      try {
-        const { data: terminalData, error: terminalError } = await supabase
-          .from('terminals')
-          .select('company_id')
-          .eq('id', selectedTerminalId)
-          .single();
-        
-        if (terminalError || !terminalData) return;
-        
-        const { data: companyData, error: companyError } = await supabase
-          .from('company')
-          .select('name, employee_code_prefix')
-          .eq('id', terminalData.company_id)
-          .single();
-        
-        if (!companyError && companyData) {
-          setEmployeeCodePrefix(companyData.employee_code_prefix || 'EMP');
-          setCompanyName(companyData.name || '');
-        }
-      } catch (err) {
-        console.error('Error fetching company prefix:', err);
-      }
-    };
-    
-    fetchCompanyPrefix();
-  }, [selectedTerminalId]);
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -125,8 +108,6 @@ export default function KioskHome() {
   // Validate employee code - works offline with cached validation
   const handleValidateCode = useCallback(async (employeeCode: string): Promise<{ valid: boolean; name?: string }> => {
     if (!isOnline) {
-      // In offline mode, we accept the code without validation
-      // The server will validate when syncing
       return { valid: true, name: 'Empleado' };
     }
 
@@ -152,7 +133,6 @@ export default function KioskHome() {
       setEmployeeName(data.employee.first_name);
       return { valid: true, name: data.employee.first_name };
     } catch (err) {
-      // If connection fails, allow offline mode
       if (!isOnline) {
         return { valid: true, name: 'Empleado' };
       }
@@ -174,7 +154,6 @@ export default function KioskHome() {
   ) => {
     setIsLoading(true);
     
-    // If offline, store in queue
     if (!isOnline) {
       try {
         const eventType = overrideData?.eventType || nextEventType;
@@ -218,7 +197,6 @@ export default function KioskHome() {
       return;
     }
 
-    // Online mode - send directly
     try {
       const body: Record<string, unknown> = {
         action: 'pin',
@@ -248,7 +226,6 @@ export default function KioskHome() {
       setOverrideInfo(overrideData || null);
       setMode('success');
     } catch (err) {
-      // If request fails, try offline mode
       const eventType = overrideData?.eventType || nextEventType;
       try {
         const offlineEvent = await addToQueue(
@@ -293,11 +270,8 @@ export default function KioskHome() {
 
   const handleQrScan = useCallback(async (qrToken: string) => {
     setIsLoading(true);
-    
-    // Parse QR token to get employee code
     const [empCode] = qrToken.split(':');
     
-    // If offline, store in queue
     if (!isOnline) {
       try {
         const eventType = nextEventType;
@@ -341,7 +315,6 @@ export default function KioskHome() {
       return;
     }
 
-    // Online mode
     try {
       const { data, error } = await supabase.functions.invoke('kiosk-clock', {
         body: {
@@ -364,7 +337,6 @@ export default function KioskHome() {
       setOverrideInfo(null);
       setMode('success');
     } catch (err) {
-      // If request fails, try offline mode
       try {
         const eventType = nextEventType;
         const offlineEvent = await addToQueue(
@@ -421,31 +393,56 @@ export default function KioskHome() {
     setMode('home');
   }, []);
 
-  const handleTerminalSelect = useCallback((terminalId: string) => {
-    setSelectedTerminalId(terminalId);
-    setMode('home');
-  }, []);
+  const handleTerminalSelect = useCallback(async (terminalId: string) => {
+    const success = await setTerminal(terminalId);
+    if (success) {
+      setMode('home');
+    }
+  }, [setTerminal]);
 
   const handleChangeTerminal = useCallback(() => {
-    localStorage.removeItem('kiosk_terminal_id');
-    setSelectedTerminalId(null);
-    setCompanyName('');
-    setEmployeeCodePrefix('EMP');
     setMode('select');
   }, []);
 
-  // Show terminal selector if no terminal selected
-  if (mode === 'select') {
-    const savedTerminalId = localStorage.getItem('kiosk_terminal_id');
+  const handleLogout = useCallback(async () => {
+    await logout();
+    setMode('login');
+  }, [logout]);
+
+  // Loading state
+  if (mode === 'loading') {
     return (
-      <KioskTerminalSelector 
-        onSelect={handleTerminalSelect}
-        savedTerminalId={savedTerminalId}
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  // Login screen
+  if (mode === 'login') {
+    return (
+      <KioskLogin 
+        onLogin={login}
+        isLoading={sessionLoading}
+        error={sessionError}
       />
     );
   }
 
-  if (mode === 'pin') {
+  // Terminal selector (filtered by company)
+  if (mode === 'select' && session) {
+    return (
+      <KioskTerminalSelector 
+        onSelect={handleTerminalSelect}
+        companyId={session.companyId}
+        companyName={session.companyName}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (mode === 'pin' && session) {
     return (
       <>
         <OfflineIndicator 
@@ -462,7 +459,7 @@ export default function KioskHome() {
           isValidating={isValidating}
           employeeName={employeeName}
           nextEventType={nextEventType}
-          employeeCodePrefix={employeeCodePrefix}
+          employeeCodePrefix={session.employeeCodePrefix}
         />
       </>
     );
@@ -505,6 +502,7 @@ export default function KioskHome() {
     );
   }
 
+  // Home screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
       <OfflineIndicator 
@@ -516,8 +514,8 @@ export default function KioskHome() {
       
       {/* Clock Display */}
       <div className="text-center mb-12">
-        {companyName && (
-          <div className="text-lg font-medium text-primary mb-2">{companyName}</div>
+        {session?.companyName && (
+          <div className="text-lg font-medium text-primary mb-2">{session.companyName}</div>
         )}
         <div className="flex items-center justify-center gap-3 mb-4">
           <Clock className="h-10 w-10 text-primary" />
@@ -529,6 +527,12 @@ export default function KioskHome() {
         <div className="text-2xl text-muted-foreground mt-2">
           {format(currentTime, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
         </div>
+        {session?.terminalName && (
+          <div className="text-sm text-muted-foreground mt-2">
+            Terminal: {session.terminalName}
+            {session.terminalLocation && ` - ${session.terminalLocation}`}
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
@@ -569,14 +573,25 @@ export default function KioskHome() {
         <div className="text-sm text-muted-foreground">
           {!isOnline ? 'Modo sin conexión activo - Los fichajes se guardarán localmente' : 'Toca una opción para fichar'}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs text-muted-foreground hover:text-foreground"
-          onClick={handleChangeTerminal}
-        >
-          Cambiar terminal
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={handleChangeTerminal}
+          >
+            Cambiar terminal
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-3 w-3 mr-1" />
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
     </div>
   );
