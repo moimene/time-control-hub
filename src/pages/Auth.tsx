@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useKioskSession } from '@/hooks/useKioskSession';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Building2, Users } from 'lucide-react';
+import { Clock, Building2, Users, Monitor } from 'lucide-react';
 import { z } from 'zod';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -20,7 +21,10 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [kioskDeviceName, setKioskDeviceName] = useState('');
+  const [kioskLoading, setKioskLoading] = useState(false);
   const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const { login: kioskLogin } = useKioskSession();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -96,6 +100,37 @@ export default function Auth() {
     }
   };
 
+  const handleKioskActivation = async () => {
+    if (!email || !password) {
+      toast({
+        variant: 'destructive',
+        title: 'Campos requeridos',
+        description: 'Email y contraseña son obligatorios',
+      });
+      return;
+    }
+
+    setKioskLoading(true);
+    try {
+      const success = await kioskLogin(email, password, kioskDeviceName || undefined);
+      if (success) {
+        toast({
+          title: 'Terminal activado',
+          description: 'Redirigiendo al kiosco...',
+        });
+        navigate('/kiosk');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error de activación',
+          description: 'Credenciales inválidas o sin permisos de administrador',
+        });
+      }
+    } finally {
+      setKioskLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -110,9 +145,13 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
               <TabsTrigger value="register">Registrar empresa</TabsTrigger>
+              <TabsTrigger value="terminal" className="flex items-center gap-1">
+                <Monitor className="h-3 w-3" />
+                Terminal
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
@@ -193,6 +232,59 @@ export default function Auth() {
                 <Users className="h-3 w-3" />
                 <span>Los empleados recibirán invitación después</span>
               </div>
+            </TabsContent>
+
+            <TabsContent value="terminal" className="space-y-4">
+              <Alert className="border-primary/30 bg-primary/5">
+                <Monitor className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Activar dispositivo de fichaje.</strong>
+                  <br />
+                  <span className="text-muted-foreground">
+                    Usa credenciales de administrador para activar este terminal.
+                  </span>
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-2">
+                <Label htmlFor="terminal-email">Email del administrador</Label>
+                <Input
+                  id="terminal-email"
+                  type="email"
+                  placeholder="admin@miempresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={kioskLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="terminal-password">Contraseña</Label>
+                <Input
+                  id="terminal-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={kioskLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="device-name">Nombre del dispositivo (opcional)</Label>
+                <Input
+                  id="device-name"
+                  type="text"
+                  placeholder="Ej: Kiosco Entrada Principal"
+                  value={kioskDeviceName}
+                  onChange={(e) => setKioskDeviceName(e.target.value)}
+                  disabled={kioskLoading}
+                />
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleKioskActivation}
+                disabled={kioskLoading}
+              >
+                {kioskLoading ? 'Activando...' : 'Activar Terminal'}
+              </Button>
             </TabsContent>
           </Tabs>
         </CardContent>
