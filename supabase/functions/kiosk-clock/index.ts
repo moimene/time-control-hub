@@ -409,6 +409,52 @@ serve(async (req) => {
       );
     }
 
+    // ========== CHECK FOR ACTIVE ABSENCES THAT BLOCK CLOCKING ==========
+    const todayDate = new Date().toISOString().split('T')[0];
+    
+    const { data: blockingAbsence, error: absenceError } = await supabase
+      .from('absence_requests')
+      .select(`
+        id,
+        start_date,
+        end_date,
+        absence_types!inner(
+          name,
+          blocks_clocking
+        )
+      `)
+      .eq('employee_id', employee.id)
+      .eq('status', 'approved')
+      .lte('start_date', todayDate)
+      .gte('end_date', todayDate)
+      .eq('absence_types.blocks_clocking', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (absenceError) {
+      console.error('Error checking active absences:', absenceError);
+      // Don't block on error, just log and continue
+    }
+
+    if (blockingAbsence) {
+      const absenceType = (blockingAbsence.absence_types as any)?.name || 'Ausencia';
+      console.log(`Clock-in blocked for ${employee.employee_code}: active absence "${absenceType}" from ${blockingAbsence.start_date} to ${blockingAbsence.end_date}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `No puedes fichar mientras tienes una ausencia activa: ${absenceType} (${blockingAbsence.start_date} - ${blockingAbsence.end_date})`,
+          absence_blocking: true,
+          absence_type: absenceType,
+          absence_dates: {
+            start: blockingAbsence.start_date,
+            end: blockingAbsence.end_date
+          }
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ========== DETERMINE EVENT TYPE ==========
     const today = new Date();
     today.setHours(0, 0, 0, 0);

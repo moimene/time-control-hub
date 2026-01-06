@@ -1,0 +1,423 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/hooks/useCompany";
+import { 
+  LEGAL_DOCUMENT_TEMPLATES, 
+  CATEGORY_LABELS, 
+  PRIORITY_CONFIG,
+  substituteVariables,
+  type LegalDocumentTemplate 
+} from "@/lib/legalDocumentTemplates";
+import { 
+  FileText, 
+  CheckCircle2, 
+  Clock, 
+  Users, 
+  Eye, 
+  Send,
+  Download,
+  Shield
+} from "lucide-react";
+
+export default function LegalDocuments() {
+  const { companyId, company } = useCompany();
+  const queryClient = useQueryClient();
+  const [selectedTemplate, setSelectedTemplate] = useState<LegalDocumentTemplate | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+
+  // Fetch published documents for this company
+  const { data: publishedDocs, isLoading: docsLoading } = useQuery({
+    queryKey: ['legal-documents', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('legal_documents')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('code');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch acknowledgments count per document
+  const { data: acknowledgmentCounts } = useQuery({
+    queryKey: ['document-acknowledgments-count', companyId],
+    queryFn: async () => {
+      if (!companyId) return {};
+      const { data, error } = await supabase
+        .from('document_acknowledgments')
+        .select('document_id')
+        .eq('company_id', companyId);
+      if (error) throw error;
+      
+      const counts: Record<string, number> = {};
+      data?.forEach(ack => {
+        counts[ack.document_id] = (counts[ack.document_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!companyId,
+  });
+
+  // Fetch employee count
+  const { data: employeeCount } = useQuery({
+    queryKey: ['employee-count', companyId],
+    queryFn: async () => {
+      if (!companyId) return 0;
+      const { count, error } = await supabase
+        .from('employees')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!companyId,
+  });
+
+  // Publish document mutation
+  const publishMutation = useMutation({
+    mutationFn: async ({ template, values }: { template: LegalDocumentTemplate; values: Record<string, string> }) => {
+      if (!companyId) throw new Error('No company');
+      
+      const content = substituteVariables(template.contentMarkdown, values);
+      
+      const { data, error } = await supabase
+        .from('legal_documents')
+        .upsert({
+          company_id: companyId,
+          template_id: null, // We'll update this when templates are in DB
+          code: template.code,
+          name: template.name,
+          content_markdown: content,
+          variable_values: values,
+          is_published: true,
+          published_at: new Date().toISOString(),
+          version: 1,
+        }, {
+          onConflict: 'company_id,code,version'
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Documento publicado correctamente');
+      queryClient.invalidateQueries({ queryKey: ['legal-documents'] });
+      setPublishDialogOpen(false);
+      setSelectedTemplate(null);
+      setVariableValues({});
+    },
+    onError: (error) => {
+      console.error('Publish error:', error);
+      toast.error('Error al publicar el documento');
+    },
+  });
+
+  const getDefaultValues = (template: LegalDocumentTemplate): Record<string, string> => {
+    const defaults: Record<string, string> = {
+      EMPRESA_NOMBRE: company?.name || '',
+      EMPRESA_CIF: company?.cif || '',
+      EMPRESA_DIRECCION: company?.address || '',
+      EMPRESA_CIUDAD: company?.city || '',
+      EMPRESA_CP: company?.postal_code || '',
+      FECHA_GENERACION: new Date().toLocaleDateString('es-ES'),
+      PROVEEDOR_PLATAFORMA: 'Time Control Hub',
+      QTSP_NOMBRE: 'DigitalTrust',
+    };
+    return defaults;
+  };
+
+  const openPublishDialog = (template: LegalDocumentTemplate) => {
+    setSelectedTemplate(template);
+    setVariableValues(getDefaultValues(template));
+    setPublishDialogOpen(true);
+  };
+
+  const openPreview = (template: LegalDocumentTemplate) => {
+    setSelectedTemplate(template);
+    setVariableValues(getDefaultValues(template));
+    setPreviewOpen(true);
+  };
+
+  const isPublished = (code: string) => {
+    return publishedDocs?.some(doc => doc.code === code && doc.is_published);
+  };
+
+  const getPublishedDoc = (code: string) => {
+    return publishedDocs?.find(doc => doc.code === code && doc.is_published);
+  };
+
+  const categories = Object.keys(CATEGORY_LABELS) as Array<LegalDocumentTemplate['category']>;
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Documentos Legales</h1>
+            <p className="text-muted-foreground">
+              Gestiona y publica los documentos de cumplimiento legal para tu empresa
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <FileText className="h-3 w-3" />
+              {publishedDocs?.filter(d => d.is_published).length || 0} publicados
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <Users className="h-3 w-3" />
+              {employeeCount} empleados
+            </Badge>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Plantillas</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{LEGAL_DOCUMENT_TEMPLATES.length}</div>
+              <p className="text-xs text-muted-foreground">documentos disponibles</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Publicados</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{publishedDocs?.filter(d => d.is_published).length || 0}</div>
+              <p className="text-xs text-muted-foreground">listos para empleados</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Requieren Aceptación</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {LEGAL_DOCUMENT_TEMPLATES.filter(t => t.requiresEmployeeAcceptance).length}
+              </div>
+              <p className="text-xs text-muted-foreground">documentos</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Prioridad Alta</CardTitle>
+              <Shield className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {LEGAL_DOCUMENT_TEMPLATES.filter(t => t.priority === 'high').length}
+              </div>
+              <p className="text-xs text-muted-foreground">críticos</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Documents by Category */}
+        <Tabs defaultValue="privacy" className="space-y-4">
+          <TabsList className="flex-wrap h-auto gap-1">
+            {categories.map(cat => (
+              <TabsTrigger key={cat} value={cat} className="text-xs">
+                {CATEGORY_LABELS[cat]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {categories.map(cat => (
+            <TabsContent key={cat} value={cat} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {LEGAL_DOCUMENT_TEMPLATES.filter(t => t.category === cat).map(template => {
+                  const published = isPublished(template.code);
+                  const doc = getPublishedDoc(template.code);
+                  const ackCount = doc ? (acknowledgmentCounts?.[doc.id] || 0) : 0;
+
+                  return (
+                    <Card key={template.code} className={published ? 'border-green-200 bg-green-50/50' : ''}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="text-xs mb-1">
+                              {template.code}
+                            </Badge>
+                            <CardTitle className="text-base">{template.name}</CardTitle>
+                          </div>
+                          <Badge className={PRIORITY_CONFIG[template.priority].className}>
+                            {PRIORITY_CONFIG[template.priority].label}
+                          </Badge>
+                        </div>
+                        <CardDescription className="text-xs">
+                          {template.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-1">
+                          {template.requiresEmployeeAcceptance && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Users className="h-3 w-3 mr-1" />
+                              Requiere aceptación
+                            </Badge>
+                          )}
+                          {published && (
+                            <Badge variant="default" className="text-xs bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Publicado
+                            </Badge>
+                          )}
+                        </div>
+
+                        {published && template.requiresEmployeeAcceptance && (
+                          <div className="text-xs text-muted-foreground">
+                            {ackCount} de {employeeCount} empleados han aceptado
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openPreview(template)}
+                            className="flex-1"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Vista previa
+                          </Button>
+                          {!published ? (
+                            <Button
+                              size="sm"
+                              onClick={() => openPublishDialog(template)}
+                              className="flex-1"
+                            >
+                              <Send className="h-3 w-3 mr-1" />
+                              Publicar
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="flex-1"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Descargar
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+
+        {/* Preview Dialog */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>{selectedTemplate?.name}</DialogTitle>
+              <DialogDescription>
+                Vista previa del documento con los datos de tu empresa
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[60vh] pr-4">
+              <div className="prose prose-sm max-w-none">
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: selectedTemplate 
+                      ? substituteVariables(selectedTemplate.contentMarkdown, variableValues)
+                          .replace(/\n/g, '<br>')
+                          .replace(/#{1,6}\s(.+)/g, '<strong>$1</strong>')
+                          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                      : '' 
+                  }} 
+                />
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPreviewOpen(false)}>
+                Cerrar
+              </Button>
+              {selectedTemplate && !isPublished(selectedTemplate.code) && (
+                <Button onClick={() => {
+                  setPreviewOpen(false);
+                  openPublishDialog(selectedTemplate);
+                }}>
+                  Configurar y Publicar
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Publish Dialog */}
+        <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Publicar: {selectedTemplate?.name}</DialogTitle>
+              <DialogDescription>
+                Configura los campos variables antes de publicar
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[50vh] pr-4">
+              <div className="space-y-4">
+                {selectedTemplate?.variableFields.map(field => (
+                  <div key={field} className="space-y-2">
+                    <Label htmlFor={field}>{field.replace(/_/g, ' ')}</Label>
+                    <Input
+                      id={field}
+                      value={variableValues[field] || ''}
+                      onChange={(e) => setVariableValues(prev => ({
+                        ...prev,
+                        [field]: e.target.value
+                      }))}
+                      placeholder={`Introduce ${field.toLowerCase().replace(/_/g, ' ')}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPublishDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (selectedTemplate) {
+                    publishMutation.mutate({ template: selectedTemplate, values: variableValues });
+                  }
+                }}
+                disabled={publishMutation.isPending}
+              >
+                {publishMutation.isPending ? 'Publicando...' : 'Publicar Documento'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AppLayout>
+  );
+}

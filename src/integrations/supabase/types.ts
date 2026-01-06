@@ -747,6 +747,90 @@ export type Database = {
           },
         ]
       }
+      contingency_records: {
+        Row: {
+          company_id: string
+          contingency_date: string
+          created_at: string
+          employee_id: string
+          employee_signature_confirmed: boolean
+          entry_time: string | null
+          exit_time: string | null
+          id: string
+          notes: string | null
+          paper_form_reference: string | null
+          pause_end: string | null
+          pause_start: string | null
+          reason: string
+          supervisor_signature_confirmed: boolean
+          time_events_created: boolean
+          transcribed_at: string
+          transcribed_by: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          company_id: string
+          contingency_date: string
+          created_at?: string
+          employee_id: string
+          employee_signature_confirmed?: boolean
+          entry_time?: string | null
+          exit_time?: string | null
+          id?: string
+          notes?: string | null
+          paper_form_reference?: string | null
+          pause_end?: string | null
+          pause_start?: string | null
+          reason: string
+          supervisor_signature_confirmed?: boolean
+          time_events_created?: boolean
+          transcribed_at?: string
+          transcribed_by: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          contingency_date?: string
+          created_at?: string
+          employee_id?: string
+          employee_signature_confirmed?: boolean
+          entry_time?: string | null
+          exit_time?: string | null
+          id?: string
+          notes?: string | null
+          paper_form_reference?: string | null
+          pause_end?: string | null
+          pause_start?: string | null
+          reason?: string
+          supervisor_signature_confirmed?: boolean
+          time_events_created?: boolean
+          transcribed_at?: string
+          transcribed_by?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contingency_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contingency_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corrected_events: {
         Row: {
           company_id: string | null
@@ -910,6 +994,184 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_purge_log: {
+        Row: {
+          company_id: string
+          content_hash_before: string
+          created_at: string
+          data_category: string
+          id: string
+          newest_record_date: string | null
+          oldest_record_date: string | null
+          purge_cutoff_date: string
+          purged_at: string
+          purged_by: string
+          qtsp_evidence_id: string | null
+          records_purged: number
+        }
+        Insert: {
+          company_id: string
+          content_hash_before: string
+          created_at?: string
+          data_category: string
+          id?: string
+          newest_record_date?: string | null
+          oldest_record_date?: string | null
+          purge_cutoff_date: string
+          purged_at?: string
+          purged_by?: string
+          qtsp_evidence_id?: string | null
+          records_purged: number
+        }
+        Update: {
+          company_id?: string
+          content_hash_before?: string
+          created_at?: string
+          data_category?: string
+          id?: string
+          newest_record_date?: string | null
+          oldest_record_date?: string | null
+          purge_cutoff_date?: string
+          purged_at?: string
+          purged_by?: string
+          qtsp_evidence_id?: string | null
+          records_purged?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_purge_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_purge_log_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_retention_config: {
+        Row: {
+          company_id: string
+          created_at: string
+          data_category: string
+          description: string | null
+          id: string
+          is_active: boolean
+          retention_years: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data_category: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          retention_years: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data_category?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          retention_years?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_retention_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_acknowledgments: {
+        Row: {
+          acknowledged_at: string
+          company_id: string
+          content_hash: string
+          created_at: string
+          document_id: string
+          employee_id: string
+          id: string
+          ip_address: unknown
+          qtsp_evidence_id: string | null
+          signature_hash: string
+          tsp_timestamp: string | null
+          tsp_token: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          acknowledged_at?: string
+          company_id: string
+          content_hash: string
+          created_at?: string
+          document_id: string
+          employee_id: string
+          id?: string
+          ip_address?: unknown
+          qtsp_evidence_id?: string | null
+          signature_hash: string
+          tsp_timestamp?: string | null
+          tsp_token?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          acknowledged_at?: string
+          company_id?: string
+          content_hash?: string
+          created_at?: string
+          document_id?: string
+          employee_id?: string
+          id?: string
+          ip_address?: unknown
+          qtsp_evidence_id?: string | null
+          signature_hash?: string
+          tsp_timestamp?: string | null
+          tsp_token?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_acknowledgments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_acknowledgments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_acknowledgments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_acknowledgments_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
         ]
@@ -1512,6 +1774,129 @@ export type Database = {
           },
         ]
       }
+      legal_document_templates: {
+        Row: {
+          category: string
+          code: string
+          content_markdown: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          priority: string
+          requires_employee_acceptance: boolean
+          updated_at: string
+          variable_fields: Json
+          version: number
+        }
+        Insert: {
+          category: string
+          code: string
+          content_markdown: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: string
+          requires_employee_acceptance?: boolean
+          updated_at?: string
+          variable_fields?: Json
+          version?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          content_markdown?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: string
+          requires_employee_acceptance?: boolean
+          updated_at?: string
+          variable_fields?: Json
+          version?: number
+        }
+        Relationships: []
+      }
+      legal_documents: {
+        Row: {
+          code: string
+          company_id: string
+          content_html: string | null
+          content_markdown: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_published: boolean
+          name: string
+          pdf_path: string | null
+          published_at: string | null
+          published_by: string | null
+          template_id: string
+          updated_at: string
+          variable_values: Json
+          version: number
+        }
+        Insert: {
+          code: string
+          company_id: string
+          content_html?: string | null
+          content_markdown: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_published?: boolean
+          name: string
+          pdf_path?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          template_id: string
+          updated_at?: string
+          variable_values?: Json
+          version?: number
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          content_html?: string | null
+          content_markdown?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_published?: boolean
+          name?: string
+          pdf_path?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          template_id?: string
+          updated_at?: string
+          variable_values?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "legal_document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_closures: {
         Row: {
           company_id: string
@@ -2099,6 +2484,10 @@ export type Database = {
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       seed_default_absence_types: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
+      seed_default_retention_config: {
         Args: { p_company_id: string }
         Returns: undefined
       }
