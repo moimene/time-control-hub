@@ -253,7 +253,31 @@ export const SECTOR_LABELS: Record<string, string> = {
   consultoria: 'Consultoría',
   oficinas: 'Oficinas y Despachos',
   sanitario: 'Sanitario Privado',
+  otros: 'Otra actividad',
 };
+
+// Sector options with icons for company setup wizard
+export interface SectorOption {
+  id: string;
+  label: string;
+  icon: string;
+  description: string;
+}
+
+export const SECTOR_OPTIONS: SectorOption[] = [
+  { id: 'hosteleria', label: 'Hostelería', icon: '🍽️', description: 'Restaurantes, bares, hoteles' },
+  { id: 'comercio', label: 'Comercio', icon: '🏪', description: 'Tiendas, retail, distribución' },
+  { id: 'comercio_alimentacion', label: 'Alimentación', icon: '🛒', description: 'Supermercados, tiendas alimentación' },
+  { id: 'salud', label: 'Sanidad', icon: '🏥', description: 'Clínicas, centros médicos' },
+  { id: 'veterinaria', label: 'Veterinaria', icon: '🐕', description: 'Clínicas veterinarias' },
+  { id: 'servicios_profesionales', label: 'Oficinas', icon: '💼', description: 'Oficinas, despachos, asesorías' },
+  { id: 'metal', label: 'Metal', icon: '🔧', description: 'Industria metalúrgica' },
+  { id: 'construccion', label: 'Construcción', icon: '🏗️', description: 'Obras, reformas' },
+  { id: 'limpieza', label: 'Limpieza', icon: '🧹', description: 'Limpieza de edificios' },
+  { id: 'logistica', label: 'Logística', icon: '🚚', description: 'Transporte, almacenes' },
+  { id: 'consultoria', label: 'Consultoría', icon: '📊', description: 'Consultoría, IT' },
+  { id: 'otros', label: 'Otra actividad', icon: '❓', description: 'Describir manualmente' },
+];
 
 export const STATUS_LABELS: Record<string, string> = {
   draft: 'Borrador',
