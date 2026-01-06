@@ -24,6 +24,7 @@ import Settings from "./pages/admin/Settings";
 import Compliance from "./pages/admin/Compliance";
 import ComplianceIncidents from "./pages/admin/ComplianceIncidents";
 import EmployeeDashboard from "./pages/employee/Dashboard";
+import Templates from "./pages/admin/Templates";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
@@ -143,6 +144,13 @@ function AppRoutes() {
       <Route path="/admin/compliance/incidents" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <ComplianceIncidents />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/templates" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <Templates />
+        </ProtectedRoute>
+      } />
         </ProtectedRoute>
       } />
 
