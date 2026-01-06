@@ -55,7 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { href: '/admin/employees', label: 'Empleados', icon: <Users className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/absences', label: 'Ausencias', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/terminals', label: 'Dispositivos de Fichaje', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/clocking-devices', label: 'Dispositivos de Fichaje', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
     { href: '/admin/clocking-incidents', label: 'Incidencias Fichaje', icon: <AlertTriangle className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/compliance', label: 'Cumplimiento', icon: <Scale className="h-5 w-5" />, adminOnly: true },

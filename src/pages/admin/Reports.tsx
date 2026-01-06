@@ -417,9 +417,9 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Main Tabs: Reports vs QTSP Certificates */}
+        {/* Main Tabs: Reports vs QTSP Certificates vs ITSS Package */}
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="reports" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Informes
@@ -427,6 +427,10 @@ export default function Reports() {
             <TabsTrigger value="certificates" className="flex items-center gap-2">
               <FileBadge className="w-4 h-4" />
               Certificados QTSP
+            </TabsTrigger>
+            <TabsTrigger value="itss" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Paquete ITSS
             </TabsTrigger>
           </TabsList>
 
@@ -690,6 +694,23 @@ export default function Reports() {
 
           <TabsContent value="certificates">
             <CertificateRequestPanel />
+          </TabsContent>
+
+          <TabsContent value="itss" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Paquete ITSS</CardTitle>
+                <CardDescription>
+                  Genera el paquete completo para inspección de trabajo con todos los informes obligatorios
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => window.location.href = '/admin/itss-package'}>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Abrir Generador de Paquete ITSS
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

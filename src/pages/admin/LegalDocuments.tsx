@@ -22,12 +22,12 @@ import {
 import { 
   FileText, 
   CheckCircle2, 
-  Clock, 
   Users, 
   Eye, 
   Send,
   Download,
-  Shield
+  Shield,
+  Loader2
 } from "lucide-react";
 
 export default function LegalDocuments() {
@@ -36,7 +36,7 @@ export default function LegalDocuments() {
   const [selectedTemplate, setSelectedTemplate] = useState<LegalDocumentTemplate | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   // Fetch published documents for this company
   const { data: publishedDocs, isLoading: docsLoading } = useQuery({
@@ -90,18 +90,35 @@ export default function LegalDocuments() {
     enabled: !!companyId,
   });
 
-  // Publish document mutation
-  const publishMutation = useMutation({
+  // Fetch active employees for notification
+  const { data: activeEmployees } = useQuery({
+    queryKey: ['active-employees', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, first_name, last_name, email')
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!companyId,
+  });
+
+  // Send document to employees mutation
+  const sendToEmployeesMutation = useMutation({
     mutationFn: async ({ template, values }: { template: LegalDocumentTemplate; values: Record<string, string> }) => {
       if (!companyId) throw new Error('No company');
       
       const content = substituteVariables(template.contentMarkdown, values);
       
-      const { data, error } = await supabase
+      // First, save/update the document
+      const { data: docData, error: docError } = await supabase
         .from('legal_documents')
         .upsert({
           company_id: companyId,
-          template_id: null, // We'll update this when templates are in DB
+          template_id: null,
           code: template.code,
           name: template.name,
           content_markdown: content,
@@ -115,19 +132,40 @@ export default function LegalDocuments() {
         .select()
         .single();
       
-      if (error) throw error;
-      return data;
+      if (docError) throw docError;
+
+      // Then, create notifications for all active employees
+      const notifications = activeEmployees?.map(emp => ({
+        company_id: companyId,
+        employee_id: emp.id,
+        notification_type: 'legal_document',
+        title: `Nuevo documento: ${template.name}`,
+        message: `Se ha publicado un nuevo documento que requiere tu revisión: ${template.name}. Accede a "Normativa y Cumplimiento" en tu portal para verlo.`,
+        related_entity_type: 'legal_document',
+        related_entity_id: docData.id,
+        action_url: '/employee/legal-documents',
+      })) || [];
+
+      if (notifications.length > 0) {
+        const { error: notifError } = await supabase
+          .from('employee_notifications')
+          .insert(notifications);
+        
+        if (notifError) throw notifError;
+      }
+
+      return { document: docData, notificationsSent: notifications.length };
     },
-    onSuccess: () => {
-      toast.success('Documento publicado correctamente');
+    onSuccess: (data) => {
+      toast.success(`Documento enviado a ${data.notificationsSent} empleados`);
       queryClient.invalidateQueries({ queryKey: ['legal-documents'] });
-      setPublishDialogOpen(false);
+      setSendDialogOpen(false);
       setSelectedTemplate(null);
       setVariableValues({});
     },
     onError: (error) => {
-      console.error('Publish error:', error);
-      toast.error('Error al publicar el documento');
+      console.error('Send error:', error);
+      toast.error('Error al enviar el documento');
     },
   });
 
@@ -145,10 +183,10 @@ export default function LegalDocuments() {
     return defaults;
   };
 
-  const openPublishDialog = (template: LegalDocumentTemplate) => {
+  const openSendDialog = (template: LegalDocumentTemplate) => {
     setSelectedTemplate(template);
     setVariableValues(getDefaultValues(template));
-    setPublishDialogOpen(true);
+    setSendDialogOpen(true);
   };
 
   const openPreview = (template: LegalDocumentTemplate) => {
@@ -174,13 +212,13 @@ export default function LegalDocuments() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Documentos Legales</h1>
             <p className="text-muted-foreground">
-              Gestiona y publica los documentos de cumplimiento legal para tu empresa
+              Gestiona y envía los documentos de cumplimiento legal a tus empleados
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
               <FileText className="h-3 w-3" />
-              {publishedDocs?.filter(d => d.is_published).length || 0} publicados
+              {publishedDocs?.filter(d => d.is_published).length || 0} enviados
             </Badge>
             <Badge variant="outline" className="gap-1">
               <Users className="h-3 w-3" />
@@ -203,12 +241,12 @@ export default function LegalDocuments() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Publicados</CardTitle>
+              <CardTitle className="text-sm font-medium">Enviados</CardTitle>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{publishedDocs?.filter(d => d.is_published).length || 0}</div>
-              <p className="text-xs text-muted-foreground">listos para empleados</p>
+              <p className="text-xs text-muted-foreground">notificados a empleados</p>
             </CardContent>
           </Card>
           <Card>
@@ -284,7 +322,7 @@ export default function LegalDocuments() {
                           {published && (
                             <Badge variant="default" className="text-xs bg-green-600">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Publicado
+                              Enviado
                             </Badge>
                           )}
                         </div>
@@ -308,20 +346,21 @@ export default function LegalDocuments() {
                           {!published ? (
                             <Button
                               size="sm"
-                              onClick={() => openPublishDialog(template)}
+                              onClick={() => openSendDialog(template)}
                               className="flex-1"
                             >
                               <Send className="h-3 w-3 mr-1" />
-                              Publicar
+                              Enviar a empleados
                             </Button>
                           ) : (
                             <Button
                               size="sm"
                               variant="secondary"
+                              onClick={() => openSendDialog(template)}
                               className="flex-1"
                             >
-                              <Download className="h-3 w-3 mr-1" />
-                              Descargar
+                              <Send className="h-3 w-3 mr-1" />
+                              Reenviar
                             </Button>
                           )}
                         </div>
@@ -361,25 +400,25 @@ export default function LegalDocuments() {
               <Button variant="outline" onClick={() => setPreviewOpen(false)}>
                 Cerrar
               </Button>
-              {selectedTemplate && !isPublished(selectedTemplate.code) && (
+              {selectedTemplate && (
                 <Button onClick={() => {
                   setPreviewOpen(false);
-                  openPublishDialog(selectedTemplate);
+                  openSendDialog(selectedTemplate);
                 }}>
-                  Configurar y Publicar
+                  Configurar y Enviar
                 </Button>
               )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Publish Dialog */}
-        <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+        {/* Send to Employees Dialog */}
+        <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[80vh]">
             <DialogHeader>
-              <DialogTitle>Publicar: {selectedTemplate?.name}</DialogTitle>
+              <DialogTitle>Enviar a empleados: {selectedTemplate?.name}</DialogTitle>
               <DialogDescription>
-                Configura los campos variables antes de publicar
+                Configura los campos variables y envía el documento a todos los empleados activos ({activeEmployees?.length || 0} empleados)
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[50vh] pr-4">
@@ -401,18 +440,28 @@ export default function LegalDocuments() {
               </div>
             </ScrollArea>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setPublishDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setSendDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button 
                 onClick={() => {
                   if (selectedTemplate) {
-                    publishMutation.mutate({ template: selectedTemplate, values: variableValues });
+                    sendToEmployeesMutation.mutate({ template: selectedTemplate, values: variableValues });
                   }
                 }}
-                disabled={publishMutation.isPending}
+                disabled={sendToEmployeesMutation.isPending}
               >
-                {publishMutation.isPending ? 'Publicando...' : 'Publicar Documento'}
+                {sendToEmployeesMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Enviar a {activeEmployees?.length || 0} empleados
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
