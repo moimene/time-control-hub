@@ -80,3 +80,9 @@ verify_jwt = false
 
 [functions.vacation-calculator]
 verify_jwt = false
+
+[functions.acknowledge-document]
+verify_jwt = false
+
+[functions.data-retention-purge]
+verify_jwt = false
