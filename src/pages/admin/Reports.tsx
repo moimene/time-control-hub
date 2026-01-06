@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CalendarIcon, Download, FileText, Clock, Users, TrendingUp, Shield, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CalendarIcon, Download, FileText, Clock, Users, TrendingUp, Shield, Loader2, FileBadge } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -32,6 +33,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { useCompany } from '@/hooks/useCompany';
+import { CertificateRequestPanel } from '@/components/admin/CertificateRequestPanel';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -48,6 +50,7 @@ export default function Reports() {
   const [month, setMonth] = useState<Date>(new Date());
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [sealingPdf, setSealingPdf] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState<string>('reports');
   const { company } = useCompany();
 
   const { data: employees } = useQuery({
@@ -409,263 +412,286 @@ export default function Reports() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Informes</h1>
-            <p className="text-muted-foreground">Genera informes de fichajes por período</p>
+            <h1 className="text-3xl font-bold tracking-tight">Informes y Certificados</h1>
+            <p className="text-muted-foreground">Genera informes de fichajes y solicita certificados QTSP</p>
           </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCSV}>
-            <Download className="mr-2 h-4 w-4" />
-            CSV
-          </Button>
-          <Button variant="outline" onClick={exportPDF}>
-            <FileText className="mr-2 h-4 w-4" />
-            PDF
-          </Button>
-          <Button onClick={sealPdfWithQTSP} disabled={sealingPdf}>
-            {sealingPdf ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Shield className="mr-2 h-4 w-4" />
-            )}
-            Sellar PDF (QTSP)
-          </Button>
-        </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("justify-start text-left font-normal")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(month, 'MMMM yyyy', { locale: es })}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={month}
-                onSelect={(date) => date && setMonth(date)}
-                locale={es}
-              />
-            </PopoverContent>
-          </Popover>
+        {/* Main Tabs: Reports vs QTSP Certificates */}
+        <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Informes
+            </TabsTrigger>
+            <TabsTrigger value="certificates" className="flex items-center gap-2">
+              <FileBadge className="w-4 h-4" />
+              Certificados QTSP
+            </TabsTrigger>
+          </TabsList>
 
-          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Empleado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los empleados</SelectItem>
-              {employees?.map((emp: any) => (
-                <SelectItem key={emp.id} value={emp.id}>
-                  {emp.first_name} {emp.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+          <TabsContent value="reports" className="space-y-6">
+            {/* Reports filters and export buttons */}
+            <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center gap-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(month, 'MMMM yyyy', { locale: es })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={month}
+                      onSelect={(date) => date && setMonth(date)}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
 
-        {/* Summary Cards */}
-        {!isLoading && employeeSummary.length > 0 && (
-          <>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Horas Mes</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatMinutes(employeeSummary.reduce((acc, e) => acc + e.totalMinutes, 0))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {format(month, 'MMMM yyyy', { locale: es })}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Empleados Activos</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{employeeSummary.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    con fichajes este mes
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Media Diaria</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatMinutes(
-                      employeeSummary.reduce((acc, e) => acc + e.avgMinutesPerDay, 0) / 
-                      (employeeSummary.length || 1)
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    por empleado/día
-                  </p>
-                </CardContent>
-              </Card>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Empleado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los empleados</SelectItem>
+                    {employees?.map((emp: any) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={exportCSV}>
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button variant="outline" onClick={exportPDF}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  PDF
+                </Button>
+                <Button onClick={sealPdfWithQTSP} disabled={sealingPdf}>
+                  {sealingPdf ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Shield className="mr-2 h-4 w-4" />
+                  )}
+                  Sellar PDF (QTSP)
+                </Button>
+              </div>
             </div>
 
-            {/* Bar Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Horas por Empleado</CardTitle>
-                <CardDescription>Comparativa de horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer
-                  config={{
-                    hours: {
-                      label: "Horas",
-                      color: "hsl(var(--primary))",
-                    },
-                  }}
-                  className="h-[300px] w-full"
-                >
-                  <BarChart
-                    data={employeeSummary.map((s) => ({
-                      name: `${s.employee?.first_name} ${s.employee?.last_name?.charAt(0)}.`,
-                      hours: Math.round(s.totalMinutes / 60 * 10) / 10,
-                      fullName: `${s.employee?.first_name} ${s.employee?.last_name}`,
-                    }))}
-                    margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
-                  >
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `${value}h`}
-                    />
-                    <ChartTooltip
-                      content={<ChartTooltipContent />}
-                      formatter={(value: number) => [`${value}h`, "Horas"]}
-                    />
-                    <Bar 
-                      dataKey="hours" 
-                      fill="hsl(var(--primary))" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+            {/* Summary Cards */}
+            {!isLoading && employeeSummary.length > 0 && (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Horas Mes</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {formatMinutes(employeeSummary.reduce((acc, e) => acc + e.totalMinutes, 0))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {format(month, 'MMMM yyyy', { locale: es })}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Empleados Activos</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{employeeSummary.length}</div>
+                      <p className="text-xs text-muted-foreground">
+                        con fichajes este mes
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Media Diaria</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {formatMinutes(
+                          employeeSummary.reduce((acc, e) => acc + e.avgMinutesPerDay, 0) / 
+                          (employeeSummary.length || 1)
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        por empleado/día
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-            {/* Summary Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumen por Empleado</CardTitle>
-                <CardDescription>Horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Código</TableHead>
-                      <TableHead>Empleado</TableHead>
-                      <TableHead className="text-right">Días</TableHead>
-                      <TableHead className="text-right">Total Horas</TableHead>
-                      <TableHead className="text-right">Media/Día</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employeeSummary.map((summary) => (
-                      <TableRow key={summary.employeeId}>
-                        <TableCell className="font-mono">{summary.employee?.employee_code}</TableCell>
-                        <TableCell>
-                          {summary.employee?.first_name} {summary.employee?.last_name}
-                        </TableCell>
-                        <TableCell className="text-right">{summary.totalDays}</TableCell>
-                        <TableCell className="text-right font-mono font-medium">
-                          {formatMinutes(summary.totalMinutes)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          {formatMinutes(summary.avgMinutesPerDay)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </>
-        )}
+                {/* Bar Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Horas por Empleado</CardTitle>
+                    <CardDescription>Comparativa de horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        hours: {
+                          label: "Horas",
+                          color: "hsl(var(--primary))",
+                        },
+                      }}
+                      className="h-[300px] w-full"
+                    >
+                      <BarChart
+                        data={employeeSummary.map((s) => ({
+                          name: `${s.employee?.first_name} ${s.employee?.last_name?.charAt(0)}.`,
+                          hours: Math.round(s.totalMinutes / 60 * 10) / 10,
+                          fullName: `${s.employee?.first_name} ${s.employee?.last_name}`,
+                        }))}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                      >
+                        <XAxis 
+                          dataKey="name" 
+                          angle={-45}
+                          textAnchor="end"
+                          height={60}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(value) => `${value}h`}
+                        />
+                        <ChartTooltip
+                          content={<ChartTooltipContent />}
+                          formatter={(value: number) => [`${value}h`, "Horas"]}
+                        />
+                        <Bar 
+                          dataKey="hours" 
+                          fill="hsl(var(--primary))" 
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
 
-        {/* Detailed Report */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
-        ) : groupedRecords && Object.keys(groupedRecords).length > 0 ? (
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Detalle por Día</h2>
-            {Object.entries(groupedRecords).map(([employeeId, data]: [string, any]) => (
-              <Card key={employeeId}>
-                <CardHeader>
-                  <CardTitle>
-                    {data.employee?.first_name} {data.employee?.last_name}
-                  </CardTitle>
-                  <CardDescription className="font-mono">
-                    {data.employee?.employee_code}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Object.entries(data.dates)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([date, dayRecords]: [string, any]) => (
-                        <div
-                          key={date}
-                          className="flex items-center justify-between rounded-lg border p-3"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {format(new Date(date), 'EEEE, d MMMM', { locale: es })}
-                            </p>
-                            <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                              {dayRecords.map((record: any, idx: number) => (
-                                <span key={idx}>
-                                  {record.event_type === 'entry' ? '🟢' : '🔴'}{' '}
-                                  {format(new Date(record.timestamp), 'HH:mm')}
-                                </span>
-                              ))}
+                {/* Summary Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resumen por Empleado</CardTitle>
+                    <CardDescription>Horas trabajadas en {format(month, 'MMMM yyyy', { locale: es })}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Código</TableHead>
+                          <TableHead>Empleado</TableHead>
+                          <TableHead className="text-right">Días</TableHead>
+                          <TableHead className="text-right">Total Horas</TableHead>
+                          <TableHead className="text-right">Media/Día</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {employeeSummary.map((summary) => (
+                          <TableRow key={summary.employeeId}>
+                            <TableCell className="font-mono">{summary.employee?.employee_code}</TableCell>
+                            <TableCell>
+                              {summary.employee?.first_name} {summary.employee?.last_name}
+                            </TableCell>
+                            <TableCell className="text-right">{summary.totalDays}</TableCell>
+                            <TableCell className="text-right font-mono font-medium">
+                              {formatMinutes(summary.totalMinutes)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              {formatMinutes(summary.avgMinutesPerDay)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {/* Detailed Report */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            ) : groupedRecords && Object.keys(groupedRecords).length > 0 ? (
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold">Detalle por Día</h2>
+                {Object.entries(groupedRecords).map(([employeeId, data]: [string, any]) => (
+                  <Card key={employeeId}>
+                    <CardHeader>
+                      <CardTitle>
+                        {data.employee?.first_name} {data.employee?.last_name}
+                      </CardTitle>
+                      <CardDescription className="font-mono">
+                        {data.employee?.employee_code}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Object.entries(data.dates)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([date, dayRecords]: [string, any]) => (
+                            <div
+                              key={date}
+                              className="flex items-center justify-between rounded-lg border p-3"
+                            >
+                              <div>
+                                <p className="font-medium">
+                                  {format(new Date(date), 'EEEE, d MMMM', { locale: es })}
+                                </p>
+                                <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                                  {dayRecords.map((record: any, idx: number) => (
+                                    <span key={idx}>
+                                      {record.event_type === 'entry' ? '🟢' : '🔴'}{' '}
+                                      {format(new Date(record.timestamp), 'HH:mm')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-mono font-medium">
+                                  {formatMinutes(calculateHours(dayRecords))}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-mono font-medium">
-                              {formatMinutes(calculateHours(dayRecords))}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">
+                    No hay registros para el período seleccionado
+                  </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                No hay registros para el período seleccionado
-              </p>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </TabsContent>
+
+          <TabsContent value="certificates">
+            <CertificateRequestPanel />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
