@@ -1,553 +1,541 @@
-# Plan: Prioridades Altas de Cumplimiento Legal
+# Plan: Sistema de Documentos Legales con Aceptacion Electronica QTSP
 
 ## Resumen Ejecutivo
 
-Implementar las 4 prioridades altas de cumplimiento legal:
-1. Sistema de retencion y purga automatica de 4 anos
-2. Bloqueo de fichaje durante ausencias activas
-3. Procedimiento de contingencias con registro en papel
-4. Documentos de privacidad RGPD descargables
+Implementar el sistema completo de cumplimiento legal para pymes espanolas:
+1. **14 documentos legales** con plantillas y campos variables
+2. **Aceptacion electronica** via portal de empleado con sellado QTSP
+3. **Sistema de retencion y purga** automatica de 4 anos
+4. **Bloqueo de fichaje** durante ausencias activas
+5. **Procedimiento de contingencias** con registro en papel
 
 ---
 
-## DOCUMENTOS LEGALES REQUERIDOS
+## FASE 1: Migracion de Base de Datos
 
-A continuacion se listan todos los documentos que debes entregarme en formato texto (Markdown o Word). Yo los convertire en plantillas PDF descargables con campos variables que se rellenaran automaticamente con los datos de cada empresa.
+### 1.1 Tabla `legal_document_templates`
+Almacena las 14 plantillas maestras del sistema.
 
-### CATEGORIA 1: Privacidad y Proteccion de Datos (RGPD)
-
-#### DOC-01: Clausula de Informacion a Empleados sobre Control Horario
-**Proposito:** Informar a empleados del tratamiento de sus datos de fichaje
-**Contenido requerido:**
-- Responsable del tratamiento (nombre, CIF, direccion, contacto DPD si aplica)
-- Finalidades del tratamiento (registro jornada, cumplimiento ET, gestion RRHH)
-- Base juridica (obligacion legal art. 34.9 ET, interes legitimo para gestion)
-- Destinatarios de datos (Inspeccion de Trabajo, representantes legales, proveedores tecnologicos)
-- Plazos de conservacion (4 anos para registros horarios)
-- Derechos del interesado (acceso, rectificacion, supresion, oposicion, portabilidad)
-- Procedimiento para ejercer derechos
-
-**Campos variables a sustituir:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{EMPRESA_CIF}}`
-- `{{EMPRESA_DIRECCION}}`
-- `{{EMPRESA_CIUDAD}}`
-- `{{EMPRESA_CP}}`
-- `{{FECHA_GENERACION}}`
-- `{{EMAIL_CONTACTO_DPD}}` (opcional)
-
----
-
-#### DOC-02: Clausula de Informacion sobre Gestion de Ausencias
-**Proposito:** Informar del tratamiento de datos en solicitudes de permisos/vacaciones/bajas
-**Contenido requerido:**
-- Ampliacion de finalidades (gestion de ausencias, cumplimiento convenio)
-- Categorias especiales de datos (datos de salud en bajas IT)
-- Destinatarios adicionales (mutuas, Seguridad Social si aplica)
-- Plazos diferenciados (4 anos general, 5 anos datos de salud si aplica por convenio)
-
-**Campos variables adicionales:**
-- `{{CONVENIO_APLICABLE}}` (si existe)
-- `{{MUTUA_NOMBRE}}` (si aplica)
-
----
-
-#### DOC-03: Politica de Retencion y Purga de Datos
-**Proposito:** Documentar los plazos de conservacion y procedimientos de destruccion
-**Contenido requerido:**
-- Tabla de categorias de datos y plazos:
-  - Registros de jornada: 4 anos
-  - Solicitudes de ausencias: 4 anos desde cierre
-  - Justificantes medicos: 5 anos
-  - Logs de auditoria: 4 anos
-  - Evidencias QTSP: 10 anos (o segun contrato QTSP)
-- Procedimiento de purga automatica
-- Evidencia de destruccion (log con hash)
-- Excepciones (litigios pendientes, requerimientos abiertos)
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{FECHA_APROBACION}}`
-- `{{RESPONSABLE_RRHH}}`
-
----
-
-#### DOC-04: Registro de Actividades de Tratamiento (RAT) - Control Horario
-**Proposito:** Cumplir art. 30 RGPD con registro interno de tratamientos
-**Contenido requerido:**
-- Nombre del tratamiento: "Control de Jornada y Tiempo de Trabajo"
-- Responsable del tratamiento
-- Categorias de interesados (empleados, trabajadores temporales)
-- Categorias de datos personales (identificacion, fichajes, IP si aplica)
-- Finalidades
-- Base juridica
-- Destinatarios
-- Transferencias internacionales (si las hay)
-- Plazos de supresion
-- Medidas de seguridad (cifrado, RLS, 2FA)
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{EMPRESA_CIF}}`
-- `{{DPD_NOMBRE}}` (si existe)
-- `{{DPD_EMAIL}}` (si existe)
-- `{{FECHA_ULTIMA_REVISION}}`
-
----
-
-#### DOC-05: Registro de Actividades de Tratamiento (RAT) - Ausencias
-**Proposito:** RAT especifico para gestion de ausencias (incluye datos de salud)
-**Contenido adicional:**
-- Categorias especiales de datos (salud)
-- Medidas reforzadas para datos sensibles
-- Acceso restringido a personal autorizado
-
----
-
-### CATEGORIA 2: Normas Internas de Uso
-
-#### DOC-06: Norma Interna de Uso del Sistema de Control Horario
-**Proposito:** Establecer reglas de uso del sistema para empleados
-**Contenido requerido:**
-- Obligacion de fichar entrada, salida y pausas
-- Puntos de fichaje autorizados (terminal kiosko, ubicacion)
-- Prohibicion de prestamo/cesion de credenciales (QR/PIN)
-- Procedimiento ante incidencias (olvidos, errores)
-- Canal de solicitud de correcciones
-- Procedimiento de contingencias (caida del sistema)
-- Consecuencias del incumplimiento
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{UBICACION_TERMINALES}}`
-- `{{EMAIL_INCIDENCIAS}}`
-- `{{RESPONSABLE_CONTROL_HORARIO}}`
-- `{{FECHA_ENTRADA_VIGOR}}`
-
----
-
-#### DOC-07: Procedimiento de Contingencias (Registro en Papel)
-**Proposito:** Protocolo cuando el sistema no esta disponible
-**Contenido requerido:**
-- Escenarios de contingencia (caida red, fallo terminal, corte electrico)
-- Plantilla de parte en papel (campos: empleado, fecha, hora entrada, hora salida, pausas, firma)
-- Responsable de custodia de partes en papel
-- Plazo maximo para transcripcion al sistema (24-48h)
-- Procedimiento de validacion y archivo
-- Ubicacion de partes en papel de reserva
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{RESPONSABLE_CONTINGENCIAS}}`
-- `{{UBICACION_PARTES_PAPEL}}`
-- `{{PLAZO_TRANSCRIPCION_HORAS}}`
-
----
-
-#### DOC-08: Acuse de Recibo de Credenciales (QR/PIN)
-**Proposito:** Documentar entrega de credenciales al empleado
-**Contenido requerido:**
-- Datos del empleado receptor
-- Tipo de credencial entregada
-- Obligaciones de custodia
-- Compromiso de no cesion
-- Procedimiento de comunicacion de perdida/robo
-- Firma del empleado
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{EMPLEADO_NOMBRE}}`
-- `{{EMPLEADO_CODIGO}}`
-- `{{TIPO_CREDENCIAL}}`
-- `{{FECHA_ENTREGA}}`
-
----
-
-### CATEGORIA 3: Documentos de Cumplimiento Laboral
-
-#### DOC-09: Manual de Control Horario (Extracto para ITSS)
-**Proposito:** Documento resumido para presentar ante Inspeccion de Trabajo
-**Contenido requerido:**
-- Descripcion del sistema de registro
-- Metodos de fichaje disponibles
-- Garantias de inalterabilidad (hash chain, QTSP)
-- Plazos de conservacion
-- Procedimiento de acceso a registros
-- Formato de exportacion disponible
-- Contacto del responsable
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{EMPRESA_CIF}}`
-- `{{SISTEMA_NOMBRE}}` (Time Control Hub)
-- `{{QTSP_PROVEEDOR}}`
-- `{{RESPONSABLE_NOMBRE}}`
-- `{{RESPONSABLE_CONTACTO}}`
-
----
-
-#### DOC-10: Politica de Gestion de Ausencias, Permisos y Vacaciones
-**Proposito:** Documentar el procedimiento de solicitud y aprobacion
-**Contenido requerido:**
-- Catalogo de tipos de ausencia (referencia a configuracion del sistema)
-- Procedimiento de solicitud (canales, plazos de preaviso)
-- Flujo de aprobacion (responsable directo, RRHH)
-- Documentacion justificativa requerida por tipo
-- Plazos de resolucion (SLA)
-- Impacto en control horario
-- Reglas de no solapamiento
-- Derechos de vacaciones y calculo
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{CONVENIO_APLICABLE}}`
-- `{{DIAS_VACACIONES_ANUALES}}`
-- `{{EMAIL_SOLICITUDES}}`
-- `{{RESPONSABLE_RRHH}}`
-
----
-
-#### DOC-11: Calendario Laboral Anual
-**Proposito:** Documento oficial del calendario laboral del centro
-**Contenido requerido:**
-- Ano aplicable
-- Centro de trabajo
-- Dias festivos nacionales
-- Dias festivos autonomicos
-- Dias festivos locales
-- Horario general (si aplica)
-- Periodos de cierre (si aplica)
-- Firma del responsable
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{CENTRO_TRABAJO}}`
-- `{{ANO}}`
-- `{{FESTIVOS_NACIONALES}}` (lista)
-- `{{FESTIVOS_AUTONOMICOS}}` (lista)
-- `{{FESTIVOS_LOCALES}}` (lista)
-- `{{FECHA_PUBLICACION}}`
-
----
-
-### CATEGORIA 4: Contratos y Encargos de Tratamiento
-
-#### DOC-12: Clausula de Encargo de Tratamiento (Plantilla Generica)
-**Proposito:** Plantilla para contratos con proveedores tecnologicos
-**Contenido requerido:**
-- Identificacion de las partes
-- Objeto del encargo
-- Duracion
-- Naturaleza y finalidad del tratamiento
-- Tipo de datos personales
-- Categorias de interesados
-- Obligaciones del encargado (art. 28 RGPD)
-- Subencargados autorizados
-- Transferencias internacionales
-- Medidas de seguridad
-- Devolucion/destruccion al finalizar
-- Auditoria
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}` (responsable)
-- `{{PROVEEDOR_NOMBRE}}` (encargado)
-- `{{SERVICIOS_CONTRATADOS}}`
-- `{{FECHA_CONTRATO}}`
-
----
-
-### CATEGORIA 5: Documentos para Empleados
-
-#### DOC-13: Guia Rapida del Empleado - Sistema de Fichaje
-**Proposito:** Manual sencillo de uso para empleados
-**Contenido requerido:**
-- Como fichar (QR, PIN)
-- Como consultar mis fichajes
-- Como solicitar una correccion
-- Como solicitar vacaciones/permisos
-- Como firmar el cierre mensual
-- Preguntas frecuentes
-- Contacto de soporte
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{URL_PORTAL_EMPLEADO}}`
-- `{{EMAIL_SOPORTE}}`
-
----
-
-#### DOC-14: Consentimiento para Comunicaciones Electronicas
-**Proposito:** Obtener consentimiento para notificaciones por email/app
-**Contenido requerido:**
-- Tipos de comunicaciones (alertas, recordatorios, aprobaciones)
-- Canales (email, app, SMS si aplica)
-- Derecho a revocar
-- Ventanas de silencio (desconexion digital)
-
-**Campos variables:**
-- `{{EMPRESA_NOMBRE}}`
-- `{{EMPLEADO_NOMBRE}}`
-- `{{FECHA}}`
-
----
-
-## ESTRUCTURA DE IMPLEMENTACION
-
-### Fase 1: Base de Datos y Almacenamiento
-
-#### 1.1 Nueva tabla `legal_documents`
 ```sql
-CREATE TABLE legal_documents (
+CREATE TABLE public.legal_document_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES company(id),
-  document_type TEXT NOT NULL, -- 'privacy_clause', 'internal_rules', etc.
-  document_code TEXT NOT NULL, -- 'DOC-01', 'DOC-02', etc.
-  title TEXT NOT NULL,
+  code VARCHAR(20) NOT NULL UNIQUE,
+  category VARCHAR(50) NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  description TEXT,
+  content_markdown TEXT NOT NULL,
+  required_variables JSONB DEFAULT '[]',
+  is_employee_acceptance BOOLEAN DEFAULT false,
+  priority VARCHAR(10) DEFAULT 'medium',
+  is_active BOOLEAN DEFAULT true,
   version INTEGER DEFAULT 1,
-  content_template TEXT NOT NULL, -- Markdown con placeholders
-  generated_content TEXT, -- Contenido final generado
-  generated_pdf_path TEXT, -- Ruta en storage
-  status TEXT DEFAULT 'draft', -- 'draft', 'active', 'archived'
-  effective_from DATE,
-  effective_to DATE,
-  approved_by UUID,
-  approved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-#### 1.2 Nueva tabla `document_acknowledgments`
+### 1.2 Tabla `legal_documents`
+Documentos generados por empresa con campos variables sustituidos.
+
 ```sql
-CREATE TABLE document_acknowledgments (
+CREATE TABLE public.legal_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID REFERENCES legal_documents(id),
-  employee_id UUID REFERENCES employees(id),
-  acknowledged_at TIMESTAMPTZ DEFAULT now(),
-  ip_address INET,
-  user_agent TEXT,
-  signature_hash TEXT -- Hash de la firma digital si aplica
+  company_id UUID NOT NULL REFERENCES company(id),
+  template_id UUID NOT NULL REFERENCES legal_document_templates(id),
+  title VARCHAR(200) NOT NULL,
+  content_html TEXT NOT NULL,
+  content_hash VARCHAR(64) NOT NULL,
+  variable_values JSONB NOT NULL,
+  status VARCHAR(20) DEFAULT 'draft',
+  published_at TIMESTAMPTZ,
+  published_by UUID,
+  qtsp_evidence_id UUID REFERENCES dt_evidences(id),
+  version INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-#### 1.3 Nueva tabla `data_retention_config`
+### 1.3 Tabla `document_acknowledgments`
+Registro de aceptaciones con sellado QTSP.
+
 ```sql
-CREATE TABLE data_retention_config (
+CREATE TABLE public.document_acknowledgments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES company(id),
-  data_category TEXT NOT NULL, -- 'time_events', 'absences', 'audit_log', etc.
+  company_id UUID NOT NULL REFERENCES company(id),
+  document_id UUID NOT NULL REFERENCES legal_documents(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  acknowledgment_type VARCHAR(30) NOT NULL,
+  accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ip_address INET,
+  user_agent TEXT,
+  content_hash VARCHAR(64) NOT NULL,
+  signature_data JSONB,
+  qtsp_evidence_id UUID REFERENCES dt_evidences(id),
+  qtsp_timestamp TIMESTAMPTZ,
+  qtsp_token TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(document_id, employee_id)
+);
+```
+
+### 1.4 Tabla `data_retention_config`
+Configuracion de plazos de retencion por categoria.
+
+```sql
+CREATE TABLE public.data_retention_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES company(id),
+  data_category VARCHAR(50) NOT NULL,
   retention_years INTEGER NOT NULL DEFAULT 4,
-  retention_reason TEXT,
   purge_enabled BOOLEAN DEFAULT true,
   last_purge_at TIMESTAMPTZ,
   next_purge_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(company_id, data_category)
+);
+```
+
+### 1.5 Tabla `data_purge_log`
+Registro de purgas con evidencia de destruccion.
+
+```sql
+CREATE TABLE public.data_purge_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES company(id),
+  data_category VARCHAR(50) NOT NULL,
+  purge_date DATE NOT NULL,
+  records_before_count INTEGER NOT NULL,
+  records_purged_count INTEGER NOT NULL,
+  cutoff_date DATE NOT NULL,
+  content_hash_before VARCHAR(64),
+  content_hash_after VARCHAR(64),
+  executed_by VARCHAR(50) DEFAULT 'system',
+  qtsp_evidence_id UUID REFERENCES dt_evidences(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-#### 1.4 Nueva tabla `data_purge_log`
+### 1.6 Tabla `contingency_records`
+Registro de fichajes manuales por contingencia.
+
 ```sql
-CREATE TABLE data_purge_log (
+CREATE TABLE public.contingency_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES company(id),
-  data_category TEXT NOT NULL,
-  records_purged INTEGER,
-  date_range_start DATE,
-  date_range_end DATE,
-  purged_at TIMESTAMPTZ DEFAULT now(),
-  purged_by TEXT, -- 'system' o user_id
-  integrity_hash TEXT, -- Hash de los datos purgados como evidencia
-  qtsp_evidence_id UUID -- Referencia a evidencia QTSP si se sella
-);
-```
-
-### Fase 2: Sistema de Retencion y Purga (4 anos)
-
-#### 2.1 Edge Function `data-retention-purge`
-- Ejecutar diariamente via cron
-- Para cada empresa con purge_enabled:
-  - Calcular fecha limite (hoy - retention_years)
-  - Seleccionar registros a purgar por categoria
-  - Generar hash de integridad del conjunto
-  - Crear evidencia de destruccion
-  - Ejecutar DELETE
-  - Registrar en data_purge_log
-  - Opcionalmente sellar con QTSP
-
-#### 2.2 Pagina de configuracion de retencion
-- Admin Settings > Retencion de Datos
-- Mostrar categorias y plazos configurados
-- Permitir ver historico de purgas
-- Mostrar proxima purga programada
-
-### Fase 3: Bloqueo de Fichaje durante Ausencias
-
-#### 3.1 Modificar Edge Function `kiosk-clock`
-- Antes de registrar fichaje, verificar:
-  ```sql
-  SELECT * FROM absence_requests
-  WHERE employee_id = $1
-    AND status = 'approved'
-    AND blocks_clocking = true
-    AND start_date <= CURRENT_DATE
-    AND end_date >= CURRENT_DATE
-  ```
-- Si existe ausencia activa con blocks_clocking=true:
-  - Rechazar fichaje con mensaje descriptivo
-  - Registrar intento en audit_log
-
-#### 3.2 Actualizar tabla absence_types
-- Verificar que `blocks_clocking` existe y esta configurado:
-  - IT (baja medica): blocks_clocking = true
-  - Vacaciones: blocks_clocking = true
-  - Permiso por horas: blocks_clocking = false
-  - etc.
-
-### Fase 4: Procedimiento de Contingencias
-
-#### 4.1 Nueva tabla `contingency_records`
-```sql
-CREATE TABLE contingency_records (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES company(id),
-  employee_id UUID REFERENCES employees(id),
+  company_id UUID NOT NULL REFERENCES company(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
   contingency_date DATE NOT NULL,
   entry_time TIME,
   exit_time TIME,
-  break_minutes INTEGER,
-  reason TEXT, -- 'network_failure', 'power_outage', 'terminal_failure'
-  notes TEXT,
-  paper_form_path TEXT, -- Scan del parte en papel si existe
-  transcribed_by UUID, -- Quien lo transcribio
+  pause_start TIME,
+  pause_end TIME,
+  reason VARCHAR(200) NOT NULL,
+  paper_form_reference VARCHAR(100),
+  employee_signature_confirmed BOOLEAN DEFAULT false,
+  responsible_signature_confirmed BOOLEAN DEFAULT false,
+  transcribed_by UUID,
   transcribed_at TIMESTAMPTZ,
   validated_by UUID,
   validated_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
+  time_event_ids JSONB DEFAULT '[]',
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 ```
 
-#### 4.2 Pagina de registro de contingencias
-- Admin > Registros > Contingencias
-- Formulario para transcribir partes en papel:
-  - Seleccionar empleado
-  - Fecha de la contingencia
-  - Horas (entrada, salida, pausas)
-  - Motivo de la contingencia
-  - Notas adicionales
-  - Opcion de adjuntar scan del parte
-- Al guardar: crear time_events correspondientes marcados como source='manual_contingency'
+---
 
-#### 4.3 Plantilla PDF de parte en papel
-- Generar PDF descargable con campos:
-  - Logo empresa
+## FASE 2: Plantillas de Documentos Legales
+
+### Archivo: `src/lib/legalDocumentTemplates.ts`
+
+Contendra las 14 plantillas completas con los textos proporcionados:
+
+| Codigo | Nombre | Categoria | Acepta Empleado | Prioridad |
+|--------|--------|-----------|-----------------|-----------|
+| DOC-01 | Clausula Informacion Control Horario | privacy | SI | ALTA |
+| DOC-02 | Clausula Informacion Ausencias | privacy | SI | ALTA |
+| DOC-03 | Politica Retencion y Purga | privacy | NO | ALTA |
+| DOC-04 | RAT Control Horario | privacy | NO | MEDIA |
+| DOC-05 | RAT Ausencias | privacy | NO | MEDIA |
+| DOC-06 | Norma Interna Sistema | internal_rules | SI | ALTA |
+| DOC-07 | Procedimiento Contingencias | internal_rules | SI | ALTA |
+| DOC-08 | Acuse Recibo Credenciales | employee_docs | SI | ALTA |
+| DOC-09 | Manual Control Horario ITSS | labor_compliance | NO | ALTA |
+| DOC-10 | Politica Gestion Ausencias | labor_compliance | SI | MEDIA |
+| DOC-11 | Calendario Laboral Anual | labor_compliance | NO | MEDIA |
+| DOC-12 | Clausula Encargo Tratamiento | contracts | NO | BAJA |
+| DOC-13 | Guia Rapida Empleado | employee_docs | SI | BAJA |
+| DOC-14 | Consentimiento Comunicaciones | employee_docs | SI | BAJA |
+
+### Campos Variables Globales (de tabla `company`):
+- `{{EMPRESA_NOMBRE}}` -> company.name
+- `{{EMPRESA_CIF}}` -> company.cif
+- `{{EMPRESA_DIRECCION}}` -> company.address
+- `{{EMPRESA_CIUDAD}}` -> company.city
+- `{{EMPRESA_CP}}` -> company.postal_code
+- `{{FECHA_GENERACION}}` -> fecha actual
+
+### Campos Variables Adicionales (de `company.settings`):
+- `{{CONTACTO_PRIVACIDAD}}`
+- `{{EMAIL_CONTACTO_DPD}}`
+- `{{PROVEEDOR_PLATAFORMA}}` -> "Time Control Hub"
+- `{{QTSP_NOMBRE}}` -> "EADTrust"
+- `{{RESPONSABLE_CUMPLIMIENTO}}`
+- `{{CENTRO_NOMBRE}}`
+- `{{UBICACION_TERMINAL}}`
+- `{{CANAL_CORRECCIONES}}`
+- `{{PLAZO_CORRECCIONES_HORAS}}`
+- `{{RESPONSABLE_CUSTODIA}}`
+- `{{LUGAR_ARCHIVO_PARTES}}`
+- `{{PLAZO_TRANSCRIPCION_HORAS}}`
+- etc.
+
+---
+
+## FASE 3: Edge Functions
+
+### 3.1 Modificar `kiosk-clock/index.ts`
+Bloquear fichaje durante ausencias activas.
+
+**Insertar despues de la autenticacion del empleado (linea ~410):**
+
+```typescript
+// ========== CHECK ACTIVE ABSENCES ==========
+const today = new Date().toISOString().split('T')[0];
+
+const { data: activeAbsence } = await supabase
+  .from('absence_requests')
+  .select(`
+    id,
+    start_date,
+    end_date,
+    absence_types!inner(code, name, blocks_clocking)
+  `)
+  .eq('employee_id', employee.id)
+  .eq('status', 'approved')
+  .lte('start_date', today)
+  .gte('end_date', today)
+  .maybeSingle();
+
+if (activeAbsence) {
+  const absenceType = activeAbsence.absence_types as any;
+  if (absenceType.blocks_clocking) {
+    console.log(`Clocking blocked for ${employee.employee_code}: active absence ${absenceType.code}`);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        blocked_by_absence: true,
+        error: `No puedes fichar. Tienes una ausencia activa: ${absenceType.name} (${activeAbsence.start_date} - ${activeAbsence.end_date})`,
+        absence: {
+          type: absenceType.name,
+          code: absenceType.code,
+          start_date: activeAbsence.start_date,
+          end_date: activeAbsence.end_date,
+        }
+      }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+```
+
+### 3.2 Nueva `acknowledge-document/index.ts`
+Registrar aceptacion de documento con sellado QTSP.
+
+**Flujo:**
+1. Recibe: document_id, employee_id, acknowledgment_type
+2. Verifica documento publicado y empleado valido
+3. Verifica no existe aceptacion previa
+4. Genera hash: SHA256(content_hash + employee_id + timestamp)
+5. Crea registro en document_acknowledgments
+6. Llama a qtsp-notarize para sellar el hash
+7. Actualiza registro con qtsp_token y qtsp_timestamp
+8. Retorna confirmacion con datos del sellado
+
+### 3.3 Nueva `generate-legal-document/index.ts`
+Generar PDF de documento legal.
+
+**Flujo:**
+1. Recibe: template_code, company_id
+2. Obtiene plantilla de legal_document_templates
+3. Obtiene datos de company
+4. Sustituye todos los campos variables
+5. Convierte Markdown a HTML
+6. Genera PDF con jsPDF
+7. Calcula content_hash
+8. Guarda en storage
+9. Crea/actualiza registro en legal_documents
+10. Retorna URL de descarga
+
+### 3.4 Nueva `data-retention-purge/index.ts`
+Ejecutar purga automatica de datos.
+
+**Flujo (ejecutar via cron diario):**
+1. Obtiene empresas con purge_enabled=true
+2. Para cada empresa y categoria:
+   - Calcula cutoff_date (hoy - retention_years)
+   - Cuenta registros anteriores a cutoff
+   - Genera hash de integridad del conjunto
+   - Ejecuta DELETE
+   - Registra en data_purge_log
+   - Actualiza last_purge_at
+3. Opcionalmente sella el log de purga con QTSP
+
+**Categorias y plazos por defecto:**
+- time_events: 4 anos
+- absence_requests: 4 anos
+- correction_requests: 4 anos
+- audit_log: 4 anos
+- employee_documents: 5 anos
+- document_acknowledgments: 10 anos
+- dt_evidences: 10 anos (no purgar, solo archivar)
+
+---
+
+## FASE 4: Paginas de Administracion
+
+### 4.1 `src/pages/admin/LegalDocuments.tsx`
+Gestion completa de documentos legales.
+
+**Funcionalidades:**
+- Tabs por categoria (Privacidad, Normas, Laboral, Contratos, Empleados)
+- Lista de plantillas disponibles
+- Card por documento con:
+  - Nombre y descripcion
+  - Estado (borrador/publicado/archivado)
+  - Fecha de publicacion
+  - Numero de aceptaciones
+  - Acciones: Ver, Editar campos, Publicar, Descargar PDF
+- Formulario de edicion de campos variables
+- Preview del documento con datos sustituidos
+- Historial de versiones
+
+### 4.2 `src/pages/admin/DataRetention.tsx`
+Configuracion de retencion y registro de purgas.
+
+**Funcionalidades:**
+- Tabla de categorias de datos con:
+  - Nombre de categoria
+  - Plazo de retencion (editable)
+  - Purga automatica (on/off)
+  - Ultima purga ejecutada
+  - Proxima purga programada
+  - Registros pendientes de purgar
+- Boton "Ejecutar purga manual" (con confirmacion)
+- Historico de purgas ejecutadas con:
   - Fecha
-  - Nombre empleado / Codigo
-  - Hora entrada (campo para escribir)
-  - Hora salida (campo para escribir)
-  - Pausas (campo para escribir)
-  - Firma empleado
-  - Firma responsable
+  - Categoria
+  - Registros purgados
+  - Hash de integridad
+  - Evidencia QTSP (si aplica)
 
-### Fase 5: Documentos RGPD Descargables
+### 4.3 `src/pages/admin/ContingencyRecords.tsx`
+Registro de fichajes manuales por contingencia.
 
-#### 5.1 Pagina de gestion de documentos legales
-- Admin > Configuracion > Documentos Legales
-- Listar documentos disponibles por categoria
+**Funcionalidades:**
+- Boton "Descargar plantilla parte en papel" (PDF)
+- Formulario de transcripcion:
+  - Selector de empleado
+  - Fecha de contingencia
+  - Hora entrada / Hora salida
+  - Pausas (opcional)
+  - Motivo (dropdown: Fallo red, Corte electrico, Fallo terminal, Otro)
+  - Referencia del parte en papel
+  - Checkboxes: Firma empleado confirmada, Firma responsable confirmada
+- Lista de registros pendientes de validar
+- Lista de registros validados
+- Al validar: genera time_events con source='manual_contingency'
+
+---
+
+## FASE 5: Portal del Empleado
+
+### 5.1 Nueva `src/pages/employee/LegalDocuments.tsx`
+Documentos legales para el empleado.
+
+**Funcionalidades:**
+- Seccion "Documentos pendientes de aceptar" (destacados)
+- Seccion "Documentos aceptados"
 - Para cada documento:
-  - Ver preview con datos de la empresa
-  - Descargar PDF
-  - Ver historial de versiones
-  - Registrar quien descargo/consulto
+  - Nombre y fecha de publicacion
+  - Boton "Ver documento" (abre modal con contenido)
+  - Estado de aceptacion
+  - Si aceptado: fecha, token QTSP
+- Al hacer click en "Ver documento":
+  - Modal con contenido completo (scroll)
+  - Checkbox "He leido y comprendido este documento"
+  - Boton "Acepto los terminos" (deshabilitado hasta marcar checkbox)
+- Al aceptar:
+  - Llamada a acknowledge-document
+  - Spinner mientras se procesa
+  - Confirmacion con token QTSP
 
-#### 5.2 Edge Function `generate-legal-document`
-- Recibir: document_code, company_id
-- Cargar plantilla del documento
-- Sustituir placeholders con datos de company
-- Generar PDF usando jspdf
-- Guardar en storage
-- Devolver URL de descarga
+### 5.2 Modificar `src/components/layout/EmployeeLayout.tsx`
+Anadir badge de documentos pendientes en navegacion.
 
-#### 5.3 Seeder de plantillas por defecto
-- Al crear empresa, insertar en legal_documents las plantillas base
-- Marcar como 'draft' hasta que el admin las revise y active
-
----
-
-## ARCHIVOS A CREAR/MODIFICAR
-
-### Nuevos archivos:
-1. `supabase/functions/data-retention-purge/index.ts`
-2. `supabase/functions/generate-legal-document/index.ts`
-3. `src/pages/admin/LegalDocuments.tsx`
-4. `src/pages/admin/DataRetention.tsx`
-5. `src/pages/admin/ContingencyRecords.tsx`
-6. `src/components/admin/LegalDocumentCard.tsx`
-7. `src/components/admin/ContingencyForm.tsx`
-8. `src/components/admin/PaperFormTemplate.tsx`
-9. `src/lib/documentTemplates.ts` - Plantillas en formato Markdown
-
-### Archivos a modificar:
-1. `supabase/functions/kiosk-clock/index.ts` - Anadir verificacion de ausencias
-2. `src/components/layout/AppLayout.tsx` - Anadir enlaces de navegacion
-3. `src/App.tsx` - Anadir rutas
-4. `supabase/config.toml` - Anadir nuevas edge functions
+### 5.3 Modificar `src/pages/employee/Settings.tsx`
+Anadir seccion con resumen de documentos pendientes/aceptados.
 
 ---
 
-## FLUJO DE TRABAJO RECOMENDADO
+## FASE 6: Componentes UI
 
-1. **Tu me proporcionas** los textos de los documentos DOC-01 a DOC-14 (o los que apliquen)
-2. **Yo los convierto** en plantillas con placeholders
-3. **Implemento** el sistema de generacion automatica
-4. **El admin de cada empresa** revisa, personaliza si es necesario, y activa los documentos
-5. **Los empleados** pueden consultar y firmar acuse de recibo de los documentos que les apliquen
+### Nuevos componentes:
 
----
+1. **`src/components/admin/LegalDocumentCard.tsx`**
+   - Tarjeta de documento con acciones
+   - Muestra estado, aceptaciones, fechas
 
-## CAMPOS VARIABLES DISPONIBLES (desde datos existentes)
+2. **`src/components/admin/DocumentPreview.tsx`**
+   - Modal de preview con campos variables resaltados
+   - Permite editar valores antes de publicar
 
-| Placeholder | Fuente | Tabla |
-|-------------|--------|-------|
-| `{{EMPRESA_NOMBRE}}` | company.name | company |
-| `{{EMPRESA_CIF}}` | company.cif | company |
-| `{{EMPRESA_DIRECCION}}` | company.address | company |
-| `{{EMPRESA_CIUDAD}}` | company.city | company |
-| `{{EMPRESA_CP}}` | company.postal_code | company |
-| `{{FECHA_GENERACION}}` | now() | sistema |
-| `{{ANO_ACTUAL}}` | year(now()) | sistema |
-| `{{EMPLEADO_NOMBRE}}` | employees.first_name + last_name | employees |
-| `{{EMPLEADO_CODIGO}}` | employees.employee_code | employees |
-| `{{TERMINAL_NOMBRE}}` | terminals.name | terminals |
-| `{{TERMINAL_UBICACION}}` | terminals.location | terminals |
+3. **`src/components/admin/ContingencyForm.tsx`**
+   - Formulario de transcripcion de parte en papel
+   - Validacion de horas coherentes
 
-### Campos a anadir en company_settings:
-- `email_dpd` - Email del DPD si existe
-- `nombre_dpd` - Nombre del DPD
-- `responsable_rrhh` - Nombre del responsable de RRHH
-- `email_incidencias` - Email para incidencias de fichaje
-- `convenio_aplicable` - Convenio colectivo aplicable
-- `mutua_nombre` - Nombre de la mutua
-- `plazo_transcripcion_contingencias` - Horas para transcribir partes en papel
+4. **`src/components/admin/PaperFormTemplate.tsx`**
+   - Componente para generar PDF del parte en papel
+   - Incluye logo empresa y campos para rellenar
+
+5. **`src/components/employee/DocumentAcceptanceDialog.tsx`**
+   - Dialog de aceptacion con scroll del contenido
+   - Checkbox de confirmacion y boton de aceptar
+
+6. **`src/components/employee/QTSPAcceptanceBadge.tsx`**
+   - Badge que muestra estado de sellado QTSP
+   - Verde con checkmark si sellado, gris si pendiente
 
 ---
 
-## RESUMEN DE DOCUMENTOS A ENTREGAR
+## FASE 7: Flujo de Aceptacion con QTSP
 
-| Codigo | Documento | Prioridad |
-|--------|-----------|-----------|
-| DOC-01 | Clausula informacion empleados - Control Horario | ALTA |
-| DOC-02 | Clausula informacion empleados - Ausencias | ALTA |
-| DOC-03 | Politica de retencion y purga | ALTA |
-| DOC-06 | Norma interna de uso del sistema | ALTA |
-| DOC-07 | Procedimiento de contingencias | ALTA |
-| DOC-08 | Acuse de recibo de credenciales | ALTA |
-| DOC-09 | Manual de control horario (ITSS) | ALTA |
-| DOC-04 | RAT - Control Horario | MEDIA |
-| DOC-05 | RAT - Ausencias | MEDIA |
-| DOC-10 | Politica de ausencias y vacaciones | MEDIA |
-| DOC-11 | Calendario laboral anual | MEDIA |
-| DOC-12 | Clausula encargo de tratamiento | BAJA |
-| DOC-13 | Guia rapida del empleado | BAJA |
-| DOC-14 | Consentimiento comunicaciones | BAJA |
+```
+Empleado accede a Portal > Documentos Legales
+                |
+                v
+    Ve documentos pendientes (destacados en amarillo)
+                |
+                v
+    Hace click en "Ver documento"
+                |
+                v
+    Modal con contenido completo + scroll
+                |
+                v
+    Marca checkbox "He leido y comprendido"
+                |
+                v
+    Click en "Acepto los terminos"
+                |
+                v
+    Sistema captura:
+    - content_hash del documento
+    - employee_id
+    - timestamp ISO
+    - IP address
+    - User agent
+                |
+                v
+    Llamada POST a /acknowledge-document
+                |
+                v
+    Edge function:
+    1. Valida datos
+    2. Genera signature_hash = SHA256(content_hash + employee_id + timestamp)
+    3. Inserta en document_acknowledgments
+    4. Llama a qtsp-notarize con signature_hash
+    5. Espera token TSP (polling hasta 20s)
+    6. Actualiza registro con qtsp_token y qtsp_timestamp
+                |
+                v
+    Respuesta al frontend:
+    {
+      success: true,
+      acknowledgment_id: "uuid",
+      qtsp_token: "...",
+      qtsp_timestamp: "2026-01-06T12:34:56Z"
+    }
+                |
+                v
+    Modal de confirmacion:
+    "Documento aceptado correctamente"
+    "Sellado QTSP: [token abreviado]"
+    "Fecha: 06/01/2026 12:34"
+```
 
-**Recomendacion:** Empieza por los documentos de prioridad ALTA. Yo puedo generar borradores iniciales basados en modelos estandar espanoles si prefieres partir de una base.
+---
+
+## FASE 8: Archivos a Crear
+
+| Archivo | Descripcion |
+|---------|-------------|
+| `src/lib/legalDocumentTemplates.ts` | 14 plantillas con textos completos |
+| `src/pages/admin/LegalDocuments.tsx` | Gestion documentos legales |
+| `src/pages/admin/DataRetention.tsx` | Configuracion retencion |
+| `src/pages/admin/ContingencyRecords.tsx` | Registro contingencias |
+| `src/pages/employee/LegalDocuments.tsx` | Documentos para empleado |
+| `src/components/admin/LegalDocumentCard.tsx` | Card de documento |
+| `src/components/admin/DocumentPreview.tsx` | Preview con campos |
+| `src/components/admin/ContingencyForm.tsx` | Form transcripcion |
+| `src/components/admin/PaperFormTemplate.tsx` | PDF parte papel |
+| `src/components/employee/DocumentAcceptanceDialog.tsx` | Dialog aceptacion |
+| `src/components/employee/QTSPAcceptanceBadge.tsx` | Badge sellado |
+| `supabase/functions/acknowledge-document/index.ts` | Aceptacion QTSP |
+| `supabase/functions/generate-legal-document/index.ts` | Generar PDF |
+| `supabase/functions/data-retention-purge/index.ts` | Purga automatica |
+
+---
+
+## FASE 9: Archivos a Modificar
+
+| Archivo | Cambios |
+|---------|---------|
+| `supabase/functions/kiosk-clock/index.ts` | Anadir bloqueo por ausencia activa |
+| `supabase/config.toml` | Registrar 3 nuevas edge functions |
+| `src/components/layout/AppLayout.tsx` | Anadir navegacion admin |
+| `src/components/layout/EmployeeLayout.tsx` | Anadir navegacion + badge |
+| `src/App.tsx` | Anadir 4 nuevas rutas |
+
+---
+
+## Critical Files for Implementation
+
+- `supabase/functions/kiosk-clock/index.ts` - Modificar linea ~410 para bloqueo ausencias
+- `supabase/functions/qtsp-notarize/index.ts` - Referencia para integracion QTSP
+- `src/integrations/supabase/types.ts` - Tipos existentes de tablas
+- `src/pages/admin/Settings.tsx` - Patron para paginas de configuracion
+- `src/pages/employee/Settings.tsx` - Patron para paginas de empleado
+- `src/components/admin/AbsenceApprovalPanel.tsx` - Patron para paneles admin
+
+---
+
+## Orden de Implementacion Recomendado
+
+1. **Migracion DB** - Crear 6 tablas con RLS
+2. **Plantillas** - Crear legalDocumentTemplates.ts con los 14 documentos
+3. **Bloqueo fichaje** - Modificar kiosk-clock (impacto inmediato)
+4. **acknowledge-document** - Edge function para sellado QTSP
+5. **Pagina admin LegalDocuments** - Gestion de documentos
+6. **Pagina employee LegalDocuments** - Aceptacion con QTSP
+7. **generate-legal-document** - Generacion de PDFs
+8. **data-retention-purge** - Sistema de purga
+9. **Pagina admin DataRetention** - Configuracion retencion
+10. **Pagina admin ContingencyRecords** - Registro contingencias
+11. **PDF parte contingencia** - Plantilla imprimible
+
+---
+
+## Metricas de Exito
+
+- [ ] Todos los empleados activos tienen DOC-01, DOC-06, DOC-08 aceptados
+- [ ] Aceptaciones selladas con token QTSP valido
+- [ ] Bloqueo de fichaje funcionando para ausencias con blocks_clocking=true
+- [ ] Sistema de purga ejecutandose sin errores
+- [ ] Historico de purgas con evidencia de destruccion
+- [ ] Registros de contingencia transcritos en menos de 48h
+- [ ] Documentos descargables como PDF para ITSS
