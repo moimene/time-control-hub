@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.qtsp-toggle-alerts]
 verify_jwt = false
+
+[functions.orphan-alert]
+verify_jwt = false
+
+[functions.inconsistency-alert]
+verify_jwt = false
