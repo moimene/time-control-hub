@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileText, Building2, Search, Filter, Archive, Sparkles } from 'lucide-react';
+import { Plus, FileText, Building2, Search, Filter, Archive, Sparkles, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { SeedTemplateSelector } from './SeedTemplateSelector';
@@ -232,44 +232,56 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {companyTemplates.map((ruleSet) => (
-              <Card 
-                key={ruleSet.id} 
-                className="cursor-pointer transition-shadow hover:shadow-md"
-                onClick={() => onSelect(ruleSet)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{ruleSet.name}</CardTitle>
-                    <Badge variant={getStatusVariant(ruleSet.status)}>
-                      {STATUS_LABELS[ruleSet.status] || ruleSet.status}
-                    </Badge>
-                  </div>
-                  {ruleSet.description && (
-                    <CardDescription className="line-clamp-2">
-                      {ruleSet.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      {ruleSet.sector && (
-                        <Badge variant="outline" className="text-xs">
-                          {SECTOR_LABELS[ruleSet.sector] || ruleSet.sector}
+            {companyTemplates.map((ruleSet) => {
+              const needsVerification = ruleSet.description?.includes('⚠️ Requiere verificación') || 
+                                        ruleSet.name?.includes('(Personalizada)');
+              return (
+                <Card 
+                  key={ruleSet.id} 
+                  className={`cursor-pointer transition-shadow hover:shadow-md ${needsVerification ? 'border-warning/50' : ''}`}
+                  onClick={() => onSelect(ruleSet)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-lg">{ruleSet.name}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        {needsVerification && (
+                          <Badge variant="outline" className="text-xs border-warning text-warning bg-warning/10">
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            Verificar
+                          </Badge>
+                        )}
+                        <Badge variant={getStatusVariant(ruleSet.status)}>
+                          {STATUS_LABELS[ruleSet.status] || ruleSet.status}
                         </Badge>
-                      )}
-                      {ruleSet.rule_versions && (
-                        <span>{ruleSet.rule_versions.length} versiones</span>
-                      )}
+                      </div>
                     </div>
-                    <span>
-                      {format(new Date(ruleSet.updated_at), 'dd MMM yyyy', { locale: es })}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    {ruleSet.description && (
+                      <CardDescription className="line-clamp-2">
+                        {ruleSet.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        {ruleSet.sector && (
+                          <Badge variant="outline" className="text-xs">
+                            {SECTOR_LABELS[ruleSet.sector] || ruleSet.sector}
+                          </Badge>
+                        )}
+                        {ruleSet.rule_versions && (
+                          <span>{ruleSet.rule_versions.length} versiones</span>
+                        )}
+                      </div>
+                      <span>
+                        {format(new Date(ruleSet.updated_at), 'dd MMM yyyy', { locale: es })}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
