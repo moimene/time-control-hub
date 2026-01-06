@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Search, Shield, FileText, Users, Download, CheckCircle, XCircle, Edit } from 'lucide-react';
+import { CalendarIcon, Search, Shield, FileText, Users, Download, CheckCircle, XCircle, Edit, AlertTriangle, Mail } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,8 @@ const actionLabels: Record<string, { label: string; icon: React.ReactNode; varia
   approve: { label: 'Aprobar', icon: <CheckCircle className="h-3 w-3" />, variant: 'default' },
   reject: { label: 'Rechazar', icon: <XCircle className="h-3 w-3" />, variant: 'destructive' },
   export: { label: 'Exportar', icon: <Download className="h-3 w-3" />, variant: 'outline' },
+  inconsistency_alert_sent: { label: 'Alerta Inconsistencia', icon: <AlertTriangle className="h-3 w-3" />, variant: 'destructive' },
+  weekly_inconsistency_summary: { label: 'Resumen Semanal', icon: <Mail className="h-3 w-3" />, variant: 'secondary' },
 };
 
 const entityTypeLabels: Record<string, string> = {
@@ -43,6 +45,7 @@ const entityTypeLabels: Record<string, string> = {
   correction_request: 'Corrección',
   employee: 'Empleado',
   terminal: 'Terminal',
+  notification: 'Notificación',
 };
 
 export default function AuditLog() {
@@ -198,6 +201,8 @@ export default function AuditLog() {
               <SelectItem value="approve">Aprobar</SelectItem>
               <SelectItem value="reject">Rechazar</SelectItem>
               <SelectItem value="export">Exportar</SelectItem>
+              <SelectItem value="inconsistency_alert_sent">Alerta Inconsistencia</SelectItem>
+              <SelectItem value="weekly_inconsistency_summary">Resumen Semanal</SelectItem>
             </SelectContent>
           </Select>
 
@@ -211,6 +216,7 @@ export default function AuditLog() {
               <SelectItem value="correction_request">Correcciones</SelectItem>
               <SelectItem value="employee">Empleados</SelectItem>
               <SelectItem value="terminal">Terminales</SelectItem>
+              <SelectItem value="notification">Notificaciones</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -292,6 +298,18 @@ export default function AuditLog() {
                             )}
                             {log.action === 'update' && log.entity_type === 'employee' && (
                               <span className="text-sm text-muted-foreground">Datos actualizados</span>
+                            )}
+                            {log.action === 'inconsistency_alert_sent' && log.new_values && (
+                              <div className="text-sm text-muted-foreground">
+                                <p>Enviado a: {(log.new_values as any).email_sent_to}</p>
+                                <p>Inconsistencias: {(log.new_values as any).inconsistency_count}</p>
+                              </div>
+                            )}
+                            {log.action === 'weekly_inconsistency_summary' && log.new_values && (
+                              <div className="text-sm text-muted-foreground">
+                                <p>Departamento: {(log.new_values as any).department}</p>
+                                <p>Empleados afectados: {(log.new_values as any).employees_with_issues}</p>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>

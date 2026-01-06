@@ -109,6 +109,41 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       corrected_events: {
         Row: {
           company_id: string | null
@@ -485,6 +520,7 @@ export type Database = {
           first_name: string
           hire_date: string | null
           id: string
+          is_department_responsible: boolean | null
           last_name: string
           phone: string | null
           pin_failed_attempts: number | null
@@ -506,6 +542,7 @@ export type Database = {
           first_name: string
           hire_date?: string | null
           id?: string
+          is_department_responsible?: boolean | null
           last_name: string
           phone?: string | null
           pin_failed_attempts?: number | null
@@ -527,6 +564,7 @@ export type Database = {
           first_name?: string
           hire_date?: string | null
           id?: string
+          is_department_responsible?: boolean | null
           last_name?: string
           phone?: string | null
           pin_failed_attempts?: number | null

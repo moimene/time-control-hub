@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.inconsistency-alert]
 verify_jwt = false
+
+[functions.weekly-inconsistency-summary]
+verify_jwt = false
