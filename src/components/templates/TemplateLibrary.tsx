@@ -98,7 +98,7 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar plantillas..."
+              placeholder="Buscar reglas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -153,7 +153,7 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Crear Nueva Plantilla</DialogTitle>
+                <DialogTitle>Crear Nueva Regla</DialogTitle>
                 <DialogDescription>
                   Define las reglas de cumplimiento para tu empresa desde cero
                 </DialogDescription>
@@ -221,13 +221,13 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
 
       {/* Company Templates */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Mis Plantillas</h2>
+        <h2 className="text-lg font-semibold">Mis Reglas</h2>
         {companyTemplates.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No tienes plantillas creadas</p>
-              <p className="text-sm text-muted-foreground">Crea una nueva o usa una plantilla de sector como base</p>
+              <p className="text-muted-foreground">No tienes reglas creadas</p>
+              <p className="text-sm text-muted-foreground">Crea una nueva o usa una regla de sector como base</p>
             </CardContent>
           </Card>
         ) : (
@@ -289,9 +289,9 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
       {/* Global Templates */}
       {globalTemplates.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Plantillas de Sector</h2>
+          <h2 className="text-lg font-semibold">Reglas de Sector</h2>
           <p className="text-sm text-muted-foreground">
-            Plantillas predefinidas por sector que puedes usar como base
+            Reglas predefinidas por sector que puedes usar como base
           </p>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {globalTemplates.map((ruleSet) => (
@@ -303,7 +303,7 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{ruleSet.name}</CardTitle>
-                    <Badge variant="secondary">Plantilla</Badge>
+                    <Badge variant="secondary">Base</Badge>
                   </div>
                   {ruleSet.description && (
                     <CardDescription className="line-clamp-2">

@@ -63,7 +63,7 @@ export function RecentViolations({ violations, loading }: RecentViolationsProps)
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Violaciones Recientes</CardTitle>
+            <CardTitle>Incidencias Recientes</CardTitle>
             <CardDescription>Últimas incidencias detectadas</CardDescription>
           </div>
           <Button variant="outline" size="sm" asChild>
@@ -77,7 +77,7 @@ export function RecentViolations({ violations, loading }: RecentViolationsProps)
       <CardContent>
         {violations.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            No hay violaciones recientes
+            No hay incidencias recientes
           </p>
         ) : (
           <Table>

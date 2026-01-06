@@ -17,6 +17,7 @@ import KioskDevices from "./pages/admin/KioskDevices";
 import TimeRecords from "./pages/admin/TimeRecords";
 import Corrections from "./pages/admin/Corrections";
 import OrphanClockIns from "./pages/admin/OrphanClockIns";
+import ClockingIncidents from "./pages/admin/ClockingIncidents";
 import Reports from "./pages/admin/Reports";
 import AuditLog from "./pages/admin/AuditLog";
 import QTSPEvidence from "./pages/admin/QTSPEvidence";
@@ -186,9 +187,14 @@ function AppRoutes() {
           <ITSSPackageGenerator />
         </ProtectedRoute>
       } />
-      <Route path="/admin/calendar" element={
+      <Route path="/admin/calendar-laboral" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <CalendarLaboral />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/clocking-incidents" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <ClockingIncidents />
         </ProtectedRoute>
       } />
 
