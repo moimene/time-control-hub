@@ -63,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch employee details with email
+    // Fetch employee details with email and company
     const { data: employee, error: employeeError } = await supabaseClient
       .from('employees')
       .select('first_name, last_name, email, employee_code, company_id')
@@ -75,6 +75,31 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "Employee not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check if email notifications are enabled for this company
+    const { data: settings } = await supabaseClient
+      .from('company_settings')
+      .select('setting_value')
+      .eq('company_id', employee.company_id)
+      .eq('setting_key', 'notifications')
+      .maybeSingle();
+
+    const notificationSettings = settings?.setting_value as { inconsistency_email_enabled?: boolean } | null;
+    if (notificationSettings?.inconsistency_email_enabled === false) {
+      console.log("Inconsistency email notifications disabled for this company");
+      return new Response(
+        JSON.stringify({ success: true, message: "Notifications disabled" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!employee.email) {
+      console.log("Employee has no email configured, skipping notification");
+      return new Response(
+        JSON.stringify({ success: true, message: "Employee has no email" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 

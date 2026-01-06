@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
 import { Building2 } from 'lucide-react';
+import { NotificationSettings } from '@/components/admin/NotificationSettings';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -143,6 +144,8 @@ export default function Settings() {
             </form>
           </CardContent>
         </Card>
+
+        <NotificationSettings />
       </div>
     </AppLayout>
   );
