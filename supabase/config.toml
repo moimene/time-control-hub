@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.qtsp-retry]
 verify_jwt = false
+
+[functions.escalation-alert]
+verify_jwt = false
