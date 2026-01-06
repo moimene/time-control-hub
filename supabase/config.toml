@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.setup-test-data]
 verify_jwt = false
+
+[functions.qtsp-health-alert]
+verify_jwt = false
+
+[functions.qtsp-health-monitor]
+verify_jwt = false
