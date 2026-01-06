@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
@@ -63,8 +64,35 @@ export default function EmployeeDashboard() {
     timestamp: event.timestamp,
   }));
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(eventsForInconsistencyCheck);
-
-  // Group events by date
+  
+  // Track if we've already sent email alert for current inconsistencies
+  const alertSentRef = useRef<string | null>(null);
+  
+  // Send email notification when inconsistencies are detected
+  useEffect(() => {
+    if (!hasInconsistencies || !employee?.id || inconsistencies.length === 0) return;
+    
+    // Create a hash of current inconsistencies to avoid duplicate alerts
+    const inconsistencyHash = JSON.stringify(inconsistencies.map(i => i.timestamp).sort());
+    if (alertSentRef.current === inconsistencyHash) return;
+    
+    const sendAlert = async () => {
+      try {
+        await supabase.functions.invoke('inconsistency-alert', {
+          body: {
+            employee_id: employee.id,
+            inconsistencies: inconsistencies,
+          },
+        });
+        alertSentRef.current = inconsistencyHash;
+        console.log('Inconsistency alert email sent');
+      } catch (error) {
+        console.error('Failed to send inconsistency alert:', error);
+      }
+    };
+    
+    sendAlert();
+  }, [hasInconsistencies, employee?.id, inconsistencies]);
   const groupedEvents = recentEvents?.reduce((acc: any, event: any) => {
     const date = format(new Date(event.timestamp), 'yyyy-MM-dd');
     if (!acc[date]) {
@@ -234,9 +262,9 @@ export default function EmployeeDashboard() {
           )}
         </div>
 
-        {/* Inconsistency alert for employee's own records */}
+        {/* Inconsistency alert for employee's own records with correction button */}
         {hasInconsistencies && (
-          <InconsistencyAlert inconsistencies={inconsistencies} />
+          <InconsistencyAlert inconsistencies={inconsistencies} showCorrectionButton />
         )}
 
         {/* Calendar view */}

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,14 +24,43 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { EventType } from '@/types/database';
 
+interface PrefillState {
+  prefillDate?: string;
+  prefillEventType?: EventType;
+  prefillReason?: string;
+}
+
 export default function RequestCorrection() {
   const { employee } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [date, setDate] = useState<Date>();
-  const [time, setTime] = useState('09:00');
-  const [eventType, setEventType] = useState<EventType>('entry');
-  const [reason, setReason] = useState('');
+  const location = useLocation();
+  const prefillState = location.state as PrefillState | null;
+  
+  const [date, setDate] = useState<Date | undefined>(() => {
+    if (prefillState?.prefillDate) {
+      return new Date(prefillState.prefillDate);
+    }
+    return undefined;
+  });
+  const [time, setTime] = useState(() => {
+    if (prefillState?.prefillDate) {
+      const d = new Date(prefillState.prefillDate);
+      return format(d, 'HH:mm');
+    }
+    return '09:00';
+  });
+  const [eventType, setEventType] = useState<EventType>(
+    prefillState?.prefillEventType || 'entry'
+  );
+  const [reason, setReason] = useState(prefillState?.prefillReason || '');
+  
+  // Clear location state after initial load to prevent re-prefilling on refresh
+  useEffect(() => {
+    if (prefillState) {
+      window.history.replaceState({}, document.title);
+    }
+  }, [prefillState]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
