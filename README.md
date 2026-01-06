@@ -10,11 +10,11 @@
 
 **Plataforma integral de control horario y cumplimiento laboral con sellado de tiempo cualificado (QTSP)** conforme al Reglamento eIDAS, Real Decreto-ley 8/2019 y normativa española de registro de jornada.
 
-> 🏛️ **Time Control Hub opera como Prestador Cualificado de Servicios de Confianza (QTSP)** integrando servicios de firma electrónica cualificada, sellos de tiempo RFC 3161, notificaciones certificadas y custodia de documentos críticos.
+> **Time Control Hub opera como Prestador Cualificado de Servicios de Confianza (QTSP)** integrando servicios de firma electrónica cualificada, sellos de tiempo RFC 3161, notificaciones certificadas y custodia de documentos críticos.
 
 ---
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
 1. [Visión General](#-visión-general)
 2. [Características Principales](#-características-principales)
@@ -29,15 +29,18 @@
 11. [Portal del Asesor Laboral](#-portal-del-asesor-laboral)
 12. [Documentos Legales](#-documentos-legales)
 13. [Sistema de Notificaciones](#-sistema-de-notificaciones)
-14. [Modelo de Datos](#-modelo-de-datos)
-15. [Edge Functions](#-edge-functions)
-16. [Modo Offline (PWA)](#-modo-offline-pwa)
-17. [Seguridad](#-seguridad)
-18. [Instalación y Configuración](#-instalación-y-configuración)
+14. [Sistema de Comunicaciones Internas](#-sistema-de-comunicaciones-internas)
+15. [Gestión de Dispositivos de Fichaje](#-gestión-de-dispositivos-de-fichaje)
+16. [Gestión de Credenciales de Empleados](#-gestión-de-credenciales-de-empleados)
+17. [Modelo de Datos](#-modelo-de-datos)
+18. [Edge Functions](#-edge-functions)
+19. [Modo Offline (PWA)](#-modo-offline-pwa)
+20. [Seguridad](#-seguridad)
+21. [Instalación y Configuración](#-instalación-y-configuración)
 
 ---
 
-## 🎯 Visión General
+## Visión General
 
 Time Control Hub es una **plataforma empresarial completa** diseñada para:
 
@@ -56,7 +59,7 @@ Time Control Hub es una **plataforma empresarial completa** diseñada para:
 
 ---
 
-## 🚀 Características Principales
+## Características Principales
 
 | Módulo | Características |
 |--------|-----------------|
@@ -70,29 +73,32 @@ Time Control Hub es una **plataforma empresarial completa** diseñada para:
 | **Ausencias** | 25+ tipos de ausencia, workflow aprobación, justificantes |
 | **Documentos Legales** | 14 plantillas, aceptación con sellado QTSP |
 | **Portal Asesor** | Acceso colaborativo, alertas, análisis de riesgos |
+| **Comunicaciones** | Mensajería bidireccional empresa-empleado con trazabilidad |
+| **Dispositivos Fichaje** | Panel unificado terminales físicos + kiosks móviles |
+| **Credenciales** | Generación y gestión de accesos empleados |
 | **Retención de Datos** | Purga automática 4 años, evidencia QTSP previa |
 | **Reporting** | PDF sellados, CSV técnico, exportación auditoría |
 
 ---
 
-## 🏗 Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ### Diagrama General
 
 ```mermaid
 graph TB
     subgraph "Frontend - React + Vite + TypeScript"
-        KIOSK[🖥️ Kiosk Mode<br/>/kiosk]
-        ADMIN[👔 Admin Panel<br/>/admin]
-        EMP[👤 Employee Portal<br/>/employee]
-        SUPER[🔐 Super Admin<br/>/super-admin]
-        ADVISOR[📊 Asesor Laboral<br/>/advisor]
+        KIOSK["Kiosk Mode\n/kiosk"]
+        ADMIN["Admin Panel\n/admin"]
+        EMP["Employee Portal\n/employee"]
+        SUPER["Super Admin\n/super-admin"]
+        ADVISOR["Asesor Laboral\n/advisor"]
     end
 
     subgraph "Backend - Lovable Cloud"
-        AUTH[🔑 Authentication]
-        DB[(📊 PostgreSQL<br/>+ RLS)]
-        STORAGE[📁 Storage<br/>PDFs sellados]
+        AUTH["Authentication"]
+        DB[("PostgreSQL\n+ RLS")]
+        STORAGE["Storage\nPDFs sellados"]
         
         subgraph "Edge Functions"
             EF1[kiosk-clock]
@@ -100,15 +106,17 @@ graph TB
             EF3[generate-itss-package]
             EF4[qtsp-notarize]
             EF5[data-retention-purge]
+            EF6[closure-reminder]
+            EF7[employee-credentials]
         end
     end
 
     subgraph "Servicios QTSP"
-        DT[🏛️ Digital Trust<br/>EADTrust]
-        TSP[⏱️ TSP Server<br/>RFC 3161]
-        SIGN[✍️ Firma<br/>Cualificada]
-        NOTIFY[📧 Notificación<br/>Certificada]
-        CUSTODY[🔒 Custodia<br/>Documental]
+        DT["Digital Trust\nEADTrust"]
+        TSP["TSP Server\nRFC 3161"]
+        SIGN["Firma\nCualificada"]
+        NOTIFY["Notificacion\nCertificada"]
+        CUSTODY["Custodia\nDocumental"]
     end
 
     KIOSK --> EF1
@@ -133,7 +141,7 @@ graph TB
     classDef qtsp fill:#e74c3c,stroke:#333,color:#fff
     
     class KIOSK,ADMIN,EMP,SUPER,ADVISOR frontend
-    class AUTH,DB,STORAGE,EF1,EF2,EF3,EF4,EF5 backend
+    class AUTH,DB,STORAGE,EF1,EF2,EF3,EF4,EF5,EF6,EF7 backend
     class DT,TSP,SIGN,NOTIFY,CUSTODY qtsp
 ```
 
@@ -151,18 +159,18 @@ graph TB
 
 ---
 
-## 👥 Roles y Experiencia de Usuario (UX)
+## Roles y Experiencia de Usuario (UX)
 
 ### Jerarquía de Roles
 
 ```mermaid
 graph TB
     subgraph "Roles del Sistema"
-        SA[🔐 Super Admin<br/>Gestión global plataforma]
-        AD[👔 Admin Empresa<br/>Gestión completa empresa]
-        AS[📊 Asesor Laboral<br/>Consultoría y cumplimiento]
-        RE[📋 Responsable<br/>Gestión departamento]
-        EM[👤 Empleado<br/>Fichaje y autogestión]
+        SA["Super Admin\nGestion global plataforma"]
+        AD["Admin Empresa\nGestion completa empresa"]
+        AS["Asesor Laboral\nConsultoria y cumplimiento"]
+        RE["Responsable\nGestion departamento"]
+        EM["Empleado\nFichaje y autogestion"]
     end
 
     SA --> AD
@@ -212,6 +220,10 @@ graph TB
 | Fichar (QR/PIN) | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Ver fichajes propios | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Solicitar corrección | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Comunicaciones** |||||
+| Enviar mensajes a empleados | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Enviar mensajes a empresa | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Ver historial comunicaciones | ✅ | ✅ | ❌ | ❌ | ✅* |
 
 **Leyenda**: ✅ Acceso completo | 👁️ Solo lectura | 💡 Puede sugerir/proponer | ✅* Solo su departamento/propios
 
@@ -219,26 +231,27 @@ graph TB
 
 ### Experiencia de Usuario por Rol
 
-#### 👤 Empleado - Portal Self-Service
+#### Empleado - Portal Self-Service
 
 ```mermaid
 graph LR
     subgraph "Dashboard Empleado"
-        CLOCK[⏰ Estado Fichaje<br/>Entrada/Salida hoy]
-        HOURS[📊 Horas Semana<br/>vs planificadas]
-        ALERTS[⚠️ Alertas<br/>Inconsistencias]
+        CLOCK["Estado Fichaje\nEntrada/Salida hoy"]
+        HOURS["Horas Semana\nvs planificadas"]
+        ALERTS["Alertas\nInconsistencias"]
     end
 
-    subgraph "Acciones Rápidas"
-        CORRECT[📝 Solicitar<br/>Corrección]
-        ABSENCE[🏖️ Pedir<br/>Ausencia]
-        DOCS[📄 Mis<br/>Documentos]
+    subgraph "Acciones Rapidas"
+        CORRECT["Solicitar\nCorreccion"]
+        ABSENCE["Pedir\nAusencia"]
+        DOCS["Mis\nDocumentos"]
+        COMMS["Comunicaciones\nEmpresa"]
     end
 
     subgraph "Historial"
-        CAL[📅 Calendario<br/>de Fichajes]
-        MONTH[📈 Cierre<br/>Mensual]
-        NOTIFY[🔔 Notificaciones]
+        CAL["Calendario\nde Fichajes"]
+        MONTH["Cierre\nMensual"]
+        NOTIFY["Notificaciones"]
     end
 
     CLOCK --> CORRECT
@@ -252,29 +265,32 @@ graph LR
 - Calendario visual de fichajes con códigos de color
 - Firma digital del cierre mensual
 - Notificaciones push de incidencias
+- **Comunicaciones bidireccionales con la empresa**
+- **Vista unificada de solicitudes (correcciones + ausencias)**
 
-#### 👔 Admin - Centro de Control
+#### Admin - Centro de Control
 
 ```mermaid
 graph TB
     subgraph "Panel Principal"
-        LIVE[🔴 En Vivo<br/>Fichajes tiempo real]
-        STATS[📊 Estadísticas<br/>Diarias/Semanales]
-        COMPLIANCE[🚦 Semáforo<br/>Cumplimiento]
+        LIVE["En Vivo\nFichajes tiempo real"]
+        STATS["Estadisticas\nDiarias/Semanales"]
+        COMPLIANCE["Semaforo\nCumplimiento"]
     end
 
-    subgraph "Gestión"
-        EMP[👥 Empleados]
-        TERM[🖥️ Terminales]
-        TMPL[📋 Plantillas]
-        CAL[📅 Calendario]
+    subgraph "Gestion"
+        EMP["Empleados"]
+        TERM["Dispositivos\nFichaje"]
+        TMPL["Plantillas"]
+        CAL["Calendario"]
+        COMMS["Comunicaciones"]
     end
 
     subgraph "Cumplimiento"
-        ITSS[📦 Generador<br/>ITSS]
-        INCIDENTS[⚠️ Incidencias]
-        DOCS[📄 Documentos<br/>Legales]
-        QTSP[🔒 Evidencias<br/>QTSP]
+        ITSS["Generador\nITSS"]
+        INCIDENTS["Incidencias"]
+        DOCS["Documentos\nLegales"]
+        QTSP["Evidencias\nQTSP"]
     end
 
     LIVE --> EMP
@@ -289,27 +305,29 @@ graph TB
 - Acceso rápido a generador ITSS
 - Alertas proactivas de violaciones
 - Drill-down desde estadísticas a detalle
+- **Panel unificado de dispositivos (terminales + kiosks)**
+- **Sistema de comunicaciones con empleados**
 
-#### 📊 Asesor Laboral - Consultoría Proactiva
+#### Asesor Laboral - Consultoría Proactiva
 
 ```mermaid
 graph TB
     subgraph "Vista General"
-        RISK[🎯 Análisis<br/>de Riesgos]
-        COMPANIES[🏢 Mis<br/>Empresas]
-        ALERTS[🔔 Alertas<br/>Pendientes]
+        RISK["Analisis\nde Riesgos"]
+        COMPANIES["Mis\nEmpresas"]
+        ALERTS["Alertas\nPendientes"]
     end
 
     subgraph "Herramientas"
-        SIMULATOR[🧮 Simulador<br/>Jornadas]
-        TEMPLATES[📋 Proponer<br/>Plantillas]
-        REPORTS[📊 Informes<br/>Cumplimiento]
+        SIMULATOR["Simulador\nJornadas"]
+        TEMPLATES["Proponer\nPlantillas"]
+        REPORTS["Informes\nCumplimiento"]
     end
 
     subgraph "Acciones"
-        RECOMMEND[💡 Crear<br/>Recomendación]
-        REVIEW[👁️ Revisar<br/>Configuración]
-        ITSS[📦 Preparar<br/>ITSS]
+        RECOMMEND["Crear\nRecomendacion"]
+        REVIEW["Revisar\nConfiguracion"]
+        ITSS["Preparar\nITSS"]
     end
 
     RISK --> RECOMMEND
@@ -319,33 +337,33 @@ graph TB
 
 ---
 
-## ⚖️ Sistema de Cumplimiento Legal
+## Sistema de Cumplimiento Legal
 
 ### Arquitectura del Evaluador de Cumplimiento
 
 ```mermaid
 graph TB
     subgraph "Entrada de Datos"
-        TE[📊 Time Events]
-        TMPL[📋 Plantillas<br/>Configuradas]
-        CAL[📅 Calendario<br/>Laboral]
+        TE["Time Events"]
+        TMPL["Plantillas\nConfiguradas"]
+        CAL["Calendario\nLaboral"]
     end
 
     subgraph "Motor de Reglas"
-        R1[⏰ MAX_DAILY_HOURS<br/>Límite jornada diaria]
-        R2[📅 MAX_WEEKLY_HOURS<br/>Límite semanal]
-        R3[💤 MIN_REST_BETWEEN<br/>Descanso entre jornadas]
-        R4[☕ MIN_BREAK_6H<br/>Pausa obligatoria]
-        R5[🌙 NIGHT_WORK_LIMIT<br/>Trabajo nocturno]
-        R6[📝 MISSING_CLOCKIN<br/>Fichaje ausente]
-        R7[👻 ORPHAN_ENTRY<br/>Entrada huérfana]
-        R8[🔄 CONSECUTIVE_SAME<br/>Fichajes consecutivos]
+        R1["MAX_DAILY_HOURS\nLimite jornada diaria"]
+        R2["MAX_WEEKLY_HOURS\nLimite semanal"]
+        R3["MIN_REST_BETWEEN\nDescanso entre jornadas"]
+        R4["MIN_BREAK_6H\nPausa obligatoria"]
+        R5["NIGHT_WORK_LIMIT\nTrabajo nocturno"]
+        R6["MISSING_CLOCKIN\nFichaje ausente"]
+        R7["ORPHAN_ENTRY\nEntrada huerfana"]
+        R8["CONSECUTIVE_SAME\nFichajes consecutivos"]
     end
 
     subgraph "Salida"
-        VIOLATIONS[⚠️ Violaciones<br/>Detectadas]
-        SEVERITY[🎯 Severidad<br/>critical/warning/info]
-        INCIDENT[📋 Incidencia<br/>Creada]
+        VIOLATIONS["Violaciones\nDetectadas"]
+        SEVERITY["Severidad\ncritical/warning/info"]
+        INCIDENT["Incidencia\nCreada"]
     end
 
     TE --> R1
@@ -393,24 +411,24 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph "Semáforo Principal"
-        GREEN[🟢 OK<br/>Sin violaciones críticas]
-        YELLOW[🟡 Alerta<br/>Warnings pendientes]
-        RED[🔴 Crítico<br/>Violaciones activas]
+    subgraph "Semaforo Principal"
+        GREEN["OK\nSin violaciones criticas"]
+        YELLOW["Alerta\nWarnings pendientes"]
+        RED["Critico\nViolaciones activas"]
     end
 
     subgraph "KPIs"
-        K1[📊 Tasa de<br/>Cumplimiento %]
-        K2[⏱️ Tiempo medio<br/>resolución]
-        K3[📈 Tendencia<br/>30 días]
-        K4[🎯 Incidencias<br/>abiertas]
+        K1["Tasa de\nCumplimiento"]
+        K2["Tiempo medio\nresolucion"]
+        K3["Tendencia\n30 dias"]
+        K4["Incidencias\nabiertas"]
     end
 
     subgraph "Acciones"
-        A1[📋 Ver<br/>Violaciones]
-        A2[📦 Generar<br/>ITSS]
-        A3[📅 Calendario<br/>Laboral]
-        A4[⚙️ Configurar<br/>Reglas]
+        A1["Ver\nViolaciones"]
+        A2["Generar\nITSS"]
+        A3["Calendario\nLaboral"]
+        A4["Configurar\nReglas"]
     end
 ```
 
@@ -418,29 +436,29 @@ graph LR
 
 ```mermaid
 stateDiagram-v2
-    [*] --> detected: Violación detectada
+    [*] --> detected: Violacion detectada
     detected --> open: Crear incidencia
     open --> acknowledged: Responsable reconoce
-    acknowledged --> in_progress: En resolución
+    acknowledged --> in_progress: En resolucion
     in_progress --> resolved: Resuelto
     in_progress --> escalated: Escalar
     escalated --> in_progress: Reasignar
     resolved --> [*]
     
     note right of detected
-        Automático por
+        Automatico por
         compliance-evaluator
     end note
     
     note right of escalated
         Notifica a nivel
-        superior + asesor
+        superior y asesor
     end note
 ```
 
 ---
 
-## 🏛️ Integración QTSP (Qualified Trust Service Provider)
+## Integración QTSP (Qualified Trust Service Provider)
 
 ### Visión como QTSP
 
@@ -449,33 +467,33 @@ Time Control Hub **opera como Prestador Cualificado de Servicios de Confianza** 
 ```mermaid
 graph TB
     subgraph "Servicios QTSP Integrados"
-        subgraph "Firma Electrónica"
-            QES[✍️ Firma Electrónica<br/>Cualificada (QES)]
-            AES[📝 Firma Electrónica<br/>Avanzada (AES)]
+        subgraph "Firma Electronica"
+            QES["Firma Electronica\nCualificada QES"]
+            AES["Firma Electronica\nAvanzada AES"]
         end
         
         subgraph "Sellos de Tiempo"
-            TSP[⏱️ Sellos Cualificados<br/>RFC 3161]
-            MERKLE[🌳 Merkle Tree<br/>Hash Chain]
+            TSP["Sellos Cualificados\nRFC 3161"]
+            MERKLE["Merkle Tree\nHash Chain"]
         end
         
         subgraph "Notificaciones"
-            CERT_EMAIL[📧 Email<br/>Certificado]
-            CERT_SMS[📱 SMS<br/>Certificado]
+            CERT_EMAIL["Email\nCertificado"]
+            CERT_SMS["SMS\nCertificado"]
         end
         
         subgraph "Custodia"
-            CUSTODY[🔒 Repositorio<br/>Documental]
-            ARCHIVE[📁 Archivo<br/>a Largo Plazo]
+            CUSTODY["Repositorio\nDocumental"]
+            ARCHIVE["Archivo\na Largo Plazo"]
         end
     end
 
     subgraph "Casos de Uso"
-        DAILY[📊 Sellado Diario<br/>de Fichajes]
-        MONTHLY[📈 Cierre Mensual<br/>Firmado]
-        DOCS[📄 Documentos<br/>Legales]
-        ITSS[📦 Paquete<br/>ITSS]
-        NOTIFY[🔔 Notificaciones<br/>a Empleados]
+        DAILY["Sellado Diario\nde Fichajes"]
+        MONTHLY["Cierre Mensual\nFirmado"]
+        DOCS["Documentos\nLegales"]
+        ITSS["Paquete\nITSS"]
+        NOTIFY["Notificaciones\na Empleados"]
     end
 
     DAILY --> TSP
@@ -500,38 +518,38 @@ graph TB
 ```mermaid
 sequenceDiagram
     autonumber
-    participant CRON as ⏰ pg_cron
+    participant CRON as pg_cron
     participant SCHED as qtsp-scheduler
     participant GEN as generate-daily-root
-    participant DB as 📊 PostgreSQL
+    participant DB as PostgreSQL
     participant NOTARIZE as qtsp-notarize
-    participant DT as 🏛️ Digital Trust
+    participant DT as Digital Trust
 
-    Note over CRON,DT: Flujo de Sellado Diario (2:00-5:00 AM por timezone)
+    Note over CRON,DT: Flujo de Sellado Diario 2:00-5:00 AM por timezone
     
-    CRON->>SCHED: HTTP POST (cada hora)
+    CRON->>SCHED: HTTP POST cada hora
     SCHED->>SCHED: Calcular empresas en ventana horaria
     
     loop Para cada empresa elegible
-        SCHED->>GEN: POST {company_id, date: ayer}
-        GEN->>DB: SELECT time_events del día
-        GEN->>GEN: Construir Merkle Tree (SHA-256)
+        SCHED->>GEN: POST company_id date ayer
+        GEN->>DB: SELECT time_events del dia
+        GEN->>GEN: Construir Merkle Tree SHA-256
         GEN->>DB: INSERT daily_roots
-        GEN->>NOTARIZE: POST {action: timestamp_daily}
+        GEN->>NOTARIZE: POST action timestamp_daily
         
-        NOTARIZE->>DT: POST /oauth/token
-        DT-->>NOTARIZE: access_token (OAuth 2.0)
+        NOTARIZE->>DT: POST oauth token
+        DT-->>NOTARIZE: access_token OAuth 2.0
         
-        NOTARIZE->>DT: GET/POST Case File
+        NOTARIZE->>DT: GET POST Case File
         DT-->>NOTARIZE: case_file_id
         
-        NOTARIZE->>DT: GET/POST Evidence Group (YYYY-MM)
+        NOTARIZE->>DT: GET POST Evidence Group YYYY-MM
         DT-->>NOTARIZE: evidence_group_id
         
-        NOTARIZE->>DT: POST Evidence (root_hash)
-        DT-->>NOTARIZE: TSP Token (RFC 3161)
+        NOTARIZE->>DT: POST Evidence root_hash
+        DT-->>NOTARIZE: TSP Token RFC 3161
         
-        NOTARIZE->>DB: UPDATE dt_evidences (status: completed)
+        NOTARIZE->>DB: UPDATE dt_evidences status completed
         NOTARIZE->>DB: INSERT qtsp_audit_log
     end
 ```
@@ -540,28 +558,28 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "Eventos del Día (inmutables)"
-        E1[Event 1<br/>entry 08:00]
-        E2[Event 2<br/>exit 14:00]
-        E3[Event 3<br/>entry 15:00]
-        E4[Event 4<br/>exit 18:00]
+    subgraph "Eventos del Dia inmutables"
+        E1["Event 1\nentry 08:00"]
+        E2["Event 2\nexit 14:00"]
+        E3["Event 3\nentry 15:00"]
+        E4["Event 4\nexit 18:00"]
     end
 
-    subgraph "Hash Chain (cada evento)"
-        H1[hash_1 = SHA256<br/>emp_id + type + ts + prev_hash]
-        H2[hash_2 = SHA256<br/>emp_id + type + ts + hash_1]
-        H3[hash_3 = SHA256<br/>emp_id + type + ts + hash_2]
-        H4[hash_4 = SHA256<br/>emp_id + type + ts + hash_3]
+    subgraph "Hash Chain cada evento"
+        H1["hash_1 = SHA256\nemp_id type ts prev_hash"]
+        H2["hash_2 = SHA256\nemp_id type ts hash_1"]
+        H3["hash_3 = SHA256\nemp_id type ts hash_2"]
+        H4["hash_4 = SHA256\nemp_id type ts hash_3"]
     end
 
     subgraph "Merkle Tree"
-        M1[SHA256<br/>hash_1 + hash_2]
-        M2[SHA256<br/>hash_3 + hash_4]
-        ROOT[🔒 Merkle Root<br/>SHA256(M1 + M2)]
+        M1["SHA256\nhash_1 concat hash_2"]
+        M2["SHA256\nhash_3 concat hash_4"]
+        ROOT["Merkle Root\nSHA256 of M1 and M2"]
     end
 
     subgraph "QTSP"
-        TSP[⏱️ TSP Token<br/>RFC 3161]
+        TSP["TSP Token\nRFC 3161"]
     end
 
     E1 --> H1
@@ -594,23 +612,23 @@ graph LR
 
 ```mermaid
 stateDiagram-v2
-    [*] --> pending: Creación
-    pending --> processing: Envío a QTSP
+    [*] --> pending: Creacion
+    pending --> processing: Envio a QTSP
     processing --> completed: TSP Token recibido
     processing --> failed: Error API
     failed --> pending: Retry programado
     completed --> [*]
     
     note right of completed
-        ✅ Evidencia sellada
+        Evidencia sellada
         con timestamp cualificado
         RFC 3161 verificable
     end note
     
     note right of failed
-        🔄 Retry automático
+        Retry automatico
         con backoff exponencial
-        máx 10 intentos
+        max 10 intentos
     end note
 ```
 
@@ -625,7 +643,7 @@ stateDiagram-v2
 
 ---
 
-## 📦 Generador de Paquetes ITSS
+## Generador de Paquetes ITSS
 
 ### Visión General
 
@@ -636,27 +654,27 @@ El generador de paquetes ITSS permite crear **documentación completa y certific
 ```mermaid
 graph LR
     subgraph "Paso 1"
-        P1[📋 Parámetros<br/>del Requerimiento]
+        P1["Parametros\ndel Requerimiento"]
     end
     
     subgraph "Paso 2"
-        P2[☑️ Selección<br/>de Módulos]
+        P2["Seleccion\nde Modulos"]
     end
     
     subgraph "Paso 3"
-        P3[🔍 Verificación<br/>y Pre-checks]
+        P3["Verificacion\ny Pre-checks"]
     end
     
     subgraph "Paso 4"
-        P4[⚙️ Generación<br/>de Informes]
+        P4["Generacion\nde Informes"]
     end
     
     subgraph "Paso 5"
-        P5[📝 Manifiesto<br/>y Revisión]
+        P5["Manifiesto\ny Revision"]
     end
     
     subgraph "Paso 6"
-        P6[📦 Publicación<br/>con QTSP]
+        P6["Publicacion\ncon QTSP"]
     end
 
     P1 --> P2 --> P3 --> P4 --> P5 --> P6
@@ -754,29 +772,29 @@ paquete_itss_[empresa]_[fecha]/
 
 ---
 
-## 📋 Sistema de Plantillas y Convenios
+## Sistema de Plantillas y Convenios
 
 ### Estructura de Plantillas
 
 ```mermaid
 graph TB
     subgraph "Biblioteca de Plantillas"
-        SEED[🌱 Plantillas Semilla<br/>Por CNAE/Sector]
-        CUSTOM[✏️ Personalizadas<br/>Por Empresa]
+        SEED["Plantillas Semilla\nPor CNAE/Sector"]
+        CUSTOM["Personalizadas\nPor Empresa"]
     end
 
-    subgraph "Configuración"
-        HOURS[⏰ Jornada<br/>Diaria/Semanal]
-        SHIFTS[🔄 Turnos<br/>Horarios tipo]
-        BREAKS[☕ Pausas<br/>Obligatorias]
-        OVERTIME[📈 Horas Extra<br/>Límites y compensación]
-        NIGHT[🌙 Nocturnidad<br/>Horario y límites]
-        VACATION[🏖️ Vacaciones<br/>Días y políticas]
+    subgraph "Configuracion"
+        HOURS["Jornada\nDiaria/Semanal"]
+        SHIFTS["Turnos\nHorarios tipo"]
+        BREAKS["Pausas\nObligatorias"]
+        OVERTIME["Horas Extra\nLimites y compensacion"]
+        NIGHT["Nocturnidad\nHorario y limites"]
+        VACATION["Vacaciones\nDias y politicas"]
     end
 
     subgraph "Simulador"
-        SIM[🧮 Simulador<br/>de Jornadas]
-        VALID[✅ Validación<br/>vs Convenio]
+        SIM["Simulador\nde Jornadas"]
+        VALID["Validacion\nvs Convenio"]
     end
 
     SEED --> CUSTOM
@@ -809,7 +827,7 @@ graph TB
 
 ---
 
-## 🏖️ Gestión de Ausencias
+## Gestión de Ausencias
 
 ### Tipos de Ausencia Configurables
 
@@ -833,41 +851,47 @@ stateDiagram-v2
     draft --> pending: Enviar solicitud
     pending --> approved: Aprobado
     pending --> rejected: Rechazado
-    pending --> more_info: Más información
+    pending --> more_info: Mas informacion
     more_info --> pending: Empleado responde
     approved --> [*]
     rejected --> [*]
     
     note right of pending
         Notifica a responsable
-        y/o admin según config
+        y/o admin segun config
     end note
 ```
 
+### Mejoras Portal Empleado - Ausencias
+
+- **Información normativa**: Al solicitar ausencia, se muestra automáticamente los días que corresponden según el tipo seleccionado
+- **Auto-relleno de fechas**: Las fechas se calculan automáticamente según la duración del tipo de ausencia
+- **Validación en tiempo real**: Verificación de días disponibles antes de enviar
+
 ---
 
-## 📅 Calendario Laboral
+## Calendario Laboral
 
 ### Gestión de Calendario
 
 ```mermaid
 graph TB
     subgraph "Fuentes de Festivos"
-        NAC[🇪🇸 Festivos<br/>Nacionales]
-        AUTO[🏛️ Festivos<br/>Autonómicos]
-        LOCAL[🏘️ Festivos<br/>Locales]
+        NAC["Festivos\nNacionales"]
+        AUTO["Festivos\nAutonomicos"]
+        LOCAL["Festivos\nLocales"]
     end
 
-    subgraph "Configuración"
-        YEAR[📅 Año<br/>Calendario]
-        CENTER[🏢 Centro<br/>de Trabajo]
-        INTENSIVE[☀️ Jornada<br/>Intensiva]
+    subgraph "Configuracion"
+        YEAR["Ano\nCalendario"]
+        CENTER["Centro\nde Trabajo"]
+        INTENSIVE["Jornada\nIntensiva"]
     end
 
     subgraph "Salidas"
-        PDF[📄 PDF<br/>Calendario]
-        CSV[📊 CSV<br/>Exportable]
-        ITSS[📦 Módulo<br/>ITSS]
+        PDF["PDF\nCalendario"]
+        CSV["CSV\nExportable"]
+        ITSS["Modulo\nITSS"]
     end
 
     NAC --> YEAR
@@ -911,7 +935,7 @@ interface IntensivePeriod {
 
 ---
 
-## 📊 Portal del Asesor Laboral
+## Portal del Asesor Laboral
 
 ### Rol del Asesor Laboral
 
@@ -920,21 +944,21 @@ El sistema está diseñado para integrar la función del **asesor laboral extern
 ```mermaid
 graph TB
     subgraph "Acceso del Asesor"
-        VIEW[👁️ Vista de<br/>Empresas Asignadas]
-        ALERTS[🔔 Recibe<br/>Alertas Compliance]
-        REPORTS[📊 Acceso<br/>a Informes]
+        VIEW["Vista de\nEmpresas Asignadas"]
+        ALERTS["Recibe\nAlertas Compliance"]
+        REPORTS["Acceso\na Informes"]
     end
 
     subgraph "Capacidades Proactivas"
-        RISK[🎯 Análisis<br/>de Riesgos]
-        SUGGEST[💡 Proponer<br/>Mejoras]
-        TEMPLATE[📋 Sugerir<br/>Plantillas]
+        RISK["Analisis\nde Riesgos"]
+        SUGGEST["Proponer\nMejoras"]
+        TEMPLATE["Sugerir\nPlantillas"]
     end
 
-    subgraph "Colaboración"
-        COMMENT[💬 Comentar<br/>Incidencias]
-        PREPARE[📦 Preparar<br/>ITSS]
-        TRAIN[🎓 Formación<br/>a Admins]
+    subgraph "Colaboracion"
+        COMMENT["Comentar\nIncidencias"]
+        PREPARE["Preparar\nITSS"]
+        TRAIN["Formacion\na Admins"]
     end
 
     VIEW --> RISK
@@ -962,30 +986,30 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant SYS as 🖥️ Sistema
-    participant ADMIN as 👔 Admin
-    participant ASESOR as 📊 Asesor
+    participant SYS as Sistema
+    participant ADMIN as Admin
+    participant ASESOR as Asesor
 
-    Note over SYS,ASESOR: Detección de Violación Crítica
+    Note over SYS,ASESOR: Deteccion de Violacion Critica
     
-    SYS->>SYS: Detectar violación MAX_WEEKLY_HOURS
-    SYS->>ADMIN: 🔔 Notificación alerta crítica
-    SYS->>ASESOR: 🔔 Notificación alerta crítica
+    SYS->>SYS: Detectar violacion MAX_WEEKLY_HOURS
+    SYS->>ADMIN: Notificacion alerta critica
+    SYS->>ASESOR: Notificacion alerta critica
     
-    ASESOR->>SYS: Ver detalle de violación
-    ASESOR->>SYS: Crear recomendación
-    Note right of ASESOR: "Revisar distribución<br/>de turnos en plantilla"
+    ASESOR->>SYS: Ver detalle de violacion
+    ASESOR->>SYS: Crear recomendacion
+    Note right of ASESOR: Revisar distribucion\nde turnos en plantilla
     
-    SYS->>ADMIN: 💡 Nueva recomendación del asesor
+    SYS->>ADMIN: Nueva recomendacion del asesor
     ADMIN->>SYS: Revisar y aplicar cambios
     ADMIN->>SYS: Marcar incidencia como resuelta
     
-    SYS->>ASESOR: ✅ Incidencia resuelta
+    SYS->>ASESOR: Incidencia resuelta
 ```
 
 ---
 
-## 📄 Documentos Legales
+## Documentos Legales
 
 ### Plantillas Disponibles (14 Documentos)
 
@@ -1010,29 +1034,29 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant ADMIN as 👔 Admin
-    participant SYS as 🖥️ Sistema
-    participant EMP as 👤 Empleado
-    participant QTSP as 🏛️ QTSP
+    participant ADMIN as Admin
+    participant SYS as Sistema
+    participant EMP as Empleado
+    participant QTSP as QTSP
 
     ADMIN->>SYS: Publicar documento
-    SYS->>EMP: 🔔 Notificación: documento pendiente
+    SYS->>EMP: Notificacion documento pendiente
     
     EMP->>SYS: Ver documento
     EMP->>SYS: Aceptar documento
     
     SYS->>SYS: Calcular hash contenido
     SYS->>SYS: Generar firma empleado
-    SYS->>QTSP: Sellar aceptación (TSP)
+    SYS->>QTSP: Sellar aceptacion TSP
     QTSP-->>SYS: TSP Token
     
     SYS->>SYS: Guardar document_acknowledgment
-    SYS->>ADMIN: ✅ Documento aceptado por empleado
+    SYS->>ADMIN: Documento aceptado por empleado
 ```
 
 ---
 
-## 🔔 Sistema de Notificaciones
+## Sistema de Notificaciones
 
 ### Canales de Notificación
 
@@ -1050,24 +1074,27 @@ sequenceDiagram
 ```mermaid
 graph TB
     subgraph "Empleado"
-        N1[⏰ Recordatorio<br/>fichaje pendiente]
-        N2[⚠️ Inconsistencia<br/>detectada]
-        N3[✅ Corrección<br/>aprobada/rechazada]
-        N4[📄 Documento<br/>pendiente aceptar]
-        N5[🏖️ Ausencia<br/>aprobada/rechazada]
+        N1["Recordatorio\nfichaje pendiente"]
+        N2["Inconsistencia\ndetectada"]
+        N3["Correccion\naprobada/rechazada"]
+        N4["Documento\npendiente aceptar"]
+        N5["Ausencia\naprobada/rechazada"]
+        N6["Mensaje nuevo\nde la empresa"]
+        N7["Cierre mensual\npendiente firmar"]
     end
 
     subgraph "Responsable"
-        N6[📋 Resumen semanal<br/>departamento]
-        N7[⚠️ Corrección<br/>pendiente aprobar]
-        N8[🏖️ Ausencia<br/>pendiente aprobar]
+        N8["Resumen semanal\ndepartamento"]
+        N9["Correccion\npendiente aprobar"]
+        N10["Ausencia\npendiente aprobar"]
     end
 
     subgraph "Admin/Asesor"
-        N9[🔴 Violación crítica<br/>detectada]
-        N10[📊 Informe<br/>cumplimiento mensual]
-        N11[🔒 Error QTSP<br/>sellado fallido]
-        N12[📦 Paquete ITSS<br/>generado]
+        N11["Violacion critica\ndetectada"]
+        N12["Informe\ncumplimiento mensual"]
+        N13["Error QTSP\nsellado fallido"]
+        N14["Paquete ITSS\ngenerado"]
+        N15["Mensaje nuevo\nde empleado"]
     end
 ```
 
@@ -1081,10 +1108,173 @@ graph TB
 | `orphan-alert` | Entrada > 12h sin salida | Empleado |
 | `notification-dispatcher` | Genérico | Configurable |
 | `qtsp-health-alert` | Fallo QTSP | Super Admin |
+| `closure-reminder` | Día 3-6 del mes | Empleados sin cierre firmado |
 
 ---
 
-## 📊 Modelo de Datos
+## Sistema de Comunicaciones Internas
+
+### Visión General
+
+Sistema de **mensajería bidireccional** entre empresa y empleados con **trazabilidad completa** para evidencia laboral. Permite dejar constancia de todas las comunicaciones oficiales.
+
+### Características Principales
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Mensajes Bidireccionales** | Empresa → Empleado y Empleado → Empresa |
+| **Destinatarios Múltiples** | Individual, por departamento, o todos los empleados |
+| **Prioridades** | Normal, Alta, Urgente |
+| **Confirmación de Lectura** | Opción de requerir acuse de recibo |
+| **Hilos de Conversación** | Respuestas en el mismo hilo |
+| **Adjuntos** | Posibilidad de adjuntar documentos |
+| **Trazabilidad Completa** | Timestamps inmutables de envío/lectura/confirmación |
+
+### Flujo de Comunicación
+
+```mermaid
+sequenceDiagram
+    participant ADMIN as Admin
+    participant DB as Base de Datos
+    participant NOTIF as Sistema Notificaciones
+    participant EMP as Empleado
+
+    ADMIN->>DB: Crear mensaje masivo o individual
+    DB->>DB: Guardar en company_messages
+    DB->>DB: Crear message_recipients
+    DB->>NOTIF: Trigger notificacion
+    NOTIF->>EMP: Nueva notificacion
+    EMP->>DB: Leer mensaje
+    DB->>DB: Registrar read_at
+    EMP->>DB: Confirmar lectura
+    DB->>DB: Registrar acknowledged_at
+    ADMIN->>DB: Consultar estado
+    DB->>ADMIN: Lista con estados lectura y confirmacion
+```
+
+### Panel Administrador - Comunicaciones
+
+**Ubicación**: `/admin/communications`
+
+- **Bandeja de entrada**: Mensajes recibidos de empleados
+- **Redactar mensaje**: 
+  - Seleccionar destinatario(s): individual, departamento, todos
+  - Asunto y cuerpo del mensaje
+  - Prioridad: normal, alta, urgente
+  - Opción "Requiere confirmación de lectura"
+- **Mensajes enviados**: Historial con estado de entrega/lectura
+- **Exportar**: PDF para evidencia legal
+
+### Portal Empleado - Comunicaciones
+
+**Ubicación**: `/employee/communications`
+
+- **Bandeja de entrada**: Mensajes de la empresa con destacado de urgentes
+- **Mis mensajes enviados**: Historial de comunicaciones
+- **Redactar**: Enviar consultas a la empresa
+- **Acciones**: Marcar como leído, confirmar lectura cuando requerido
+
+### Tablas de Base de Datos
+
+| Tabla | Descripción |
+|-------|-------------|
+| `company_messages` | Mensajes con sender_type, recipient_type, prioridad, thread_id |
+| `message_recipients` | Para mensajes masivos: employee_id, read_at, acknowledged_at |
+
+---
+
+## Gestión de Dispositivos de Fichaje
+
+### Panel Unificado
+
+Panel consolidado para gestionar todos los dispositivos de fichaje de la empresa:
+
+```mermaid
+graph TB
+    subgraph "Dispositivos de Fichaje"
+        subgraph "Terminales Fisicos"
+            T1["Terminal Oficina\nQR + PIN"]
+            T2["Terminal Almacen\nQR"]
+        end
+        
+        subgraph "Kiosks Moviles"
+            K1["Tablet Recepcion\nSesion activa"]
+            K2["Movil Supervisor\nSesion activa"]
+        end
+    end
+
+    subgraph "Gestion"
+        PAIR["Codigo de\nEmparejamiento"]
+        STATUS["Estados\nactivo/inactivo"]
+        REVOKE["Revocar\nSesion"]
+    end
+
+    T1 --> STATUS
+    T2 --> STATUS
+    K1 --> REVOKE
+    K2 --> REVOKE
+```
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Terminales Físicos** | Dispositivos fijos en centros de trabajo |
+| **Kiosks Móviles** | Sesiones PWA en tablets/móviles |
+| **Código de Emparejamiento** | Generación temporal para vincular dispositivos |
+| **Estados** | Pendiente, Activo, Inactivo |
+| **Última Actividad** | Timestamp de última conexión |
+| **Gestión de Sesiones** | Activar/desactivar/revocar sesiones |
+
+### Ubicación
+
+**Panel Admin**: `/admin/kiosk-devices` - Vista unificada de terminales y kiosks
+
+---
+
+## Gestión de Credenciales de Empleados
+
+### Visión General
+
+Sistema para generar y gestionar credenciales de acceso (email/contraseña) para empleados, permitiéndoles acceder al portal de empleado.
+
+### Funcionalidades
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Generación de Credenciales** | Crear usuario con email y contraseña temporal |
+| **Vinculación Automática** | Enlace con Supabase Auth y tabla employees |
+| **Reset de Contraseña** | Administrador puede resetear contraseña |
+| **Cambio de PIN** | Empleado puede cambiar su PIN de fichaje |
+| **Estado de Credenciales** | Visualizar si empleado tiene usuario vinculado |
+
+### Edge Functions
+
+| Función | Propósito |
+|---------|-----------|
+| `employee-credentials` | Crear/gestionar credenciales de acceso |
+| `employee-change-pin` | Cambiar PIN de fichaje del empleado |
+
+### Flujo de Generación
+
+```mermaid
+sequenceDiagram
+    participant ADMIN as Admin
+    participant EF as employee-credentials
+    participant AUTH as Supabase Auth
+    participant DB as Base de Datos
+
+    ADMIN->>EF: Generar credenciales para empleado
+    EF->>AUTH: Crear usuario con email
+    AUTH-->>EF: user_id
+    EF->>DB: UPDATE employees SET user_id
+    EF-->>ADMIN: Credenciales generadas
+    Note right of ADMIN: Email y contraseña\ntemporal mostrados
+```
+
+---
+
+## Modelo de Datos
 
 ### Diagrama Entidad-Relación Principal
 
@@ -1098,6 +1288,7 @@ erDiagram
     COMPANY ||--o{ ITSS_PACKAGES : "genera"
     COMPANY ||--o{ COMPLIANCE_VIOLATIONS : "detecta"
     COMPANY ||--o{ ABSENCE_TYPES : "define"
+    COMPANY ||--o{ COMPANY_MESSAGES : "envia"
     
     EMPLOYEES ||--o{ TIME_EVENTS : "ficha"
     EMPLOYEES ||--o{ CORRECTION_REQUESTS : "solicita"
@@ -1105,6 +1296,10 @@ erDiagram
     EMPLOYEES ||--o{ DOCUMENT_ACKNOWLEDGMENTS : "acepta"
     EMPLOYEES ||--o{ MONTHLY_CLOSURES : "firma"
     EMPLOYEES ||--o{ COMPLIANCE_VIOLATIONS : "genera"
+    EMPLOYEES ||--o{ COMPANY_MESSAGES : "envia/recibe"
+    EMPLOYEES ||--o{ MESSAGE_RECIPIENTS : "recibe"
+    
+    COMPANY_MESSAGES ||--o{ MESSAGE_RECIPIENTS : "tiene"
     
     DAILY_ROOTS ||--o{ DT_EVIDENCES : "sella"
     DT_CASE_FILES ||--o{ DT_EVIDENCE_GROUPS : "contiene"
@@ -1127,6 +1322,7 @@ erDiagram
     EMPLOYEES {
         uuid id PK
         uuid company_id FK
+        uuid user_id FK
         text employee_code
         text first_name
         text last_name
@@ -1144,6 +1340,28 @@ erDiagram
         timestamptz timestamp
         text event_hash
         text previous_hash
+    }
+    
+    COMPANY_MESSAGES {
+        uuid id PK
+        uuid company_id FK
+        uuid thread_id FK
+        enum sender_type
+        uuid sender_employee_id FK
+        enum recipient_type
+        uuid recipient_employee_id FK
+        text subject
+        text body
+        enum priority
+        boolean requires_acknowledgment
+    }
+    
+    MESSAGE_RECIPIENTS {
+        uuid id PK
+        uuid message_id FK
+        uuid employee_id FK
+        timestamptz read_at
+        timestamptz acknowledged_at
     }
     
     COMPLIANCE_VIOLATIONS {
@@ -1188,13 +1406,16 @@ erDiagram
 | `legal_documents` | Documentos legales generados | Por empresa |
 | `document_acknowledgments` | Aceptaciones con QTSP | Por empresa |
 | `monthly_closures` | Cierres mensuales firmados | Por empresa/empleado |
+| `company_messages` | Mensajes empresa-empleado | Por empresa |
+| `message_recipients` | Destinatarios de mensajes masivos | Por empresa/empleado |
+| `kiosk_sessions` | Sesiones de kiosk móvil | Por empresa |
 | `qtsp_audit_log` | Log de operaciones QTSP | Por empresa |
 | `escalation_rules` | Reglas de escalado | Por empresa |
 | `data_retention_config` | Configuración retención datos | Por empresa |
 
 ---
 
-## ⚡ Edge Functions
+## Edge Functions
 
 ### Diagrama de Funciones
 
@@ -1212,6 +1433,7 @@ graph TB
         QR[qtsp-retry]
         QH[qtsp-health-monitor]
         QE[qtsp-export-package]
+        QTA[qtsp-toggle-alerts]
     end
 
     subgraph "Cumplimiento"
@@ -1228,6 +1450,14 @@ graph TB
         OA[orphan-alert]
         ND[notification-dispatcher]
         QHA[qtsp-health-alert]
+        CR[closure-reminder]
+    end
+
+    subgraph "Empleados"
+        EC[employee-credentials]
+        ECP[employee-change-pin]
+        AD[acknowledge-document]
+        SMH[sign-monthly-hours]
     end
 
     subgraph "Utilidades"
@@ -1243,9 +1473,6 @@ graph TB
     subgraph "Admin"
         STU[setup-test-users]
         STD[setup-test-data]
-        AD[acknowledge-document]
-        ECP[employee-change-pin]
-        SMH[sign-monthly-hours]
     end
 ```
 
@@ -1254,6 +1481,7 @@ graph TB
 | Función | Propósito | Trigger |
 |---------|-----------|---------|
 | `kiosk-clock` | Procesa fichajes QR/PIN | HTTP POST kiosk |
+| `kiosk-auth` | Autentica sesiones de kiosk | HTTP POST |
 | `generate-daily-root` | Calcula Merkle root diario | Scheduler |
 | `qtsp-notarize` | Gestiona sellado con QTSP | generate-daily-root |
 | `qtsp-scheduler` | Orquesta sellado por timezone | pg_cron cada hora |
@@ -1263,38 +1491,41 @@ graph TB
 | `data-retention-purge` | Purga datos > 4 años | pg_cron diario 3:00 AM |
 | `inconsistency-alert` | Envía alerta a empleado | HTTP POST dashboard |
 | `escalation-alert` | Notifica escalado | Trigger DB |
+| `closure-reminder` | Recordatorio cierre mensual | pg_cron día 3-6 mes |
+| `employee-credentials` | Genera credenciales empleado | HTTP POST admin |
+| `employee-change-pin` | Cambia PIN de fichaje | HTTP POST empleado |
 
 ---
 
-## 📱 Modo Offline (PWA)
+## Modo Offline (PWA)
 
 ### Flujo Offline
 
 ```mermaid
 sequenceDiagram
-    participant USER as 👤 Empleado
-    participant KIOSK as 🖥️ Kiosk PWA
-    participant SW as ⚙️ Service Worker
-    participant IDB as 💾 IndexedDB
-    participant API as ☁️ API
+    participant USER as Empleado
+    participant KIOSK as Kiosk PWA
+    participant SW as Service Worker
+    participant IDB as IndexedDB
+    participant API as API
 
-    Note over USER,API: Sin conexión
+    Note over USER,API: Sin conexion
     
     USER->>KIOSK: Escanea QR
-    KIOSK->>SW: Verifica conexión
+    KIOSK->>SW: Verifica conexion
     SW-->>KIOSK: offline
     
     KIOSK->>KIOSK: Validar QR localmente
-    KIOSK->>IDB: Guardar evento (cola offline)
-    KIOSK-->>USER: ✅ Fichaje guardado offline
+    KIOSK->>IDB: Guardar evento cola offline
+    KIOSK-->>USER: Fichaje guardado offline
 
-    Note over USER,API: Conexión restaurada
+    Note over USER,API: Conexion restaurada
     
     SW->>IDB: Obtener cola pendiente
     
     loop Para cada evento
         SW->>API: POST sync_offline
-        API-->>SW: ✅ Sincronizado
+        API-->>SW: Sincronizado
         SW->>IDB: Eliminar de cola
     end
 ```
@@ -1311,7 +1542,7 @@ sequenceDiagram
 
 ---
 
-## 🔒 Seguridad
+## Seguridad
 
 ### Medidas Implementadas
 
@@ -1328,6 +1559,7 @@ sequenceDiagram
 | **QTSP** | Sellado cualificado eIDAS |
 | **Offline** | Encriptación AES-GCM en IndexedDB |
 | **Retención** | Purga automática con evidencia QTSP |
+| **Comunicaciones** | Trazabilidad completa de mensajes |
 
 ### Funciones RLS Helper
 
@@ -1359,7 +1591,7 @@ $$;
 
 ---
 
-## 🛠 Instalación y Configuración
+## Instalación y Configuración
 
 ### Requisitos
 
@@ -1412,11 +1644,27 @@ SELECT cron.schedule('weekly-inconsistency-summary', '0 9 * * 1', ...);
 
 -- Evaluación compliance diaria 1:00 AM
 SELECT cron.schedule('compliance-evaluator', '0 1 * * *', ...);
+
+-- Recordatorio cierre mensual día 3-6
+SELECT cron.schedule('closure-reminder', '0 9 3-6 * *', ...);
 ```
 
 ---
 
-## 📝 Changelog
+## Changelog
+
+### v2.1.0 (2026-01-06)
+- ✨ **Sistema de Comunicaciones**: Mensajería bidireccional empresa-empleado con trazabilidad completa
+- ✨ **Dispositivos Unificados**: Panel consolidado para terminales físicos + kiosks móviles
+- ✨ **Credenciales Empleados**: Generación y gestión de accesos con vinculación Supabase Auth
+- ✨ **Recordatorio Cierre Mensual**: Notificación automática días 3-6 del mes
+- ✨ **Portal Empleado Mejorado**: 
+  - Ausencias con información normativa y auto-relleno de fechas
+  - Cierre mensual restringido solo al mes anterior
+  - Mis Solicitudes unificadas (correcciones + ausencias en tabs)
+  - Comunicaciones bidireccionales con la empresa
+- 🗃️ **Nuevas tablas**: company_messages, message_recipients
+- ⚡ **Nuevas Edge Functions**: closure-reminder, employee-credentials
 
 ### v2.0.0 (2026-01-06)
 - ✨ **Sistema de Cumplimiento Completo**: Dashboard con semáforo, KPIs, incidencias
@@ -1451,13 +1699,13 @@ SELECT cron.schedule('compliance-evaluator', '0 1 * * *', ...);
 
 ---
 
-## 📞 Contacto
+## Contacto
 
 Para soporte técnico o consultas comerciales, contactar al equipo de desarrollo.
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Proyecto propietario - Todos los derechos reservados.
 
@@ -1467,5 +1715,5 @@ Proyecto propietario - Todos los derechos reservados.
   <strong>Time Control Hub</strong><br/>
   Plataforma de Control Horario y Cumplimiento Laboral<br/>
   con Servicios de Confianza Cualificados (QTSP)<br/><br/>
-  Desarrollado con ❤️ usando React, Lovable Cloud y Digital Trust
+  Desarrollado con React, Lovable Cloud y Digital Trust
 </p>
