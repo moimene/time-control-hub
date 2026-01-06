@@ -1717,6 +1717,81 @@ export type Database = {
           },
         ]
       }
+      itss_packages: {
+        Row: {
+          centers: Json | null
+          company_id: string
+          components: Json
+          created_at: string
+          expedient_number: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          manifest: Json | null
+          package_hash: string | null
+          period_end: string
+          period_start: string
+          qtsp_evidence_id: string | null
+          request_date: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          centers?: Json | null
+          company_id: string
+          components?: Json
+          created_at?: string
+          expedient_number?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          manifest?: Json | null
+          package_hash?: string | null
+          period_end: string
+          period_start: string
+          qtsp_evidence_id?: string | null
+          request_date?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          centers?: Json | null
+          company_id?: string
+          components?: Json
+          created_at?: string
+          expedient_number?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          manifest?: Json | null
+          package_hash?: string | null
+          period_end?: string
+          period_start?: string
+          qtsp_evidence_id?: string | null
+          request_date?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itss_packages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itss_packages_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kiosk_sessions: {
         Row: {
           activated_by: string | null
@@ -1770,6 +1845,56 @@ export type Database = {
             columns: ["terminal_id"]
             isOneToOne: false
             referencedRelation: "terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labor_calendars: {
+        Row: {
+          center_id: string | null
+          company_id: string
+          created_at: string
+          holidays: Json
+          id: string
+          intensive_periods: Json | null
+          name: string
+          published_at: string | null
+          shifts_summary: Json | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          center_id?: string | null
+          company_id: string
+          created_at?: string
+          holidays?: Json
+          id?: string
+          intensive_periods?: Json | null
+          name: string
+          published_at?: string | null
+          shifts_summary?: Json | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          center_id?: string | null
+          company_id?: string
+          created_at?: string
+          holidays?: Json
+          id?: string
+          intensive_periods?: Json | null
+          name?: string
+          published_at?: string | null
+          shifts_summary?: Json | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labor_calendars_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
             referencedColumns: ["id"]
           },
         ]

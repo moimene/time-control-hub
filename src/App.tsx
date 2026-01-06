@@ -29,6 +29,8 @@ import AdminAbsences from "./pages/admin/Absences";
 import LegalDocuments from "./pages/admin/LegalDocuments";
 import DataRetention from "./pages/admin/DataRetention";
 import ContingencyRecords from "./pages/admin/ContingencyRecords";
+import ITSSPackageGenerator from "./pages/admin/ITSSPackageGenerator";
+import CalendarLaboral from "./pages/admin/CalendarLaboral";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
@@ -177,6 +179,16 @@ function AppRoutes() {
       <Route path="/admin/contingency-records" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <ContingencyRecords />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/itss-package" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <ITSSPackageGenerator />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/calendar" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <CalendarLaboral />
         </ProtectedRoute>
       } />
 

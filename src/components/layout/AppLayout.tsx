@@ -62,6 +62,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin/orphan-clockins', label: 'Fichajes Huérfanos', icon: <AlertTriangle className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/contingency-records', label: 'Contingencias', icon: <ClipboardList className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/compliance', label: 'Cumplimiento', icon: <Scale className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/itss-package', label: 'Paquete ITSS', icon: <FileText className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/calendar', label: 'Calendario Laboral', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/legal-documents', label: 'Documentos Legales', icon: <FileCheck className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/data-retention', label: 'Retención Datos', icon: <Database className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/templates', label: 'Plantillas', icon: <FileCode className="h-5 w-5" />, adminOnly: true },

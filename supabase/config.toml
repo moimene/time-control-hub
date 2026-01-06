@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.data-retention-purge]
 verify_jwt = false
+
+[functions.generate-itss-package]
+verify_jwt = false
+
+[functions.generate-legal-document]
+verify_jwt = false
