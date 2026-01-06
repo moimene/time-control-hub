@@ -31,9 +31,10 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, QrCode, KeyRound } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog } from 'lucide-react';
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
+import { EmployeeCredentialsDialog } from '@/components/employees/EmployeeCredentialsDialog';
 import type { Employee, EmployeeStatus } from '@/types/database';
 
 const statusLabels: Record<EmployeeStatus, string> = {
@@ -58,6 +59,8 @@ export default function Employees() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [pinEmployee, setPinEmployee] = useState<Employee | null>(null);
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
+  const [credentialsEmployee, setCredentialsEmployee] = useState<Employee | null>(null);
+  const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { companyId } = useCompany();
@@ -328,6 +331,17 @@ export default function Employees() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          title="Credenciales de acceso"
+                          onClick={() => {
+                            setCredentialsEmployee(employee);
+                            setCredentialsDialogOpen(true);
+                          }}
+                        >
+                          <UserCog className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
                           title="Ver QR"
                           onClick={() => {
                             setQrEmployee(employee);
@@ -369,8 +383,7 @@ export default function Employees() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </TableRow>
                 ))
               )}
             </TableBody>
@@ -387,6 +400,12 @@ export default function Employees() {
           employee={pinEmployee}
           open={pinDialogOpen}
           onOpenChange={setPinDialogOpen}
+        />
+
+        <EmployeeCredentialsDialog
+          employee={credentialsEmployee}
+          open={credentialsDialogOpen}
+          onOpenChange={setCredentialsDialogOpen}
         />
       </div>
     </AppLayout>
