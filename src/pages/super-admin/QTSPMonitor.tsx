@@ -23,16 +23,19 @@ import {
   HeartPulse,
   BellOff,
   Eye,
-  FileText
+  FileText,
+  RotateCcw
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { QTSPLogDetailModal } from "@/components/admin/QTSPLogDetailModal";
 import { QTSPErrorReport } from "@/components/admin/QTSPErrorReport";
+import { QTSPTrendsChart } from "@/components/admin/QTSPTrendsChart";
+import { useQTSPRealtimeAlerts } from "@/hooks/useQTSPRealtimeAlerts";
 
 interface LatencyDataPoint {
   time: string;
@@ -81,6 +84,10 @@ export default function QTSPMonitor() {
   const [togglingAlerts, setTogglingAlerts] = useState(false);
   const [selectedLog, setSelectedLog] = useState<QTSPLogType | null>(null);
   const [showLogDetail, setShowLogDetail] = useState(false);
+  const [retryingFailed, setRetryingFailed] = useState(false);
+  
+  // Enable realtime alerts for QTSP errors
+  useQTSPRealtimeAlerts(notificationsEnabled);
 
   // Get email alerts enabled status
   const { data: emailAlertsStatus, refetch: refetchEmailAlerts } = useQuery({
@@ -384,6 +391,40 @@ export default function QTSPMonitor() {
     pending: acc.pending + c.pending_evidences,
     companiesWithQTSP: acc.companiesWithQTSP + (c.case_file_id ? 1 : 0),
   }), { totalEvidences: 0, completed: 0, failed: 0, pending: 0, companiesWithQTSP: 0 });
+
+  // Retry all failed evidences with exponential backoff
+  const retryAllFailed = async () => {
+    setRetryingFailed(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('qtsp-retry', {
+        body: { force: false },
+      });
+      
+      if (error) throw error;
+      
+      const successCount = data?.results?.filter((r: any) => r.status === 'retried').length || 0;
+      const errorCount = data?.results?.filter((r: any) => r.status === 'error').length || 0;
+      const maxRetries = data?.results?.filter((r: any) => r.status === 'max_retries').length || 0;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} evidencias reintentadas correctamente`);
+      }
+      if (errorCount > 0) {
+        toast.warning(`${errorCount} evidencias programadas para reintento posterior`);
+      }
+      if (maxRetries > 0) {
+        toast.error(`${maxRetries} evidencias han excedido el máximo de reintentos`);
+      }
+      
+      // Refresh data
+      refetchCompanies();
+    } catch (err) {
+      console.error('Error retrying failed evidences:', err);
+      toast.error('Error al reintentar evidencias fallidas');
+    } finally {
+      setRetryingFailed(false);
+    }
+  };
 
   const getHealthStatusIcon = () => {
     if (loadingHealth) return <Loader2 className="w-6 h-6 animate-spin" />;
@@ -705,6 +746,9 @@ export default function QTSPMonitor() {
           </CardContent>
         </Card>
 
+        {/* Historical Trends Chart */}
+        <QTSPTrendsChart />
+
         {/* QTSP Error Report */}
         <QTSPErrorReport 
           logs={(recentLogs || []) as QTSPLogType[]} 
@@ -946,23 +990,43 @@ export default function QTSPMonitor() {
           </CardContent>
         </Card>
 
-        {/* Alerts Section */}
+        {/* Alerts Section with Retry Button */}
         {totalStats && totalStats.failed > 0 && (
           <Card className="border-destructive">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="w-5 h-5" />
-                Alertas Activas
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="w-5 h-5" />
+                  Alertas Activas
+                </CardTitle>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={retryAllFailed}
+                  disabled={retryingFailed}
+                >
+                  {retryingFailed ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                  )}
+                  Reintentar fallidas ({totalStats.failed})
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-sm">
-                  Hay <strong>{totalStats.failed}</strong> evidencias QTSP que han fallado y requieren atención inmediata.
+                  Hay <strong>{totalStats.failed}</strong> evidencias QTSP que han fallado y requieren atención.
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Las empresas afectadas deberían usar la opción "Reintentar fallidos" en su panel de Evidencias QTSP.
-                </p>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                  <p className="font-medium">Sistema de reintentos automáticos:</p>
+                  <ul className="text-muted-foreground text-xs list-disc list-inside space-y-0.5">
+                    <li>Backoff exponencial: 1min → 2min → 4min → ... → 1h máx</li>
+                    <li>Máximo 10 reintentos por evidencia</li>
+                    <li>El botón reintenta todas las evidencias listas para reintento</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>
