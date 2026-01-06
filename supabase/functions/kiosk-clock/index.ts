@@ -413,6 +413,32 @@ serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Check for orphan entry from previous days (entry without exit)
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const { data: orphanEntry } = await supabase
+      .from('time_events')
+      .select('event_type, timestamp')
+      .eq('employee_id', employee.id)
+      .lt('timestamp', today.toISOString())
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    // If last event before today was an entry (orphan - never closed)
+    const hasOrphanEntry = orphanEntry?.event_type === 'entry';
+    let orphanEntryInfo = null;
+    if (hasOrphanEntry) {
+      const orphanDate = new Date(orphanEntry.timestamp);
+      orphanEntryInfo = {
+        timestamp: orphanEntry.timestamp,
+        date: orphanDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }),
+        time: orphanDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      };
+      console.log(`Orphan entry detected for ${employee.employee_code}: ${orphanEntry.timestamp}`);
+    }
+    
     const { data: lastEvent } = await supabase
       .from('time_events')
       .select('event_type, timestamp')
@@ -443,6 +469,7 @@ serve(async (req) => {
           error: `No puedes registrar otra ${lastTypeEs}. Tu último fichaje de hoy (${lastTime}) ya fue ${lastTypeEs}. Deberías registrar ${expectedTypeEs}.`,
           last_event_type: lastEvent.event_type,
           last_event_time: lastEvent.timestamp,
+          orphan_entry: orphanEntryInfo,
         }),
         { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -518,6 +545,7 @@ serve(async (req) => {
           type: finalEventType,
           timestamp: now.toISOString(),
         },
+        orphan_entry: orphanEntryInfo,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
