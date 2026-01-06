@@ -10,7 +10,7 @@ import { ComplianceKPICard } from './ComplianceKPICard';
 import { ViolationsSummary } from './ViolationsSummary';
 import { RecentViolations } from './RecentViolations';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Clock, RefreshCw, Shield, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, RefreshCw, Shield, TrendingUp, FileArchive, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { format, subDays, startOfYear } from 'date-fns';
@@ -121,7 +121,7 @@ export function ComplianceDashboard() {
             Monitor de cumplimiento de la normativa laboral
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             variant="outline" 
             onClick={runEvaluation}
@@ -130,7 +130,19 @@ export function ComplianceDashboard() {
             <RefreshCw className={`mr-2 h-4 w-4 ${isEvaluating ? 'animate-spin' : ''}`} />
             {isEvaluating ? 'Evaluando...' : 'Evaluar Ahora'}
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/admin/calendar-laboral">
+              <Calendar className="mr-2 h-4 w-4" />
+              Calendario Laboral
+            </Link>
+          </Button>
           <Button asChild>
+            <Link to="/admin/itss-package">
+              <FileArchive className="mr-2 h-4 w-4" />
+              Generar Paquete ITSS
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
             <Link to="/admin/compliance/incidents">
               <AlertTriangle className="mr-2 h-4 w-4" />
               Ver Incidencias
