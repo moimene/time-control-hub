@@ -549,6 +549,63 @@ export type Database = {
           },
         ]
       }
+      kiosk_sessions: {
+        Row: {
+          activated_by: string | null
+          company_id: string
+          created_at: string | null
+          device_name: string | null
+          device_token_hash: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          terminal_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activated_by?: string | null
+          company_id: string
+          created_at?: string | null
+          device_name?: string | null
+          device_token_hash: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          terminal_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activated_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          device_name?: string | null
+          device_token_hash?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          terminal_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_sessions_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qtsp_audit_log: {
         Row: {
           action: string

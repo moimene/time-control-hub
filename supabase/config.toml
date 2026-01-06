@@ -3,6 +3,9 @@ project_id = "rsbwqgzespcltmufkhdx"
 [functions.kiosk-clock]
 verify_jwt = false
 
+[functions.kiosk-auth]
+verify_jwt = false
+
 [functions.setup-test-users]
 verify_jwt = false
 
