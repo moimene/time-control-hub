@@ -74,10 +74,10 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
       <div className="flex">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-30 w-64 transform border-r bg-card transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-30 w-64 flex flex-col border-r bg-card transition-transform duration-200 lg:static lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
-          <div className="flex h-14 items-center border-b px-6">
+          <div className="flex h-14 items-center border-b px-6 flex-shrink-0">
             <Link to="/employee" className="flex items-center gap-2">
               <Clock className="h-6 w-6 text-primary" />
               <span className="font-semibold">Portal Empleado</span>
@@ -85,39 +85,41 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
           </div>
 
           {employee && (
-            <div className="border-b p-4">
+            <div className="border-b p-4 flex-shrink-0">
               <p className="font-medium">{employee.first_name} {employee.last_name}</p>
               <p className="text-sm text-muted-foreground">{employee.department || 'Sin departamento'}</p>
             </div>
           )}
 
-          <nav className="flex flex-col gap-1 p-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  location.pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  {item.label}
-                </div>
-                {item.badge && (
-                  <Badge variant="secondary" className="h-5 min-w-5 flex items-center justify-center text-xs">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </Badge>
-                )}
-              </Link>
-            ))}
+          <nav className="flex-1 overflow-y-auto p-4">
+            <div className="flex flex-col gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    location.pathname === item.href
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    {item.label}
+                  </div>
+                  {item.badge && (
+                    <Badge variant="secondary" className="h-5 min-w-5 flex items-center justify-center text-xs">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </Badge>
+                  )}
+                </Link>
+              ))}
+            </div>
           </nav>
 
-          <div className="absolute bottom-0 left-0 right-0 border-t p-4">
+          <div className="border-t p-4 flex-shrink-0">
             <div className="mb-2 px-3 text-sm text-muted-foreground truncate">
               {user?.email}
             </div>
