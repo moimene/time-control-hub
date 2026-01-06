@@ -76,6 +76,25 @@ export default function QTSPMonitor() {
     staleTime: 30000,
   });
 
+  // Count emails sent this month
+  const { data: emailsSentThisMonth } = useQuery({
+    queryKey: ['qtsp-emails-sent-month'],
+    queryFn: async () => {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      
+      const { count, error } = await supabase
+        .from('qtsp_audit_log')
+        .select('*', { count: 'exact', head: true })
+        .in('action', ['health_alert_sent', 'health_recovery_sent'])
+        .gte('created_at', startOfMonth);
+      
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60000,
+  });
+
   const toggleEmailAlerts = async () => {
     setTogglingAlerts(true);
     try {
@@ -368,7 +387,7 @@ export default function QTSPMonitor() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Email Alerts Toggle */}
+            {/* Email Alerts Toggle with Counter */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card">
               {emailAlertsStatus?.enabled ? (
                 <Mail className="w-4 h-4 text-green-500" />
@@ -381,6 +400,9 @@ export default function QTSPMonitor() {
                 onCheckedChange={toggleEmailAlerts}
                 disabled={togglingAlerts}
               />
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {emailsSentThisMonth ?? 0} este mes
+              </Badge>
             </div>
             <Button
               variant={notificationsEnabled ? "default" : "outline"}
