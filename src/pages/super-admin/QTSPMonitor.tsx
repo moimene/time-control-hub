@@ -17,7 +17,10 @@ import {
   CheckCircle, 
   AlertCircle,
   AlertTriangle,
-  Bell
+  Bell,
+  Clock,
+  Mail,
+  HeartPulse
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -277,8 +280,25 @@ export default function QTSPMonitor() {
           *,
           company:company_id (name)
         `)
+        .not('action', 'in', '(health_check_auto,health_alert_sent,health_recovery_sent)')
         .order('created_at', { ascending: false })
         .limit(50);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30000,
+  });
+
+  // Get automatic health check history
+  const { data: healthCheckHistory, refetch: refetchHealthHistory } = useQuery({
+    queryKey: ['super-admin-health-check-history'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('qtsp_audit_log')
+        .select('*')
+        .in('action', ['health_check_auto', 'health_alert_sent', 'health_recovery_sent'])
+        .order('created_at', { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data;
     },
@@ -645,6 +665,121 @@ export default function QTSPMonitor() {
                       </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Automatic Health Check History */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <HeartPulse className="w-5 h-5" />
+                  Historial de Health Checks Automáticos
+                </CardTitle>
+                <CardDescription>
+                  Monitoreo automático cada minuto vía cron job
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => refetchHealthHistory()}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-[400px] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha/Hora</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Latencia</TableHead>
+                    <TableHead>Fallos Consec.</TableHead>
+                    <TableHead>Detalles</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {healthCheckHistory?.map((log: any) => {
+                    const payload = log.response_payload || log.request_payload || {};
+                    const isAlert = log.action === 'health_alert_sent';
+                    const isRecovery = log.action === 'health_recovery_sent';
+                    const isCheck = log.action === 'health_check_auto';
+                    
+                    return (
+                      <TableRow key={log.id} className={isAlert ? 'bg-destructive/5' : isRecovery ? 'bg-green-500/5' : ''}>
+                        <TableCell className="text-sm">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-muted-foreground" />
+                            {format(new Date(log.created_at), 'dd/MM HH:mm:ss', { locale: es })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {isAlert ? (
+                            <Badge variant="destructive" className="gap-1">
+                              <Mail className="w-3 h-3" />
+                              Alerta Enviada
+                            </Badge>
+                          ) : isRecovery ? (
+                            <Badge className="bg-green-600 gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              Recuperación
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1">
+                              <HeartPulse className="w-3 h-3" />
+                              Check Auto
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {log.status === 'success' ? (
+                            <Badge variant="default" className="bg-green-600">
+                              {payload.health_status || 'OK'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              {payload.health_status || 'Error'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {payload.latency_ms ? `${payload.latency_ms}ms` : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {payload.consecutive_failures !== undefined ? (
+                            <span className={payload.consecutive_failures > 0 ? 'text-destructive font-medium' : ''}>
+                              {payload.consecutive_failures}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px]">
+                          {isAlert && payload.recipients_count && (
+                            <span>Enviado a {payload.recipients_count} admins</span>
+                          )}
+                          {isRecovery && payload.downtime_minutes && (
+                            <span>Caída de {payload.downtime_minutes} min</span>
+                          )}
+                          {isCheck && payload.was_unhealthy && (
+                            <span className="text-yellow-600">Sistema en recuperación</span>
+                          )}
+                          {log.error_message && (
+                            <span className="text-destructive">{log.error_message}</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {(!healthCheckHistory || healthCheckHistory.length === 0) && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No hay registros de health checks automáticos aún
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
