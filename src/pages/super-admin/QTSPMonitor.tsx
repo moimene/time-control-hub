@@ -85,12 +85,14 @@ export default function QTSPMonitor() {
     staleTime: 15000,
   });
 
-  // Send email alert when consecutive failures reach threshold
+  // Send email alert when consecutive failures reach threshold or on recovery
   const sendHealthAlert = useCallback(async (
     status: 'healthy' | 'degraded' | 'unhealthy',
     message: string,
     latency_ms: number,
-    failures: number
+    failures: number,
+    alertType: 'failure' | 'recovery' = 'failure',
+    downtimeMinutes?: number
   ) => {
     try {
       const { data, error } = await supabase.functions.invoke('qtsp-health-alert', {
@@ -100,6 +102,8 @@ export default function QTSPMonitor() {
           latency_ms,
           timestamp: new Date().toISOString(),
           consecutive_failures: failures,
+          alert_type: alertType,
+          downtime_minutes: downtimeMinutes,
         },
       });
       
@@ -110,7 +114,8 @@ export default function QTSPMonitor() {
       
       if (data?.sent) {
         setLastAlertSent(new Date().toISOString());
-        toast.info('📧 Alerta enviada por email', {
+        const alertLabel = alertType === 'recovery' ? '✅ Recuperación' : '📧 Alerta';
+        toast.info(`${alertLabel} enviada por email`, {
           description: `Notificados ${data.recipients} super admins`,
           duration: 5000,
         });
@@ -134,12 +139,25 @@ export default function QTSPMonitor() {
             healthStatus.status,
             healthStatus.message,
             healthStatus.latency_ms,
-            newCount
+            newCount,
+            'failure'
           );
         }
         return newCount;
       });
     } else {
+      // Send recovery alert if we had significant failures before
+      if (consecutiveFailures >= 10) {
+        const downtimeMinutes = Math.round(consecutiveFailures * 0.5);
+        sendHealthAlert(
+          'healthy',
+          'La conexión con Digital Trust se ha restablecido',
+          healthStatus.latency_ms,
+          0,
+          'recovery',
+          downtimeMinutes
+        );
+      }
       // Reset counter when healthy
       setConsecutiveFailures(0);
     }

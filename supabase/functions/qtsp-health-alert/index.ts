@@ -13,6 +13,8 @@ interface HealthCheckPayload {
   latency_ms?: number;
   timestamp: string;
   consecutive_failures: number;
+  alert_type?: 'failure' | 'recovery';
+  downtime_minutes?: number;
 }
 
 interface AlertRecipient {
@@ -37,16 +39,19 @@ serve(async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const payload: HealthCheckPayload = await req.json();
-    const { status, message, latency_ms, timestamp, consecutive_failures } = payload;
+    const { status, message, latency_ms, timestamp, consecutive_failures, alert_type = 'failure', downtime_minutes } = payload;
 
-    // Only send alerts for unhealthy status with 5+ minutes of failures
+    // Handle recovery alerts
+    const isRecoveryAlert = alert_type === 'recovery' && status === 'healthy';
+    
+    // For failure alerts: only send for unhealthy status with 5+ minutes of failures
     // Assuming health checks run every 30 seconds, 10 consecutive failures = 5 minutes
-    if (status === 'healthy' || consecutive_failures < 10) {
+    if (!isRecoveryAlert && (status === 'healthy' || consecutive_failures < 10)) {
       return new Response(
         JSON.stringify({ 
           sent: false, 
           reason: status === 'healthy' 
-            ? 'System is healthy' 
+            ? 'System is healthy (use alert_type=recovery for recovery alerts)' 
             : `Only ${consecutive_failures} consecutive failures (need 10 for 5 min)` 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -86,9 +91,28 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const failureMinutes = Math.round(consecutive_failures * 0.5); // Assuming 30s intervals
-    const statusEmoji = status === 'unhealthy' ? '🔴' : '🟡';
-    const statusLabel = status === 'unhealthy' ? 'NO SALUDABLE' : 'DEGRADADO';
+    const failureMinutes = downtime_minutes || Math.round(consecutive_failures * 0.5); // Assuming 30s intervals
+    
+    // Different content for recovery vs failure alerts
+    let statusEmoji: string;
+    let statusLabel: string;
+    let headerColor: string;
+    let alertBoxStyle: string;
+    let alertMessage: string;
+
+    if (isRecoveryAlert) {
+      statusEmoji = '✅';
+      statusLabel = 'RECUPERADO';
+      headerColor = '#16a34a';
+      alertBoxStyle = 'background: #f0fdf4; border: 1px solid #86efac;';
+      alertMessage = `El servicio QTSP (Digital Trust) se ha recuperado después de ${failureMinutes} minutos de inactividad.`;
+    } else {
+      statusEmoji = status === 'unhealthy' ? '🔴' : '🟡';
+      statusLabel = status === 'unhealthy' ? 'NO SALUDABLE' : 'DEGRADADO';
+      headerColor = status === 'unhealthy' ? '#dc2626' : '#f59e0b';
+      alertBoxStyle = 'background: #fef2f2; border: 1px solid #fecaca;';
+      alertMessage = `El servicio QTSP (Digital Trust) ha estado ${status === 'unhealthy' ? 'no disponible' : 'degradado'} durante ${failureMinutes} minutos.`;
+    }
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -98,10 +122,10 @@ serve(async (req: Request): Promise<Response> => {
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
     .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .header { background: ${status === 'unhealthy' ? '#dc2626' : '#f59e0b'}; color: white; padding: 24px; text-align: center; }
+    .header { background: ${headerColor}; color: white; padding: 24px; text-align: center; }
     .header h1 { margin: 0; font-size: 24px; }
     .content { padding: 24px; }
-    .alert-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .alert-box { ${alertBoxStyle} border-radius: 8px; padding: 16px; margin-bottom: 20px; }
     .metric { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
     .metric:last-child { border-bottom: none; }
     .metric-label { color: #6b7280; }
@@ -112,11 +136,11 @@ serve(async (req: Request): Promise<Response> => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>${statusEmoji} ALERTA QTSP ${statusLabel}</h1>
+      <h1>${statusEmoji} QTSP ${statusLabel}</h1>
     </div>
     <div class="content">
       <div class="alert-box">
-        <strong>El servicio QTSP (Digital Trust) ha estado ${status === 'unhealthy' ? 'no disponible' : 'degradado'} durante ${failureMinutes} minutos.</strong>
+        <strong>${alertMessage}</strong>
       </div>
       
       <div class="metric">
@@ -131,10 +155,13 @@ serve(async (req: Request): Promise<Response> => {
         <span class="metric-label">Latencia</span>
         <span class="metric-value">${latency_ms ? `${latency_ms}ms` : 'N/A'}</span>
       </div>
-      <div class="metric">
+      ${!isRecoveryAlert ? `<div class="metric">
         <span class="metric-label">Fallos consecutivos</span>
         <span class="metric-value">${consecutive_failures}</span>
-      </div>
+      </div>` : `<div class="metric">
+        <span class="metric-label">Tiempo de inactividad</span>
+        <span class="metric-value">${failureMinutes} minutos</span>
+      </div>`}
       <div class="metric">
         <span class="metric-label">Timestamp</span>
         <span class="metric-value">${new Date(timestamp).toLocaleString('es-ES', { timeZone: 'Europe/Madrid' })}</span>
@@ -150,11 +177,15 @@ serve(async (req: Request): Promise<Response> => {
     `;
 
     // Send email to all recipients
+    const subjectText = isRecoveryAlert 
+      ? `${statusEmoji} QTSP Recuperado - Sistema operativo tras ${failureMinutes} min`
+      : `${statusEmoji} Alerta QTSP: Sistema ${statusLabel} - ${failureMinutes} min`;
+    
     const emailPromises = recipients.map(recipient =>
       resend.emails.send({
         from: "QTSP Monitor <onboarding@resend.dev>",
         to: [recipient.email],
-        subject: `${statusEmoji} Alerta QTSP: Sistema ${statusLabel} - ${failureMinutes} min`,
+        subject: subjectText,
         html: htmlContent,
       })
     );
@@ -165,10 +196,12 @@ serve(async (req: Request): Promise<Response> => {
 
     // Log to qtsp_audit_log
     await supabase.from('qtsp_audit_log').insert({
-      action: 'health_alert_sent',
+      action: isRecoveryAlert ? 'health_recovery_sent' : 'health_alert_sent',
       status: failedCount === 0 ? 'success' : 'partial',
       request_payload: { 
-        health_status: status, 
+        health_status: status,
+        alert_type: isRecoveryAlert ? 'recovery' : 'failure',
+        downtime_minutes: failureMinutes,
         consecutive_failures,
         recipients_count: recipients.length 
       },
