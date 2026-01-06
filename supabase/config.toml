@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.employee-credentials]
 verify_jwt = false
+
+[functions.closure-reminder]
+verify_jwt = false

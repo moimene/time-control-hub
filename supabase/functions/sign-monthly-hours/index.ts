@@ -45,6 +45,18 @@ serve(async (req) => {
       );
     }
 
+    // Validate that the month is not the current or future month
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (year > currentYear || (year === currentYear && month >= currentMonth)) {
+      return new Response(
+        JSON.stringify({ error: 'Solo se puede firmar el cierre del mes anterior o anteriores. El mes en curso no está disponible.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get employee record
     const { data: employee, error: empError } = await supabase
       .from('employees')
