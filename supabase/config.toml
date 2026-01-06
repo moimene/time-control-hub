@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.generate-legal-document]
 verify_jwt = false
+
+[functions.employee-credentials]
+verify_jwt = false
