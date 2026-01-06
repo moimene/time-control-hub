@@ -16,6 +16,7 @@ import Terminals from "./pages/admin/Terminals";
 import KioskDevices from "./pages/admin/KioskDevices";
 import TimeRecords from "./pages/admin/TimeRecords";
 import Corrections from "./pages/admin/Corrections";
+import OrphanClockIns from "./pages/admin/OrphanClockIns";
 import Reports from "./pages/admin/Reports";
 import AuditLog from "./pages/admin/AuditLog";
 import QTSPEvidence from "./pages/admin/QTSPEvidence";
@@ -105,6 +106,11 @@ function AppRoutes() {
       <Route path="/admin/corrections" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin', 'responsible']}>
           <Corrections />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/orphan-clockins" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <OrphanClockIns />
         </ProtectedRoute>
       } />
       <Route path="/admin/reports" element={

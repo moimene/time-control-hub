@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   Shield,
-  Building2
+  Building2,
+  AlertTriangle
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -51,6 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin/kiosk-devices', label: 'Dispositivos Kiosco', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
     { href: '/admin/corrections', label: 'Correcciones', icon: <FileEdit className="h-5 w-5" /> },
+    { href: '/admin/orphan-clockins', label: 'Fichajes Huérfanos', icon: <AlertTriangle className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/reports', label: 'Informes', icon: <FileText className="h-5 w-5" /> },
     { href: '/admin/audit', label: 'Auditoría', icon: <Shield className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/qtsp', label: 'Evidencias QTSP', icon: <Shield className="h-5 w-5" />, adminOnly: true },
