@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { TemplatePayload, SEED_TEMPLATES, DEFAULT_TEMPLATE_PAYLOAD } from '@/types/templates';
+
+const STORAGE_KEY = 'template-wizard-draft';
 
 export interface WizardState {
   currentStep: number;
@@ -29,6 +31,8 @@ interface WizardContextType {
   validateCurrentStep: () => boolean;
   setSimulationResult: (result: any) => void;
   resetWizard: () => void;
+  clearDraft: () => void;
+  hasDraft: boolean;
   canProceed: boolean;
 }
 
@@ -62,8 +66,57 @@ const HARD_STOPS = {
   },
 };
 
+function loadDraft(): WizardState | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Verify it's a valid state object
+      if (parsed && typeof parsed.currentStep === 'number' && parsed.payload) {
+        return { ...initialState, ...parsed, validationErrors: [] };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load wizard draft:', e);
+  }
+  return null;
+}
+
+function saveDraft(state: WizardState) {
+  try {
+    // Don't save validation errors or simulation results
+    const toSave = {
+      currentStep: state.currentStep,
+      payload: state.payload,
+      selectedSeedSector: state.selectedSeedSector,
+      territorialScope: state.territorialScope,
+      region: state.region,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('Failed to save wizard draft:', e);
+  }
+}
+
+function clearDraftStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.warn('Failed to clear wizard draft:', e);
+  }
+}
+
 export function WizardProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<WizardState>(initialState);
+  const [state, setState] = useState<WizardState>(() => loadDraft() || initialState);
+  const [hasDraft] = useState(() => loadDraft() !== null);
+
+  // Autosave on state changes (debounced effect)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft(state);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   const goToStep = useCallback((step: number) => {
     if (step >= 1 && step <= TOTAL_STEPS) {
@@ -177,7 +230,12 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetWizard = useCallback(() => {
+    clearDraftStorage();
     setState(initialState);
+  }, []);
+
+  const clearDraft = useCallback(() => {
+    clearDraftStorage();
   }, []);
 
   const canProceed = state.validationErrors.length === 0;
@@ -197,6 +255,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         validateCurrentStep,
         setSimulationResult,
         resetWizard,
+        clearDraft,
+        hasDraft,
         canProceed,
       }}
     >

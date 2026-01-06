@@ -26,8 +26,9 @@ interface TemplateWizardProps {
 }
 
 function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
-  const { state, nextStep, prevStep, validateCurrentStep } = useWizard();
+  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft } = useWizard();
   const { currentStep, validationErrors, payload } = state;
+  const [showDraftDialog, setShowDraftDialog] = useState(hasDraft && currentStep > 1);
 
   const handleNext = () => {
     if (validateCurrentStep()) {
@@ -35,8 +36,23 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
     }
   };
 
+  const handleDiscardDraft = () => {
+    resetWizard();
+    setShowDraftDialog(false);
+  };
+
+  const handleContinueDraft = () => {
+    setShowDraftDialog(false);
+  };
+
   const handleComplete = () => {
+    clearDraft();
     onComplete(payload);
+  };
+
+  const handleCancel = () => {
+    // Keep draft for later
+    onCancel();
   };
 
   const renderStep = () => {
@@ -59,6 +75,26 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
 
   return (
     <div className="space-y-6">
+      {/* Draft Recovery Dialog */}
+      {showDraftDialog && (
+        <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
+          <AlertTriangle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-blue-800 dark:text-blue-200">
+              <strong>Borrador encontrado:</strong> Tienes una configuración incompleta en el paso {currentStep}.
+            </span>
+            <div className="flex gap-2 ml-4">
+              <Button size="sm" variant="outline" onClick={handleDiscardDraft}>
+                Descartar
+              </Button>
+              <Button size="sm" onClick={handleContinueDraft}>
+                Continuar
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -67,7 +103,7 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
             Configure su primera plantilla de cumplimiento paso a paso
           </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={onCancel}>
+        <Button variant="ghost" size="icon" onClick={handleCancel}>
           <X className="h-5 w-5" />
         </Button>
       </div>
