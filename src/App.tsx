@@ -25,6 +25,7 @@ import Compliance from "./pages/admin/Compliance";
 import ComplianceIncidents from "./pages/admin/ComplianceIncidents";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import Templates from "./pages/admin/Templates";
+import AdminAbsences from "./pages/admin/Absences";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
@@ -152,6 +153,11 @@ function AppRoutes() {
       <Route path="/admin/templates" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <Templates />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/absences" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <AdminAbsences />
         </ProtectedRoute>
       } />
 

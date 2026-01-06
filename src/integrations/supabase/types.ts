@@ -49,6 +49,53 @@ export type Database = {
           },
         ]
       }
+      absence_calendar_blocks: {
+        Row: {
+          block_date: string
+          block_reason: string
+          center_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          department: string | null
+          id: string
+          min_staff_required: number | null
+          updated_at: string
+        }
+        Insert: {
+          block_date: string
+          block_reason: string
+          center_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          min_staff_required?: number | null
+          updated_at?: string
+        }
+        Update: {
+          block_date?: string
+          block_reason?: string
+          center_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          id?: string
+          min_staff_required?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_calendar_blocks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       absence_requests: {
         Row: {
           absence_type_id: string
@@ -127,54 +174,123 @@ export type Database = {
       }
       absence_types: {
         Row: {
+          absence_category: string
           advance_notice_days: number | null
+          alt_mode: string | null
+          alt_mode_description: string | null
+          approval_flow: string | null
+          blocks_clocking: boolean | null
+          cap_per_year_unit: string | null
+          cap_per_year_value: number | null
           category: string
           code: string
           color: string | null
           company_id: string
+          compute_on: string
+          convenio_reference: string | null
+          counts_as_work: boolean | null
           created_at: string
           description: string | null
+          duration_is_range: boolean | null
+          duration_unit: string | null
+          duration_value: number | null
+          effective_from: string | null
+          effective_to: string | null
+          extra_travel_days: number | null
+          half_day_allowed: boolean | null
           id: string
+          incompatible_with: Json | null
           is_active: boolean
           is_paid: boolean
+          justification_types: Json | null
+          legal_origin: string | null
           max_days_per_year: number | null
           name: string
+          notes: string | null
           requires_approval: boolean
           requires_justification: boolean
+          sla_hours: number | null
+          travel_threshold_km: number | null
           updated_at: string
         }
         Insert: {
+          absence_category?: string
           advance_notice_days?: number | null
+          alt_mode?: string | null
+          alt_mode_description?: string | null
+          approval_flow?: string | null
+          blocks_clocking?: boolean | null
+          cap_per_year_unit?: string | null
+          cap_per_year_value?: number | null
           category?: string
           code: string
           color?: string | null
           company_id: string
+          compute_on?: string
+          convenio_reference?: string | null
+          counts_as_work?: boolean | null
           created_at?: string
           description?: string | null
+          duration_is_range?: boolean | null
+          duration_unit?: string | null
+          duration_value?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          extra_travel_days?: number | null
+          half_day_allowed?: boolean | null
           id?: string
+          incompatible_with?: Json | null
           is_active?: boolean
           is_paid?: boolean
+          justification_types?: Json | null
+          legal_origin?: string | null
           max_days_per_year?: number | null
           name: string
+          notes?: string | null
           requires_approval?: boolean
           requires_justification?: boolean
+          sla_hours?: number | null
+          travel_threshold_km?: number | null
           updated_at?: string
         }
         Update: {
+          absence_category?: string
           advance_notice_days?: number | null
+          alt_mode?: string | null
+          alt_mode_description?: string | null
+          approval_flow?: string | null
+          blocks_clocking?: boolean | null
+          cap_per_year_unit?: string | null
+          cap_per_year_value?: number | null
           category?: string
           code?: string
           color?: string | null
           company_id?: string
+          compute_on?: string
+          convenio_reference?: string | null
+          counts_as_work?: boolean | null
           created_at?: string
           description?: string | null
+          duration_is_range?: boolean | null
+          duration_unit?: string | null
+          duration_value?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
+          extra_travel_days?: number | null
+          half_day_allowed?: boolean | null
           id?: string
+          incompatible_with?: Json | null
           is_active?: boolean
           is_paid?: boolean
+          justification_types?: Json | null
+          legal_origin?: string | null
           max_days_per_year?: number | null
           name?: string
+          notes?: string | null
           requires_approval?: boolean
           requires_justification?: boolean
+          sla_hours?: number | null
+          travel_threshold_km?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1982,6 +2098,10 @@ export type Database = {
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      seed_default_absence_types: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
       user_belongs_to_company: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
