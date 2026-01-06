@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.qtsp-health-monitor]
 verify_jwt = false
+
+[functions.qtsp-toggle-alerts]
+verify_jwt = false

@@ -20,8 +20,10 @@ import {
   Bell,
   Clock,
   Mail,
-  HeartPulse
+  HeartPulse,
+  BellOff
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -59,6 +61,38 @@ export default function QTSPMonitor() {
   const [latencyHistory, setLatencyHistory] = useState<LatencyDataPoint[]>([]);
   const [consecutiveFailures, setConsecutiveFailures] = useState(0);
   const [lastAlertSent, setLastAlertSent] = useState<string | null>(null);
+  const [togglingAlerts, setTogglingAlerts] = useState(false);
+
+  // Get email alerts enabled status
+  const { data: emailAlertsStatus, refetch: refetchEmailAlerts } = useQuery({
+    queryKey: ['qtsp-email-alerts-status'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('qtsp-toggle-alerts', {
+        body: { action: 'get' },
+      });
+      if (error) throw error;
+      return data as { enabled: boolean };
+    },
+    staleTime: 30000,
+  });
+
+  const toggleEmailAlerts = async () => {
+    setTogglingAlerts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('qtsp-toggle-alerts', {
+        body: { action: 'toggle' },
+      });
+      if (error) throw error;
+      
+      toast.success(data.message);
+      refetchEmailAlerts();
+    } catch (err) {
+      console.error('Error toggling email alerts:', err);
+      toast.error('Error al cambiar estado de alertas');
+    } finally {
+      setTogglingAlerts(false);
+    }
+  };
 
   // Update latency history when health check completes
   const updateLatencyHistory = useCallback((data: HealthCheckResult) => {
@@ -333,14 +367,28 @@ export default function QTSPMonitor() {
               Estado de la integración Digital Trust para todas las empresas
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Email Alerts Toggle */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card">
+              {emailAlertsStatus?.enabled ? (
+                <Mail className="w-4 h-4 text-green-500" />
+              ) : (
+                <BellOff className="w-4 h-4 text-muted-foreground" />
+              )}
+              <span className="text-sm">Emails</span>
+              <Switch
+                checked={emailAlertsStatus?.enabled ?? true}
+                onCheckedChange={toggleEmailAlerts}
+                disabled={togglingAlerts}
+              />
+            </div>
             <Button
               variant={notificationsEnabled ? "default" : "outline"}
               size="sm"
               onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             >
               <Bell className={`w-4 h-4 mr-2 ${notificationsEnabled ? '' : 'opacity-50'}`} />
-              {notificationsEnabled ? 'Notificaciones ON' : 'Notificaciones OFF'}
+              {notificationsEnabled ? 'Toast ON' : 'Toast OFF'}
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               refetchHealth();
