@@ -59,7 +59,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin/templates', label: 'Plantillas', icon: <FileCode className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/reports', label: 'Informes', icon: <FileText className="h-5 w-5" /> },
     { href: '/admin/audit', label: 'Auditoría', icon: <Shield className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/qtsp', label: 'Evidencias QTSP', icon: <Shield className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/settings', label: 'Configuración', icon: <Settings className="h-5 w-5" />, adminOnly: true },
   ];
 
