@@ -28,6 +28,8 @@ import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useCompany } from '@/hooks/useCompany';
+import { useTimeEventInconsistencies } from '@/hooks/useTimeEventInconsistencies';
+import { InconsistencyAlert } from '@/components/admin/InconsistencyAlert';
 import type { EventType, EventSource } from '@/types/database';
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -78,6 +80,8 @@ export default function TimeRecords() {
       return data;
     },
   });
+
+  const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
   const filteredRecords = records?.filter((record: any) => {
     if (!search) return true;
@@ -170,6 +174,11 @@ export default function TimeRecords() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Inconsistency Alert */}
+        {hasInconsistencies && (
+          <InconsistencyAlert inconsistencies={inconsistencies} />
+        )}
 
         {/* Table */}
         <div className="rounded-md border">
