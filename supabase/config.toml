@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.weekly-inconsistency-summary]
 verify_jwt = false
+
+[functions.compliance-evaluator]
+verify_jwt = false
