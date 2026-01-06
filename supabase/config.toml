@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.notification-dispatcher]
 verify_jwt = false
+
+[functions.qtsp-retry]
+verify_jwt = false

@@ -639,6 +639,7 @@ export type Database = {
       }
       dt_evidences: {
         Row: {
+          backoff_seconds: number | null
           completed_at: string | null
           created_at: string
           daily_root_id: string | null
@@ -647,6 +648,8 @@ export type Database = {
           evidence_type: Database["public"]["Enums"]["evidence_type"]
           external_id: string | null
           id: string
+          last_retry_at: string | null
+          next_retry_at: string | null
           original_pdf_path: string | null
           report_month: string | null
           retry_count: number
@@ -658,6 +661,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          backoff_seconds?: number | null
           completed_at?: string | null
           created_at?: string
           daily_root_id?: string | null
@@ -666,6 +670,8 @@ export type Database = {
           evidence_type: Database["public"]["Enums"]["evidence_type"]
           external_id?: string | null
           id?: string
+          last_retry_at?: string | null
+          next_retry_at?: string | null
           original_pdf_path?: string | null
           report_month?: string | null
           retry_count?: number
@@ -677,6 +683,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          backoff_seconds?: number | null
           completed_at?: string | null
           created_at?: string
           daily_root_id?: string | null
@@ -685,6 +692,8 @@ export type Database = {
           evidence_type?: Database["public"]["Enums"]["evidence_type"]
           external_id?: string | null
           id?: string
+          last_retry_at?: string | null
+          next_retry_at?: string | null
           original_pdf_path?: string | null
           report_month?: string | null
           retry_count?: number
