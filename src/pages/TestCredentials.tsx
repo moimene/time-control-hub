@@ -4,34 +4,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy, Check, Play, Loader2 } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const TestCredentials = () => {
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [setupResult, setSetupResult] = useState<Record<string, unknown> | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopiedItem(label);
     toast.success(`${label} copiado`);
     setTimeout(() => setCopiedItem(null), 2000);
-  };
-
-  const runSetupTestData = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('setup-test-data');
-      if (error) throw error;
-      setSetupResult(data);
-      toast.success('Datos de prueba creados correctamente');
-    } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => (
@@ -48,31 +31,12 @@ const TestCredentials = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Credenciales de Prueba</h1>
-            <p className="text-muted-foreground mt-1">
-              Datos de acceso para testing de todas las historias de usuario
-            </p>
-          </div>
-          <Button onClick={runSetupTestData} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
-            Ejecutar setup-test-data
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Credenciales de Prueba</h1>
+          <p className="text-muted-foreground mt-1">
+            Datos de acceso para testing de todas las historias de usuario
+          </p>
         </div>
-
-        {setupResult && (
-          <Card className="border-green-500/50 bg-green-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-green-600">✅ Setup completado</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="text-xs overflow-auto max-h-48">
-                {JSON.stringify(setupResult, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
 
         <Tabs defaultValue="superadmin" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
