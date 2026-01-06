@@ -474,6 +474,92 @@ export type Database = {
         }
         Relationships: []
       }
+      company_messages: {
+        Row: {
+          attachments: Json | null
+          body: string
+          company_id: string
+          created_at: string
+          id: string
+          priority: Database["public"]["Enums"]["message_priority"]
+          recipient_department: string | null
+          recipient_employee_id: string | null
+          recipient_type: string
+          requires_acknowledgment: boolean
+          sender_employee_id: string | null
+          sender_type: Database["public"]["Enums"]["message_sender_type"]
+          sender_user_id: string | null
+          subject: string
+          thread_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          body: string
+          company_id: string
+          created_at?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["message_priority"]
+          recipient_department?: string | null
+          recipient_employee_id?: string | null
+          recipient_type: string
+          requires_acknowledgment?: boolean
+          sender_employee_id?: string | null
+          sender_type: Database["public"]["Enums"]["message_sender_type"]
+          sender_user_id?: string | null
+          subject: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          body?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["message_priority"]
+          recipient_department?: string | null
+          recipient_employee_id?: string | null
+          recipient_type?: string
+          requires_acknowledgment?: boolean
+          sender_employee_id?: string | null
+          sender_type?: Database["public"]["Enums"]["message_sender_type"]
+          sender_user_id?: string | null
+          subject?: string
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_messages_recipient_employee_id_fkey"
+            columns: ["recipient_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_messages_sender_employee_id_fkey"
+            columns: ["sender_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "company_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           company_id: string
@@ -2034,6 +2120,48 @@ export type Database = {
           },
         ]
       }
+      message_recipients: {
+        Row: {
+          acknowledged_at: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          message_id: string
+          read_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          message_id: string
+          read_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          message_id?: string
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_recipients_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_recipients_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "company_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_closures: {
         Row: {
           company_id: string
@@ -2653,6 +2781,8 @@ export type Database = {
         | "in_progress"
         | "resolved"
         | "closed"
+      message_priority: "low" | "normal" | "high" | "urgent"
+      message_sender_type: "company" | "employee"
       notification_channel: "in_app" | "email" | "both"
       rule_set_status:
         | "draft"
@@ -2811,6 +2941,8 @@ export const Constants = {
         "resolved",
         "closed",
       ],
+      message_priority: ["low", "normal", "high", "urgent"],
+      message_sender_type: ["company", "employee"],
       notification_channel: ["in_app", "email", "both"],
       rule_set_status: [
         "draft",

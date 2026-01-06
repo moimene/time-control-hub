@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, FileText, FileEdit, Settings, LogOut, Menu, X, Calendar, FileSignature, Bell, FileCheck } from 'lucide-react';
+import { Clock, FileText, FileEdit, Settings, LogOut, Menu, X, Calendar, FileSignature, Bell, FileCheck, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +46,7 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
     { href: '/employee/absences', label: 'Ausencias', icon: <Calendar className="h-5 w-5" /> },
     { href: '/employee/closure', label: 'Cierre Mensual', icon: <FileSignature className="h-5 w-5" /> },
     { href: '/employee/legal-documents', label: 'Documentos Legales', icon: <FileCheck className="h-5 w-5" /> },
+    { href: '/employee/communications', label: 'Comunicaciones', icon: <MessageSquare className="h-5 w-5" /> },
     { href: '/employee/corrections', label: 'Solicitar Corrección', icon: <FileEdit className="h-5 w-5" /> },
     { href: '/employee/requests', label: 'Mis Solicitudes', icon: <FileText className="h-5 w-5" /> },
     { 

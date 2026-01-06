@@ -38,6 +38,8 @@ import EmployeeAbsences from "./pages/employee/Absences";
 import MonthlyClosure from "./pages/employee/MonthlyClosure";
 import EmployeeNotifications from "./pages/employee/Notifications";
 import EmployeeLegalDocuments from "./pages/employee/LegalDocuments";
+import EmployeeCommunications from "./pages/employee/Communications";
+import AdminCommunications from "./pages/admin/Communications";
 import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
 import TestCredentials from "./pages/TestCredentials";
@@ -191,6 +193,11 @@ function AppRoutes() {
           <ClockingIncidents />
         </ProtectedRoute>
       } />
+      <Route path="/admin/communications" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <AdminCommunications />
+        </ProtectedRoute>
+      } />
 
       {/* Super Admin routes */}
       <Route path="/super-admin" element={
@@ -258,6 +265,11 @@ function AppRoutes() {
       <Route path="/employee/legal-documents" element={
         <ProtectedRoute requiredRoles={['employee']}>
           <EmployeeLegalDocuments />
+        </ProtectedRoute>
+      } />
+      <Route path="/employee/communications" element={
+        <ProtectedRoute requiredRoles={['employee']}>
+          <EmployeeCommunications />
         </ProtectedRoute>
       } />
 
