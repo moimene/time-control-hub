@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTemplates } from '@/hooks/useTemplates';
-import { RuleSetWithVersions, SECTOR_LABELS, STATUS_LABELS, DEFAULT_TEMPLATE_PAYLOAD } from '@/types/templates';
+import { RuleSetWithVersions, SECTOR_LABELS, STATUS_LABELS, DEFAULT_TEMPLATE_PAYLOAD, TemplatePayload } from '@/types/templates';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, FileText, Building2, Search, Filter, Archive } from 'lucide-react';
+import { Plus, FileText, Building2, Search, Filter, Archive, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { SeedTemplateSelector } from './SeedTemplateSelector';
 
 interface TemplateLibraryProps {
   onSelect: (ruleSet: RuleSetWithVersions) => void;
@@ -23,6 +24,7 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSeedSelectorOpen, setIsSeedSelectorOpen] = useState(false);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     description: '',
@@ -54,6 +56,16 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
     
     setIsCreateDialogOpen(false);
     setNewTemplate({ name: '', description: '', sector: '', convenio: '' });
+  };
+
+  const handleCreateFromSeed = async (payload: TemplatePayload, name: string, sector: string, convenio: string) => {
+    await createRuleSet.mutateAsync({
+      name: `${name} (Personalizada)`,
+      description: `Basada en plantilla seed de ${sector}. ⚠️ Requiere verificación con convenio aplicable.`,
+      sector: sector,
+      convenio: convenio,
+      payload: payload,
+    });
   };
 
   const getStatusVariant = (status: string): 'default' | 'secondary' | 'outline' | 'destructive' => {
@@ -114,26 +126,38 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="hosteleria">Hostelería</SelectItem>
               <SelectItem value="comercio">Comercio</SelectItem>
-              <SelectItem value="oficinas">Oficinas</SelectItem>
-              <SelectItem value="sanitario">Sanitario</SelectItem>
+              <SelectItem value="comercio_alimentacion">Comercio Alimentación</SelectItem>
+              <SelectItem value="servicios_profesionales">Oficinas</SelectItem>
+              <SelectItem value="salud">Sanidad</SelectItem>
+              <SelectItem value="veterinaria">Veterinaria</SelectItem>
+              <SelectItem value="metal">Metal</SelectItem>
+              <SelectItem value="construccion">Construcción</SelectItem>
+              <SelectItem value="limpieza">Limpieza</SelectItem>
+              <SelectItem value="consultoria">Consultoría</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Plantilla
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Crear Nueva Plantilla</DialogTitle>
-              <DialogDescription>
-                Define las reglas de cumplimiento para tu empresa
-              </DialogDescription>
-            </DialogHeader>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsSeedSelectorOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Desde Plantilla Seed
+          </Button>
+
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nueva en Blanco
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Crear Nueva Plantilla</DialogTitle>
+                <DialogDescription>
+                  Define las reglas de cumplimiento para tu empresa desde cero
+                </DialogDescription>
+              </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre *</Label>
@@ -192,6 +216,7 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Company Templates */}
@@ -291,6 +316,13 @@ export function TemplateLibrary({ onSelect }: TemplateLibraryProps) {
           </div>
         </div>
       )}
+
+      {/* Seed Template Selector */}
+      <SeedTemplateSelector
+        open={isSeedSelectorOpen}
+        onOpenChange={setIsSeedSelectorOpen}
+        onSelect={handleCreateFromSeed}
+      />
     </div>
   );
 }
