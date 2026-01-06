@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, LogIn, LogOut, AlertCircle, CloudOff } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, AlertCircle, CloudOff, AlertTriangle } from 'lucide-react';
 
 const OVERRIDE_REASON_LABELS: Record<string, string> = {
   'forgot_mark': 'Olvidé marcar',
   'system_unavailable': 'No estaba disponible el sistema',
   'error_correction': 'Corrección de error',
 };
+
+interface OrphanEntry {
+  timestamp: string;
+  date: string;
+  time: string;
+}
 
 interface ClockResult {
   employee: {
@@ -22,6 +28,7 @@ interface ClockResult {
     timestamp: string;
   };
   isOffline?: boolean;
+  orphan_entry?: OrphanEntry | null;
 }
 
 interface OverrideInfo {
@@ -105,6 +112,20 @@ export function KioskSuccess({ result, onClose, overrideInfo, isOffline }: Kiosk
               </div>
               <p className="text-xs text-blue-600 dark:text-blue-500">
                 Se sincronizará automáticamente cuando vuelva la conexión
+              </p>
+            </div>
+          )}
+
+          {/* Orphan Entry Warning */}
+          {result.orphan_entry && (
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+              <div className="flex items-center justify-center gap-2 text-orange-700 dark:text-orange-400 mb-1">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Fichaje pendiente del día anterior</span>
+              </div>
+              <p className="text-xs text-orange-600 dark:text-orange-500">
+                Tienes una entrada sin cerrar del {result.orphan_entry.date} a las {result.orphan_entry.time}.
+                Por favor, solicita una corrección a tu administrador.
               </p>
             </div>
           )}

@@ -3,9 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Monitor, Clock, AlertCircle } from 'lucide-react';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useCompany } from '@/hooks/useCompany';
+import { HoursChart } from '@/components/admin/HoursChart';
+import { DailyActivityChart } from '@/components/admin/DailyActivityChart';
 
 export default function Dashboard() {
   const today = new Date();
@@ -66,6 +68,23 @@ export default function Dashboard() {
     },
   });
 
+  // Get events for charts (last 7 days with employee info)
+  const { data: weekEvents, isLoading: weekEventsLoading } = useQuery({
+    queryKey: ['week-events-chart', company?.id],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      const sevenDaysAgo = subDays(today, 7);
+      const { data } = await supabase
+        .from('time_events')
+        .select('id, employee_id, event_type, timestamp, employees(first_name, last_name, department)')
+        .eq('company_id', company!.id)
+        .gte('timestamp', startOfDay(sevenDaysAgo).toISOString())
+        .lte('timestamp', endOfDay(today).toISOString())
+        .order('timestamp', { ascending: true });
+      return data || [];
+    },
+  });
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -117,6 +136,12 @@ export default function Dashboard() {
               <div className="text-2xl font-bold">{pendingCorrections ?? 0}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Charts */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <HoursChart events={weekEvents || []} isLoading={weekEventsLoading} />
+          <DailyActivityChart events={weekEvents || []} isLoading={weekEventsLoading} />
         </div>
 
         {/* Recent events */}
