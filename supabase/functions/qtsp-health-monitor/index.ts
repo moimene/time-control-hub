@@ -39,8 +39,9 @@ async function checkQTSPHealth(): Promise<HealthResult> {
     clearTimeout(timeoutId);
     const latency = Date.now() - startTime;
 
-    // 401/403 means API is reachable but auth needed - that's healthy for connectivity check
-    if (response.ok || response.status === 401 || response.status === 403) {
+    // 401/403/404 means API is reachable - that's healthy for connectivity check
+    // 404 can happen when endpoint needs auth, but server responds
+    if (response.ok || response.status === 401 || response.status === 403 || response.status === 404) {
       return {
         status: latency > 3000 ? 'degraded' : 'healthy',
         latency_ms: latency,
