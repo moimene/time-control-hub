@@ -425,39 +425,51 @@ export type Database = {
           address: string | null
           cif: string | null
           city: string | null
+          cnae: string | null
           created_at: string
           employee_code_prefix: string
+          entity_type: string | null
           id: string
           name: string
           postal_code: string | null
+          sector: string | null
           settings: Json | null
           timezone: string
+          trade_name: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
           cif?: string | null
           city?: string | null
+          cnae?: string | null
           created_at?: string
           employee_code_prefix?: string
+          entity_type?: string | null
           id?: string
           name: string
           postal_code?: string | null
+          sector?: string | null
           settings?: Json | null
           timezone?: string
+          trade_name?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
           cif?: string | null
           city?: string | null
+          cnae?: string | null
           created_at?: string
           employee_code_prefix?: string
+          entity_type?: string | null
           id?: string
           name?: string
           postal_code?: string | null
+          sector?: string | null
           settings?: Json | null
           timezone?: string
+          trade_name?: string | null
           updated_at?: string
         }
         Relationships: []

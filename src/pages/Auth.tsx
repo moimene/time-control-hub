@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Clock } from 'lucide-react';
+import { Clock, Building2, Users } from 'lucide-react';
 import { z } from 'zod';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -111,7 +112,7 @@ export default function Auth() {
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
-              <TabsTrigger value="register">Registrarse</TabsTrigger>
+              <TabsTrigger value="register">Registrar empresa</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
@@ -148,12 +149,22 @@ export default function Auth() {
             </TabsContent>
 
             <TabsContent value="register" className="space-y-4">
+              <Alert className="border-primary/30 bg-primary/5">
+                <Building2 className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  <strong>Registro para empresas y autónomos.</strong>
+                  <br />
+                  <span className="text-muted-foreground">
+                    Como administrador, registras tu empresa y después das acceso a empleados y asesores.
+                  </span>
+                </AlertDescription>
+              </Alert>
               <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
+                <Label htmlFor="register-email">Email del administrador</Label>
                 <Input
                   id="register-email"
                   type="email"
-                  placeholder="tu@email.com"
+                  placeholder="admin@miempresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -176,8 +187,12 @@ export default function Auth() {
                 onClick={() => handleSubmit('register')}
                 disabled={loading}
               >
-                {loading ? 'Cargando...' : 'Registrarse'}
+                {loading ? 'Creando cuenta...' : 'Registrar empresa'}
               </Button>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
+                <Users className="h-3 w-3" />
+                <span>Los empleados recibirán invitación después</span>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
