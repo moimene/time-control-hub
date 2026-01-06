@@ -21,6 +21,8 @@ import Reports from "./pages/admin/Reports";
 import AuditLog from "./pages/admin/AuditLog";
 import QTSPEvidence from "./pages/admin/QTSPEvidence";
 import Settings from "./pages/admin/Settings";
+import Compliance from "./pages/admin/Compliance";
+import ComplianceIncidents from "./pages/admin/ComplianceIncidents";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
@@ -131,6 +133,16 @@ function AppRoutes() {
       <Route path="/admin/settings" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <Settings />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/compliance" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <Compliance />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/compliance/incidents" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <ComplianceIncidents />
         </ProtectedRoute>
       } />
 
