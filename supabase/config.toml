@@ -47,3 +47,18 @@ verify_jwt = false
 
 [functions.compliance-evaluator]
 verify_jwt = false
+
+[functions.templates-validate]
+verify_jwt = false
+
+[functions.templates-publish]
+verify_jwt = false
+
+[functions.templates-simulate]
+verify_jwt = false
+
+[functions.templates-diff]
+verify_jwt = false
+
+[functions.notification-dispatcher]
+verify_jwt = false
