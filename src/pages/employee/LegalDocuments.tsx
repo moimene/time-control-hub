@@ -142,7 +142,7 @@ export default function EmployeeLegalDocuments() {
     <EmployeeLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Documentos Legales</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Normativa y Cumplimiento</h1>
           <p className="text-muted-foreground">
             Revisa y acepta los documentos requeridos por la empresa
           </p>

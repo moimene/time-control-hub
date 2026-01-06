@@ -8,10 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Save, Download, Upload, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, Save, Download, CheckCircle2, Clock, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface Holiday {
   date: string;
@@ -48,8 +53,15 @@ interface LaborCalendar {
 const currentYear = new Date().getFullYear();
 const years = [currentYear - 1, currentYear, currentYear + 1];
 
+const holidayTypeLabels: Record<string, string> = {
+  nacional: 'Nacional',
+  autonomico: 'Autonómico',
+  local: 'Local',
+};
+
 export default function CalendarLaboral() {
   const { company } = useCompany();
+  const { isAdmin, isResponsible, isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   
@@ -58,6 +70,9 @@ export default function CalendarLaboral() {
   const [intensivePeriods, setIntensivePeriods] = useState<IntensivePeriod[]>([]);
   const [shiftsSummary, setShiftsSummary] = useState<ShiftSummary[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Check if user can edit (admin, responsible/asesor, or super admin)
+  const canEdit = isAdmin || isResponsible || isSuperAdmin;
 
   // Fetch calendar
   const { data: calendar, isLoading } = useQuery({
@@ -173,20 +188,97 @@ export default function CalendarLaboral() {
     setHasChanges(true);
   };
 
-  const exportCalendar = () => {
-    const data = {
-      year: selectedYear,
-      holidays,
-      intensive_periods: intensivePeriods,
-      shifts_summary: shiftsSummary
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `calendario_laboral_${selectedYear}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Export calendar as PDF
+  const exportCalendarPDF = () => {
+    const doc = new jsPDF();
+    const now = new Date();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text(`Calendario Laboral ${selectedYear}`, 14, 20);
+    
+    // Company info
+    doc.setFontSize(12);
+    doc.text(`Empresa: ${company?.name || 'N/A'}`, 14, 30);
+    doc.setFontSize(10);
+    doc.text(`Generado: ${format(now, "dd/MM/yyyy HH:mm", { locale: es })}`, 14, 38);
+    
+    // Holidays table
+    doc.setFontSize(14);
+    doc.text('Festivos', 14, 52);
+    
+    if (holidays.length > 0) {
+      autoTable(doc, {
+        startY: 56,
+        head: [['Fecha', 'Tipo', 'Descripción']],
+        body: holidays.map(h => [
+          format(new Date(h.date), 'dd/MM/yyyy'),
+          holidayTypeLabels[h.type] || h.type,
+          h.description
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.text('No hay festivos configurados', 14, 62);
+    }
+
+    // Intensive periods table
+    const y1 = (doc as any).lastAutoTable?.finalY || 70;
+    doc.setFontSize(14);
+    doc.text('Períodos de Jornada Intensiva', 14, y1 + 15);
+    
+    if (intensivePeriods.length > 0) {
+      autoTable(doc, {
+        startY: y1 + 20,
+        head: [['Fecha Inicio', 'Fecha Fin', 'Horas/Día']],
+        body: intensivePeriods.map(p => [
+          format(new Date(p.start_date), 'dd/MM/yyyy'),
+          format(new Date(p.end_date), 'dd/MM/yyyy'),
+          `${p.hours_day}h`
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94] },
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.text('No hay períodos intensivos configurados', 14, y1 + 26);
+    }
+
+    // Shifts table
+    const y2 = (doc as any).lastAutoTable?.finalY || y1 + 40;
+    doc.setFontSize(14);
+    doc.text('Turnos Configurados', 14, y2 + 15);
+    
+    if (shiftsSummary.length > 0) {
+      autoTable(doc, {
+        startY: y2 + 20,
+        head: [['Nombre', 'Hora Inicio', 'Hora Fin']],
+        body: shiftsSummary.map(s => [s.name, s.start, s.end]),
+        theme: 'striped',
+        headStyles: { fillColor: [168, 85, 247] },
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.text('No hay turnos configurados', 14, y2 + 26);
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(128);
+      doc.text(
+        `Calendario Laboral ${selectedYear} - ${company?.name || ''} - Página ${i} de ${pageCount}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+
+    doc.save(`calendario_laboral_${selectedYear}.pdf`);
+    toast.success('Calendario exportado como PDF');
   };
 
   return (
@@ -250,27 +342,31 @@ export default function CalendarLaboral() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={exportCalendar}>
-                  <Download className="h-4 w-4 mr-1" />
-                  Exportar
+                <Button variant="outline" size="sm" onClick={exportCalendarPDF}>
+                  <FileText className="h-4 w-4 mr-1" />
+                  Exportar PDF
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => saveMutation.mutate()}
-                  disabled={!hasChanges || saveMutation.isPending}
-                >
-                  <Save className="h-4 w-4 mr-1" />
-                  {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
-                </Button>
-                {calendar && !calendar.published_at && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => publishMutation.mutate()}
-                    disabled={hasChanges || publishMutation.isPending}
-                  >
-                    Publicar
-                  </Button>
+                {canEdit && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => saveMutation.mutate()}
+                      disabled={!hasChanges || saveMutation.isPending}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                    {calendar && !calendar.published_at && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => publishMutation.mutate()}
+                        disabled={hasChanges || publishMutation.isPending}
+                      >
+                        Publicar
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -300,7 +396,9 @@ export default function CalendarLaboral() {
             <CardHeader>
               <CardTitle>Editor de Calendario</CardTitle>
               <CardDescription>
-                Añade festivos, configura la jornada intensiva y define los turnos
+                {canEdit 
+                  ? 'Añade festivos, configura la jornada intensiva y define los turnos'
+                  : 'Vista de solo lectura. Contacta con un administrador para realizar cambios.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -309,9 +407,9 @@ export default function CalendarLaboral() {
                 holidays={holidays}
                 intensivePeriods={intensivePeriods}
                 shiftsSummary={shiftsSummary}
-                onHolidaysChange={handleHolidaysChange}
-                onIntensivePeriodsChange={handleIntensivePeriodsChange}
-                onShiftsSummaryChange={handleShiftsSummaryChange}
+                onHolidaysChange={canEdit ? handleHolidaysChange : undefined}
+                onIntensivePeriodsChange={canEdit ? handleIntensivePeriodsChange : undefined}
+                onShiftsSummaryChange={canEdit ? handleShiftsSummaryChange : undefined}
               />
             </CardContent>
           </Card>

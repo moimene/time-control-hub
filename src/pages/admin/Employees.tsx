@@ -383,7 +383,8 @@ export default function Employees() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableRow>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
             </TableBody>
