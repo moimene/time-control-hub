@@ -151,8 +151,6 @@ function AppRoutes() {
           <Templates />
         </ProtectedRoute>
       } />
-        </ProtectedRoute>
-      } />
 
       {/* Super Admin routes */}
       <Route path="/super-admin" element={
