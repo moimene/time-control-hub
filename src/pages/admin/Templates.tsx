@@ -3,14 +3,19 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { TemplateLibrary } from '@/components/templates/TemplateLibrary';
 import { TemplateEditor } from '@/components/templates/TemplateEditor';
 import { TemplateSimulator } from '@/components/templates/TemplateSimulator';
+import { TemplateWizard } from '@/components/templates/wizard/TemplateWizard';
 import { RuleSetWithVersions } from '@/types/templates';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Wand2 } from 'lucide-react';
+import { useTemplates } from '@/hooks/useTemplates';
+import { toast } from 'sonner';
 
 export default function Templates() {
   const [selectedRuleSet, setSelectedRuleSet] = useState<RuleSetWithVersions | null>(null);
   const [activeTab, setActiveTab] = useState<'library' | 'editor' | 'simulator'>('library');
+  const [showWizard, setShowWizard] = useState(false);
+  const { createRuleSet, refetch } = useTemplates();
 
   const handleSelectRuleSet = (ruleSet: RuleSetWithVersions) => {
     setSelectedRuleSet(ruleSet);
@@ -25,6 +30,34 @@ export default function Templates() {
   const handleSimulate = () => {
     setActiveTab('simulator');
   };
+
+  const handleWizardComplete = async (payload: any) => {
+    try {
+      await createRuleSet.mutateAsync({
+        name: payload.meta?.template_name || 'Nueva plantilla',
+        description: `Creada con asistente - ${payload.meta?.convenio || 'Sin convenio'}`,
+        sector: payload.meta?.sector,
+        convenio: payload.meta?.convenio,
+        payload,
+      });
+      setShowWizard(false);
+      refetch();
+      toast.success('Plantilla creada correctamente con el asistente');
+    } catch (error) {
+      toast.error('Error al crear la plantilla');
+    }
+  };
+
+  if (showWizard) {
+    return (
+      <AppLayout>
+        <TemplateWizard
+          onComplete={handleWizardComplete}
+          onCancel={() => setShowWizard(false)}
+        />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -48,6 +81,12 @@ export default function Templates() {
               </p>
             </div>
           </div>
+          {!selectedRuleSet && (
+            <Button onClick={() => setShowWizard(true)}>
+              <Wand2 className="h-4 w-4 mr-2" />
+              Asistente de configuración
+            </Button>
+          )}
         </div>
 
         {selectedRuleSet ? (
