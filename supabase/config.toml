@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.sign-monthly-hours]
 verify_jwt = false
+
+[functions.vacation-calculator]
+verify_jwt = false
