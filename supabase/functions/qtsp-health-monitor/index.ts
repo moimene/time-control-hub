@@ -11,6 +11,7 @@ const CONSECUTIVE_FAILURES_KEY = "qtsp_consecutive_failures";
 const LAST_ALERT_SENT_KEY = "qtsp_last_alert_sent";
 const WAS_UNHEALTHY_KEY = "qtsp_was_unhealthy";
 const UNHEALTHY_SINCE_KEY = "qtsp_unhealthy_since";
+const ALERTS_ENABLED_KEY = "qtsp_alerts_enabled";
 
 interface HealthResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -109,9 +110,11 @@ serve(async (req: Request): Promise<Response> => {
     const consecutiveFailuresStr = await getState(supabase, CONSECUTIVE_FAILURES_KEY);
     const wasUnhealthyStr = await getState(supabase, WAS_UNHEALTHY_KEY);
     const unhealthySinceStr = await getState(supabase, UNHEALTHY_SINCE_KEY);
+    const alertsEnabledStr = await getState(supabase, ALERTS_ENABLED_KEY);
     
     let consecutiveFailures = parseInt(consecutiveFailuresStr || '0', 10);
     const wasUnhealthy = wasUnhealthyStr === 'true';
+    const alertsEnabled = alertsEnabledStr !== 'false'; // Default to enabled
     const unhealthySince = unhealthySinceStr ? new Date(unhealthySinceStr) : null;
 
     // Update consecutive failures count
@@ -125,7 +128,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     } else {
       // System is healthy now
-      if (wasUnhealthy && consecutiveFailures >= 10) {
+      if (wasUnhealthy && consecutiveFailures >= 10 && alertsEnabled) {
         // System recovered after significant downtime - send recovery alert
         const downtimeMinutes = unhealthySince 
           ? Math.round((Date.now() - unhealthySince.getTime()) / 60000)
@@ -150,6 +153,8 @@ serve(async (req: Request): Promise<Response> => {
         } catch (alertError) {
           console.error("Failed to send recovery alert:", alertError);
         }
+      } else if (wasUnhealthy && consecutiveFailures >= 10 && !alertsEnabled) {
+        console.log("Recovery detected but email alerts are disabled");
       }
       
       // Reset state
@@ -160,25 +165,29 @@ serve(async (req: Request): Promise<Response> => {
     // Save updated failure count
     await setState(supabase, CONSECUTIVE_FAILURES_KEY, consecutiveFailures.toString());
 
-    // Check if we need to send failure alert (10 consecutive failures = ~5 min at 30s intervals)
+    // Check if we need to send failure alert (10 consecutive failures = ~10 min at 1min intervals)
     if (consecutiveFailures === 10) {
-      console.log("Reached 10 consecutive failures. Sending alert...");
-      
-      try {
-        const alertResponse = await supabase.functions.invoke('qtsp-health-alert', {
-            body: {
-              status: healthResult.status,
-              message: healthResult.message,
-              latency_ms: healthResult.latency_ms,
-              timestamp: new Date().toISOString(),
-              consecutive_failures: consecutiveFailures,
-              alert_type: 'failure',
-            },
-          });
+      if (alertsEnabled) {
+        console.log("Reached 10 consecutive failures. Sending alert...");
         
-        console.log("Alert response:", alertResponse.data);
-      } catch (alertError) {
-        console.error("Failed to send alert:", alertError);
+        try {
+          const alertResponse = await supabase.functions.invoke('qtsp-health-alert', {
+              body: {
+                status: healthResult.status,
+                message: healthResult.message,
+                latency_ms: healthResult.latency_ms,
+                timestamp: new Date().toISOString(),
+                consecutive_failures: consecutiveFailures,
+                alert_type: 'failure',
+              },
+            });
+          
+          console.log("Alert response:", alertResponse.data);
+        } catch (alertError) {
+          console.error("Failed to send alert:", alertError);
+        }
+      } else {
+        console.log("Reached 10 consecutive failures but email alerts are disabled");
       }
     }
 
@@ -189,12 +198,14 @@ serve(async (req: Request): Promise<Response> => {
       duration_ms: Date.now() - startTime,
       request_payload: {
         check_type: 'automatic',
+        alerts_enabled: alertsEnabled,
       },
       response_payload: {
         health_status: healthResult.status,
         latency_ms: healthResult.latency_ms,
         message: healthResult.message,
         consecutive_failures: consecutiveFailures,
+        alerts_enabled: alertsEnabled,
       },
     });
 
