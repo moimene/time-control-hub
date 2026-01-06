@@ -16,7 +16,9 @@ import { StepShifts } from './steps/StepShifts';
 import { StepNotifications } from './steps/StepNotifications';
 import { StepSimulation } from './steps/StepSimulation';
 import { StepPublish } from './steps/StepPublish';
-import { ChevronLeft, ChevronRight, AlertTriangle, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, X, Save } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface TemplateWizardProps {
   onComplete: (payload: any) => void;
@@ -26,7 +28,7 @@ interface TemplateWizardProps {
 }
 
 function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
-  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft } = useWizard();
+  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft, lastSavedAt } = useWizard();
   const { currentStep, validationErrors, payload } = state;
   const [showDraftDialog, setShowDraftDialog] = useState(hasDraft && currentStep > 1);
 
@@ -103,9 +105,17 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
             Configure su primera plantilla de cumplimiento paso a paso
           </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleCancel}>
-          <X className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-3">
+          {lastSavedAt && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Save className="h-3 w-3" />
+              <span>Guardado {formatDistanceToNow(lastSavedAt, { addSuffix: true, locale: es })}</span>
+            </div>
+          )}
+          <Button variant="ghost" size="icon" onClick={handleCancel}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Progress */}

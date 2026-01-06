@@ -17,6 +17,7 @@ export interface WizardState {
 
 interface WizardContextType {
   state: WizardState;
+  lastSavedAt: Date | null;
   goToStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -109,11 +110,13 @@ function clearDraftStorage() {
 export function WizardProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WizardState>(() => loadDraft() || initialState);
   const [hasDraft] = useState(() => loadDraft() !== null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
   // Autosave on state changes (debounced effect)
   useEffect(() => {
     const timer = setTimeout(() => {
       saveDraft(state);
+      setLastSavedAt(new Date());
     }, 500);
     return () => clearTimeout(timer);
   }, [state]);
@@ -244,6 +247,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     <WizardContext.Provider
       value={{
         state,
+        lastSavedAt,
         goToStep,
         nextStep,
         prevStep,
