@@ -71,3 +71,9 @@ verify_jwt = false
 
 [functions.generate-legal-reports]
 verify_jwt = false
+
+[functions.employee-change-pin]
+verify_jwt = false
+
+[functions.sign-monthly-hours]
+verify_jwt = false

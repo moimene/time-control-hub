@@ -14,6 +14,179 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_approvals: {
+        Row: {
+          action: string
+          approver_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          request_id: string
+        }
+        Insert: {
+          action: string
+          approver_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id: string
+        }
+        Update: {
+          action?: string
+          approver_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_approvals_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "absence_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_requests: {
+        Row: {
+          absence_type_id: string
+          company_id: string
+          created_at: string
+          employee_id: string
+          end_date: string
+          end_half_day: boolean | null
+          id: string
+          justification_path: string | null
+          reason: string | null
+          requested_at: string
+          start_date: string
+          start_half_day: boolean | null
+          status: string
+          total_days: number
+          updated_at: string
+        }
+        Insert: {
+          absence_type_id: string
+          company_id: string
+          created_at?: string
+          employee_id: string
+          end_date: string
+          end_half_day?: boolean | null
+          id?: string
+          justification_path?: string | null
+          reason?: string | null
+          requested_at?: string
+          start_date: string
+          start_half_day?: boolean | null
+          status?: string
+          total_days: number
+          updated_at?: string
+        }
+        Update: {
+          absence_type_id?: string
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          end_date?: string
+          end_half_day?: boolean | null
+          id?: string
+          justification_path?: string | null
+          reason?: string | null
+          requested_at?: string
+          start_date?: string
+          start_half_day?: boolean | null
+          status?: string
+          total_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_requests_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_types: {
+        Row: {
+          advance_notice_days: number | null
+          category: string
+          code: string
+          color: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          max_days_per_year: number | null
+          name: string
+          requires_approval: boolean
+          requires_justification: boolean
+          updated_at: string
+        }
+        Insert: {
+          advance_notice_days?: number | null
+          category?: string
+          code: string
+          color?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_year?: number | null
+          name: string
+          requires_approval?: boolean
+          requires_justification?: boolean
+          updated_at?: string
+        }
+        Update: {
+          advance_notice_days?: number | null
+          category?: string
+          code?: string
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_year?: number | null
+          name?: string
+          requires_approval?: boolean
+          requires_justification?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_types_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -785,6 +958,142 @@ export type Database = {
           },
         ]
       }
+      employee_documents: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          document_type: string
+          employee_id: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_verified: boolean | null
+          mime_type: string | null
+          related_request_id: string | null
+          title: string
+          uploaded_by: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          document_type: string
+          employee_id: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_verified?: boolean | null
+          mime_type?: string | null
+          related_request_id?: string | null
+          title: string
+          uploaded_by: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          document_type?: string
+          employee_id?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_verified?: boolean | null
+          mime_type?: string | null
+          related_request_id?: string | null
+          title?: string
+          uploaded_by?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_related_request_id_fkey"
+            columns: ["related_request_id"]
+            isOneToOne: false
+            referencedRelation: "absence_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_notifications: {
+        Row: {
+          action_url: string | null
+          company_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          is_read: boolean
+          message: string
+          notification_type: string
+          read_at: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          company_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_read?: boolean
+          message: string
+          notification_type: string
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_notifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_qr: {
         Row: {
           company_id: string | null
@@ -1083,6 +1392,88 @@ export type Database = {
             columns: ["terminal_id"]
             isOneToOne: false
             referencedRelation: "terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_closures: {
+        Row: {
+          company_id: string
+          created_at: string
+          employee_id: string
+          evidence_id: string | null
+          id: string
+          month: number
+          night_hours: number
+          overtime_hours: number
+          regular_hours: number
+          sealed_pdf_path: string | null
+          signature_hash: string | null
+          signed_at: string | null
+          status: string
+          summary_json: Json
+          total_hours: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          employee_id: string
+          evidence_id?: string | null
+          id?: string
+          month: number
+          night_hours?: number
+          overtime_hours?: number
+          regular_hours?: number
+          sealed_pdf_path?: string | null
+          signature_hash?: string | null
+          signed_at?: string | null
+          status?: string
+          summary_json?: Json
+          total_hours?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          evidence_id?: string | null
+          id?: string
+          month?: number
+          night_hours?: number
+          overtime_hours?: number
+          regular_hours?: number
+          sealed_pdf_path?: string | null
+          signature_hash?: string | null
+          signed_at?: string | null
+          status?: string
+          summary_json?: Json
+          total_hours?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_closures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_closures_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_closures_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
         ]
@@ -1514,6 +1905,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vacation_balances: {
+        Row: {
+          available_days: number | null
+          carried_over_days: number
+          company_id: string
+          created_at: string
+          employee_id: string
+          entitled_days: number
+          id: string
+          notes: string | null
+          pending_days: number
+          updated_at: string
+          used_days: number
+          year: number
+        }
+        Insert: {
+          available_days?: number | null
+          carried_over_days?: number
+          company_id: string
+          created_at?: string
+          employee_id: string
+          entitled_days?: number
+          id?: string
+          notes?: string | null
+          pending_days?: number
+          updated_at?: string
+          used_days?: number
+          year: number
+        }
+        Update: {
+          available_days?: number | null
+          carried_over_days?: number
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          entitled_days?: number
+          id?: string
+          notes?: string | null
+          pending_days?: number
+          updated_at?: string
+          used_days?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_balances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
