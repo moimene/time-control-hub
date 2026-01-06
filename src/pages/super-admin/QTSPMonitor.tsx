@@ -54,6 +54,8 @@ export default function QTSPMonitor() {
   const [lastHealthStatus, setLastHealthStatus] = useState<'healthy' | 'degraded' | 'unhealthy' | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [latencyHistory, setLatencyHistory] = useState<LatencyDataPoint[]>([]);
+  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
+  const [lastAlertSent, setLastAlertSent] = useState<string | null>(null);
 
   // Update latency history when health check completes
   const updateLatencyHistory = useCallback((data: HealthCheckResult) => {
@@ -83,9 +85,66 @@ export default function QTSPMonitor() {
     staleTime: 15000,
   });
 
+  // Send email alert when consecutive failures reach threshold
+  const sendHealthAlert = useCallback(async (
+    status: 'healthy' | 'degraded' | 'unhealthy',
+    message: string,
+    latency_ms: number,
+    failures: number
+  ) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('qtsp-health-alert', {
+        body: {
+          status,
+          message,
+          latency_ms,
+          timestamp: new Date().toISOString(),
+          consecutive_failures: failures,
+        },
+      });
+      
+      if (error) {
+        console.error('Error sending health alert:', error);
+        return;
+      }
+      
+      if (data?.sent) {
+        setLastAlertSent(new Date().toISOString());
+        toast.info('📧 Alerta enviada por email', {
+          description: `Notificados ${data.recipients} super admins`,
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send health alert:', err);
+    }
+  }, []);
+
   // Auto-notification when health status changes to degraded/unhealthy
   useEffect(() => {
-    if (!healthStatus || !notificationsEnabled) return;
+    if (!healthStatus) return;
+
+    // Track consecutive failures
+    if (healthStatus.status !== 'healthy') {
+      setConsecutiveFailures(prev => {
+        const newCount = prev + 1;
+        // Send email alert at threshold (10 failures = ~5 minutes)
+        if (newCount === 10) {
+          sendHealthAlert(
+            healthStatus.status,
+            healthStatus.message,
+            healthStatus.latency_ms,
+            newCount
+          );
+        }
+        return newCount;
+      });
+    } else {
+      // Reset counter when healthy
+      setConsecutiveFailures(0);
+    }
+
+    if (!notificationsEnabled) return;
 
     if (lastHealthStatus !== null && lastHealthStatus !== healthStatus.status) {
       if (healthStatus.status === 'unhealthy') {
@@ -114,7 +173,7 @@ export default function QTSPMonitor() {
     }
 
     setLastHealthStatus(healthStatus.status);
-  }, [healthStatus, lastHealthStatus, notificationsEnabled]);
+  }, [healthStatus, lastHealthStatus, notificationsEnabled, sendHealthAlert]);
 
   // Update latency history when health check completes
   useEffect(() => {
@@ -303,6 +362,20 @@ export default function QTSPMonitor() {
                     Latencia: <strong>{healthStatus?.latency_ms || '-'}ms</strong>
                   </span>
                 </div>
+                {consecutiveFailures > 0 && (
+                  <div className="text-center">
+                    <Badge variant="destructive">
+                      {consecutiveFailures} fallos consecutivos
+                    </Badge>
+                  </div>
+                )}
+                {lastAlertSent && (
+                  <div className="text-center">
+                    <span className="text-xs text-muted-foreground">
+                      Última alerta: {format(new Date(lastAlertSent), 'HH:mm', { locale: es })}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
