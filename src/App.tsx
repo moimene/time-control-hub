@@ -26,12 +26,16 @@ import ComplianceIncidents from "./pages/admin/ComplianceIncidents";
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import Templates from "./pages/admin/Templates";
 import AdminAbsences from "./pages/admin/Absences";
+import LegalDocuments from "./pages/admin/LegalDocuments";
+import DataRetention from "./pages/admin/DataRetention";
+import ContingencyRecords from "./pages/admin/ContingencyRecords";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
 import EmployeeAbsences from "./pages/employee/Absences";
 import MonthlyClosure from "./pages/employee/MonthlyClosure";
 import EmployeeNotifications from "./pages/employee/Notifications";
+import EmployeeLegalDocuments from "./pages/employee/LegalDocuments";
 import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
 import TestCredentials from "./pages/TestCredentials";
@@ -160,6 +164,21 @@ function AppRoutes() {
           <AdminAbsences />
         </ProtectedRoute>
       } />
+      <Route path="/admin/legal-documents" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <LegalDocuments />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/data-retention" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <DataRetention />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/contingency-records" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <ContingencyRecords />
+        </ProtectedRoute>
+      } />
 
       {/* Super Admin routes */}
       <Route path="/super-admin" element={
@@ -222,6 +241,11 @@ function AppRoutes() {
       <Route path="/employee/settings" element={
         <ProtectedRoute requiredRoles={['employee']}>
           <EmployeeSettings />
+        </ProtectedRoute>
+      } />
+      <Route path="/employee/legal-documents" element={
+        <ProtectedRoute requiredRoles={['employee']}>
+          <EmployeeLegalDocuments />
         </ProtectedRoute>
       } />
 
