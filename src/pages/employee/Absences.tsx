@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, Loader2, Palmtree, AlertCircle } from 'lucide-react';
-import { format, differenceInBusinessDays, addDays, parseISO } from 'date-fns';
+import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, Loader2, Palmtree, AlertCircle, Info, Scale, FileText } from 'lucide-react';
+import { format, differenceInBusinessDays, differenceInDays, addDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const statusLabels: Record<string, string> = {
@@ -31,6 +32,12 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-muted text-muted-foreground',
 };
 
+const legalOriginLabels: Record<string, string> = {
+  ley: 'Estatuto de los Trabajadores',
+  convenio: 'Convenio Colectivo',
+  empresa: 'Política de Empresa',
+};
+
 export default function EmployeeAbsences() {
   const { employee } = useAuth();
   const { toast } = useToast();
@@ -42,7 +49,7 @@ export default function EmployeeAbsences() {
   const [reason, setReason] = useState('');
 
   // Fetch absence types
-  const { data: absenceTypes } = useQuery({
+  const { data: absenceTypes, isLoading: typesLoading } = useQuery({
     queryKey: ['absence-types', employee?.company_id],
     queryFn: async () => {
       if (!employee?.company_id) return [];
@@ -57,6 +64,34 @@ export default function EmployeeAbsences() {
     },
     enabled: !!employee?.company_id,
   });
+
+  // Get selected type info
+  const selectedTypeInfo = absenceTypes?.find(t => t.id === selectedType);
+
+  // Auto-fill end date when selecting a type with fixed duration
+  useEffect(() => {
+    if (selectedTypeInfo?.duration_value && startDate && !selectedTypeInfo.duration_is_range) {
+      const daysToAdd = selectedTypeInfo.duration_value - 1;
+      const computeOn = selectedTypeInfo.compute_on;
+      
+      if (computeOn === 'dias_naturales') {
+        // Natural days - simple addition
+        setEndDate(addDays(startDate, daysToAdd));
+      } else {
+        // Business days - need to skip weekends
+        let currentDate = startDate;
+        let daysAdded = 0;
+        while (daysAdded < daysToAdd) {
+          currentDate = addDays(currentDate, 1);
+          const dayOfWeek = currentDate.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            daysAdded++;
+          }
+        }
+        setEndDate(currentDate);
+      }
+    }
+  }, [selectedType, startDate, selectedTypeInfo]);
 
   // Fetch employee's absence requests
   const { data: absenceRequests, isLoading } = useQuery({
@@ -102,7 +137,10 @@ export default function EmployeeAbsences() {
         throw new Error('Faltan datos requeridos');
       }
 
-      const totalDays = differenceInBusinessDays(endDate, startDate) + 1;
+      const computeOn = selectedTypeInfo?.compute_on || 'dias_laborables';
+      const totalDays = computeOn === 'dias_naturales' 
+        ? differenceInDays(endDate, startDate) + 1
+        : differenceInBusinessDays(endDate, startDate) + 1;
 
       const { error } = await supabase.from('absence_requests').insert({
         company_id: employee.company_id,
@@ -155,7 +193,10 @@ export default function EmployeeAbsences() {
 
   const calculateDays = () => {
     if (!startDate || !endDate) return 0;
-    return differenceInBusinessDays(endDate, startDate) + 1;
+    const computeOn = selectedTypeInfo?.compute_on || 'dias_laborables';
+    return computeOn === 'dias_naturales'
+      ? differenceInDays(endDate, startDate) + 1
+      : differenceInBusinessDays(endDate, startDate) + 1;
   };
 
   const approvedDates = absenceRequests
@@ -201,7 +242,7 @@ export default function EmployeeAbsences() {
                 Nueva Solicitud
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[550px]">
               <DialogHeader>
                 <DialogTitle>Nueva Solicitud de Ausencia</DialogTitle>
                 <DialogDescription>
@@ -211,25 +252,95 @@ export default function EmployeeAbsences() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>Tipo de ausencia</Label>
-                  <Select value={selectedType} onValueChange={setSelectedType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {absenceTypes?.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: type.color }}
-                            />
-                            {type.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {typesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : absenceTypes?.length === 0 ? (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        No hay tipos de ausencia configurados para tu empresa. 
+                        Contacta con tu administrador para que configure los tipos de ausencia disponibles.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Select value={selectedType} onValueChange={(value) => {
+                      setSelectedType(value);
+                      // Reset dates when changing type
+                      setEndDate(undefined);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {absenceTypes?.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: type.color || '#6b7280' }}
+                              />
+                              <span>{type.name}</span>
+                              {type.legal_origin === 'ley' && (
+                                <Scale className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
+
+                {/* Selected type information */}
+                {selectedTypeInfo && (
+                  <Alert className="bg-primary/5 border-primary/20">
+                    <Info className="h-4 w-4 text-primary" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="font-medium">{selectedTypeInfo.name}</p>
+                        {selectedTypeInfo.description && (
+                          <p className="text-sm text-muted-foreground">{selectedTypeInfo.description}</p>
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedTypeInfo.duration_value && (
+                            <Badge variant="outline" className="text-xs">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {selectedTypeInfo.duration_value} {selectedTypeInfo.compute_on === 'dias_naturales' ? 'días naturales' : 'días laborables'}
+                            </Badge>
+                          )}
+                          {selectedTypeInfo.legal_origin && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Scale className="h-3 w-3 mr-1" />
+                              {legalOriginLabels[selectedTypeInfo.legal_origin] || selectedTypeInfo.legal_origin}
+                            </Badge>
+                          )}
+                          {selectedTypeInfo.requires_justification && (
+                            <Badge variant="destructive" className="text-xs">
+                              <FileText className="h-3 w-3 mr-1" />
+                              Requiere justificante
+                            </Badge>
+                          )}
+                          {selectedTypeInfo.is_paid ? (
+                            <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                              Retribuido
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">
+                              No retribuido
+                            </Badge>
+                          )}
+                        </div>
+                        {selectedTypeInfo.convenio_reference && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Ref: {selectedTypeInfo.convenio_reference}
+                          </p>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -241,12 +352,18 @@ export default function EmployeeAbsences() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Fecha fin</Label>
+                    <Label>
+                      Fecha fin
+                      {selectedTypeInfo?.duration_value && !selectedTypeInfo.duration_is_range && (
+                        <span className="text-xs text-muted-foreground ml-1">(auto)</span>
+                      )}
+                    </Label>
                     <Input
                       type="date"
                       value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
                       onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : undefined)}
                       min={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
+                      disabled={selectedTypeInfo?.duration_value && !selectedTypeInfo.duration_is_range}
                     />
                   </div>
                 </div>
@@ -255,13 +372,13 @@ export default function EmployeeAbsences() {
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
-                      Total: <strong>{calculateDays()} día(s) laborable(s)</strong>
+                      Total: <strong>{calculateDays()} {selectedTypeInfo?.compute_on === 'dias_naturales' ? 'día(s) natural(es)' : 'día(s) laborable(s)'}</strong>
                     </span>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label>Motivo (opcional)</Label>
+                  <Label>Motivo {selectedTypeInfo?.requires_justification ? '(obligatorio)' : '(opcional)'}</Label>
                   <Textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
@@ -276,7 +393,13 @@ export default function EmployeeAbsences() {
                 </Button>
                 <Button 
                   onClick={() => createRequestMutation.mutate()}
-                  disabled={!selectedType || !startDate || !endDate || createRequestMutation.isPending}
+                  disabled={
+                    !selectedType || 
+                    !startDate || 
+                    !endDate || 
+                    createRequestMutation.isPending ||
+                    (selectedTypeInfo?.requires_justification && !reason.trim())
+                  }
                 >
                   {createRequestMutation.isPending ? (
                     <>

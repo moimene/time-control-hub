@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, Clock, CheckCircle2, AlertCircle, Loader2, Calendar, Moon, Timer } from 'lucide-react';
+import { FileSignature, Clock, CheckCircle2, AlertCircle, Loader2, Calendar, Moon, Timer, Info } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -24,14 +25,11 @@ export default function MonthlyClosure() {
   const { employee } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Default to previous month (only previous months can be signed)
   const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    // Default to previous month if we're in the first 5 days
-    if (now.getDate() <= 5) {
-      const prev = subMonths(now, 1);
-      return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
-    }
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prev = subMonths(new Date(), 1);
+    return `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmChecked, setConfirmChecked] = useState(false);
@@ -162,10 +160,11 @@ export default function MonthlyClosure() {
     },
   });
 
-  // Generate month options (last 12 months)
+  // Generate month options - ONLY PREVIOUS MONTHS (not current month)
   const monthOptions = [];
   const now = new Date();
-  for (let i = 0; i < 12; i++) {
+  // Start from index 1 (previous month), not 0 (current month)
+  for (let i = 1; i <= 12; i++) {
     const date = subMonths(now, i);
     monthOptions.push({
       value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
@@ -182,6 +181,13 @@ export default function MonthlyClosure() {
             Revisa y firma el cierre de tus horas trabajadas
           </p>
         </div>
+
+        <Alert className="bg-primary/5 border-primary/20">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Solo puedes firmar el cierre de meses anteriores. El mes en curso no está disponible para firma hasta que termine.
+          </AlertDescription>
+        </Alert>
 
         <div className="flex items-center gap-4">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
