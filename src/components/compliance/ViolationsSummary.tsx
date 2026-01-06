@@ -62,7 +62,7 @@ export function ViolationsSummary({ violations, loading }: ViolationsSummaryProp
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Resumen de Violaciones</CardTitle>
+            <CardTitle>Resumen de Incidencias</CardTitle>
             <CardDescription>Distribución por tipo de regla</CardDescription>
           </div>
           <div className="flex gap-2">
@@ -74,7 +74,7 @@ export function ViolationsSummary({ violations, loading }: ViolationsSummaryProp
       <CardContent>
         {sortedRules.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            No hay violaciones abiertas. ¡Excelente cumplimiento!
+            No hay incidencias abiertas. ¡Excelente cumplimiento!
           </p>
         ) : (
           <div className="space-y-4">

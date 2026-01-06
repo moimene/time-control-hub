@@ -71,11 +71,11 @@ export default function Templates() {
             )}
             <div>
               <h1 className="text-3xl font-bold">
-                {selectedRuleSet ? selectedRuleSet.name : 'Plantillas de Cumplimiento'}
+                {selectedRuleSet ? selectedRuleSet.name : 'Reglas de Cumplimiento'}
               </h1>
               <p className="text-muted-foreground">
                 {selectedRuleSet 
-                  ? 'Edita, valida y publica la plantilla'
+                  ? 'Edita, valida y publica la regla'
                   : 'Gestiona las reglas de cumplimiento por sector y convenio'
                 }
               </p>

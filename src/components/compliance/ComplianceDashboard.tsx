@@ -174,7 +174,7 @@ export function ComplianceDashboard() {
 
         <div className="grid gap-4 md:col-span-2 md:grid-cols-2">
           <ComplianceKPICard
-            title="Violaciones Críticas"
+            title="Incidencias Críticas"
             value={criticalCount}
             description="Requieren acción inmediata"
             icon={<AlertTriangle className="h-4 w-4" />}

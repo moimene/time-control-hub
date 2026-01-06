@@ -197,7 +197,7 @@ export function IncidentsList() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gestión de Incidencias</h1>
           <p className="text-muted-foreground">
-            Administra y resuelve las violaciones de cumplimiento
+            Administra y resuelve las incidencias de cumplimiento
           </p>
         </div>
         <Button variant="outline" asChild>
