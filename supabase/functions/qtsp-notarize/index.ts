@@ -147,27 +147,27 @@ async function getOrCreateCaseFile(
   if (!response.ok) {
     const error = await response.text();
     console.error('Create case file failed:', error);
-    
+
     // Handle 409 Conflict - Case File already exists in Digital Trust
     if (response.status === 409) {
       console.log(`Case file already exists in DT, searching by code...`);
       const caseCode = `RH-${companyId.substring(0, 8).toUpperCase()}`;
-      
+
       const searchResponse = await fetch(
         `${apiUrl}/digital-trust/api/v1/private/case-files?code=${caseCode}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-      
+
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
         // API uses pagination, find by code in records array
         const existingCaseFile = searchData.records?.find(
           (cf: any) => cf.code === caseCode
         );
-        
+
         if (existingCaseFile) {
           console.log(`Found existing case file in DT: ${existingCaseFile.id}`);
-          
+
           // Save to our local database
           const { data: inserted, error: insertError } = await supabase
             .from('dt_case_files')
@@ -179,15 +179,15 @@ async function getOrCreateCaseFile(
             })
             .select()
             .single();
-          
+
           if (insertError) throw insertError;
           return { id: inserted.id, externalId: existingCaseFile.id };
         }
       }
-      
+
       console.error('Could not find existing case file in DT after 409');
     }
-    
+
     throw new Error(`Failed to create case file: ${response.status}`);
   }
 
@@ -255,29 +255,29 @@ async function getOrCreateEvidenceGroup(
   if (!response.ok) {
     const error = await response.text();
     console.error('Create evidence group failed:', error);
-    
+
     // Handle 409 Conflict - Evidence Group already exists in Digital Trust
     if (response.status === 409) {
       const groupCode = `GRP-${yearMonth.replace('-', '')}`;
       console.log(`Evidence group already exists in DT (code: ${groupCode}), trying global search...`);
-      
+
       // Try global evidence-groups endpoint with code filter
       const searchResponse = await fetch(
         `${apiUrl}/digital-trust/api/v1/private/evidence-groups?code=${groupCode}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
-      
+
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
         console.log(`Evidence groups global search response: ${JSON.stringify(searchData).substring(0, 500)}`);
-        
+
         // Try different response formats
         const groups = searchData.records || searchData.content || (Array.isArray(searchData) ? searchData : []);
         const existingGroup = groups.find((eg: any) => eg.code === groupCode);
-        
+
         if (existingGroup) {
           console.log(`Found existing evidence group in DT: ${existingGroup.id}`);
-          
+
           const { data: inserted, error: insertError } = await supabase
             .from('dt_evidence_groups')
             .insert({
@@ -288,7 +288,7 @@ async function getOrCreateEvidenceGroup(
             })
             .select()
             .single();
-          
+
           if (insertError) throw insertError;
           return { id: inserted.id, externalId: existingGroup.id };
         }
@@ -296,29 +296,29 @@ async function getOrCreateEvidenceGroup(
         const searchStatus = searchResponse.status;
         const searchError = await searchResponse.text();
         console.log(`Global evidence-groups search failed: ${searchStatus} - ${searchError}`);
-        
+
         // Try extracting ID from error message if possible
         // Error format: "EvidenceGroup already exists with code GRP-202601"
         // Unfortunately the error doesn't include the ID, so we need an alternative
-        
+
         // As a last resort, try to get the case file details which may include evidence groups
         console.log(`Trying to get case file details to find evidence group...`);
         const caseFileResponse = await fetch(
           `${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}`,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
-        
+
         if (caseFileResponse.ok) {
           const caseFileData = await caseFileResponse.json();
           console.log(`Case file details: ${JSON.stringify(caseFileData).substring(0, 800)}`);
-          
+
           // Check if evidence groups are included in case file response
           const evidenceGroups = caseFileData.evidenceGroups || caseFileData.groups || [];
           const existingGroup = evidenceGroups.find((eg: any) => eg.code === groupCode);
-          
+
           if (existingGroup) {
             console.log(`Found evidence group in case file details: ${existingGroup.id}`);
-            
+
             const { data: inserted, error: insertError } = await supabase
               .from('dt_evidence_groups')
               .insert({
@@ -329,16 +329,16 @@ async function getOrCreateEvidenceGroup(
               })
               .select()
               .single();
-            
+
             if (insertError) throw insertError;
             return { id: inserted.id, externalId: existingGroup.id };
           }
         }
       }
-      
+
       console.error('Could not find existing evidence group in DT after 409');
     }
-    
+
     throw new Error(`Failed to create evidence group: ${response.status}`);
   }
 
@@ -534,6 +534,172 @@ async function createTSPEvidence(
 
     await logQTSPOperation(supabase, companyId, 'timestamp', evidence.id,
       { daily_root_id: dailyRootId, date }, null, 'failed', errorMessage, Date.now() - startTime);
+
+    throw error;
+  }
+}
+
+// Create generic hash evidence for messages, acknowledgments, notifications
+async function createGenericHashEvidence(
+  supabase: any,
+  token: string,
+  caseFileExternalId: string,
+  evidenceGroupExternalId: string,
+  evidenceGroupId: string,
+  evidenceType: string, // 'message_hash', 'acknowledgment', 'notification_hash'
+  entityId: string,
+  contentHash: string,
+  tableName: string, // 'company_messages', 'message_recipients', etc.
+  companyId: string,
+  metadata?: Record<string, any>
+): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: any }> {
+  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const startTime = Date.now();
+
+  // IDEMPOTENCY CHECK: Check if evidence already exists for this entity
+  const { data: existingRecord } = await supabase
+    .from(tableName)
+    .select('qtsp_evidence_id')
+    .eq('id', entityId)
+    .maybeSingle();
+
+  if (existingRecord?.qtsp_evidence_id) {
+    console.log(`Evidence already exists for ${tableName}.${entityId}`);
+    const { data: existingEvidence } = await supabase
+      .from('dt_evidences')
+      .select('*')
+      .eq('id', existingRecord.qtsp_evidence_id)
+      .single();
+
+    if (existingEvidence?.status === 'completed') {
+      return { success: true, alreadyExists: true, evidence: existingEvidence };
+    }
+  }
+
+  // Create evidence record in dt_evidences
+  const { data: evidence, error: evidenceError } = await supabase
+    .from('dt_evidences')
+    .insert({
+      evidence_group_id: evidenceGroupId,
+      evidence_type: evidenceType,
+      status: 'processing',
+    })
+    .select()
+    .single();
+
+  if (evidenceError) throw evidenceError;
+
+  try {
+    // Create evidence in Digital Trust
+    const evidenceExternalId = crypto.randomUUID();
+
+    const requestBody = {
+      evidenceId: evidenceExternalId,
+      hash: contentHash,
+      createdBy: 'time-control-hub',
+      title: `${evidenceType} ${new Date().toISOString().split('T')[0]}`,
+      capturedAt: new Date().toISOString(),
+      custodyType: 'EXTERNAL',
+      testimony: {
+        TSP: {
+          required: true,
+          providers: ['EADTrust']
+        }
+      },
+      metadata: {
+        system: 'time-control-hub',
+        evidence_type: evidenceType,
+        entity_id: entityId,
+        table_name: tableName,
+        ...metadata,
+      }
+    };
+
+    console.log(`Creating ${evidenceType} evidence for ${tableName}.${entityId}`);
+
+    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to create evidence: ${error}`);
+    }
+
+    // Parse response
+    let dtEvidence: DTEvidence;
+    const responseText = await response.text();
+    if (responseText) {
+      dtEvidence = JSON.parse(responseText);
+    } else {
+      dtEvidence = { id: evidenceExternalId, status: 'pending' };
+    }
+
+    // Poll for TSP token (max 5 attempts for non-critical items)
+    let tspToken = null;
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    while (!tspToken && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json();
+        if (statusData.tspToken) {
+          tspToken = statusData.tspToken;
+        }
+      }
+      attempts++;
+    }
+
+    // Update dt_evidences record
+    const updateData = {
+      external_id: dtEvidence.id,
+      status: tspToken ? 'completed' : 'processing',
+      tsp_token: tspToken,
+      tsp_timestamp: tspToken ? new Date().toISOString() : null,
+      completed_at: tspToken ? new Date().toISOString() : null,
+    };
+
+    await supabase.from('dt_evidences').update(updateData).eq('id', evidence.id);
+
+    // Update the source table with evidence reference and hash
+    const sourceUpdate: Record<string, any> = { qtsp_evidence_id: evidence.id };
+    if (tableName === 'message_recipients') {
+      sourceUpdate.ack_content_hash = contentHash;
+    } else {
+      sourceUpdate.content_hash = contentHash;
+    }
+    await supabase.from(tableName).update(sourceUpdate).eq('id', entityId);
+
+    console.log(`${evidenceType} evidence created for ${entityId}, token: ${tspToken ? 'obtained' : 'pending'}`);
+
+    await logQTSPOperation(supabase, companyId, evidenceType, evidence.id,
+      { entity_id: entityId, table_name: tableName }, { external_id: dtEvidence.id, tsp_token: !!tspToken },
+      tspToken ? 'success' : 'pending', null, Date.now() - startTime);
+
+    return { success: true, evidence: { ...evidence, ...updateData } };
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error creating ${evidenceType} evidence:`, error);
+
+    await supabase.from('dt_evidences').update({
+      status: 'failed',
+      error_message: errorMessage,
+    }).eq('id', evidence.id);
+
+    await logQTSPOperation(supabase, companyId, evidenceType, evidence.id,
+      { entity_id: entityId, table_name: tableName }, null, 'failed', errorMessage, Date.now() - startTime);
 
     throw error;
   }
@@ -1082,6 +1248,89 @@ serve(async (req) => {
       const result = await retryFailedEvidences(supabase, token, company.id);
       return new Response(
         JSON.stringify({ success: true, ...result }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (action === 'timestamp_message') {
+      // Timestamp a company message
+      const { message_id, content_hash } = params;
+
+      if (!message_id || !content_hash) {
+        throw new Error('Missing required parameters: message_id, content_hash');
+      }
+
+      const yearMonth = new Date().toISOString().substring(0, 7);
+      const evidenceGroup = await getOrCreateEvidenceGroup(
+        supabase, token, caseFile.id, caseFile.externalId, yearMonth
+      );
+
+      const result = await createGenericHashEvidence(
+        supabase, token, caseFile.externalId, evidenceGroup.externalId, evidenceGroup.id,
+        'message_hash', message_id, content_hash, 'company_messages', company.id
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Message timestamped',
+          evidence: result.evidence
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (action === 'timestamp_acknowledgment') {
+      // Timestamp a message acknowledgment
+      const { recipient_id, content_hash, message_id } = params;
+
+      if (!recipient_id || !content_hash) {
+        throw new Error('Missing required parameters: recipient_id, content_hash');
+      }
+
+      const yearMonth = new Date().toISOString().substring(0, 7);
+      const evidenceGroup = await getOrCreateEvidenceGroup(
+        supabase, token, caseFile.id, caseFile.externalId, yearMonth
+      );
+
+      const result = await createGenericHashEvidence(
+        supabase, token, caseFile.externalId, evidenceGroup.externalId, evidenceGroup.id,
+        'acknowledgment', recipient_id, content_hash, 'message_recipients', company.id,
+        { message_id }
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Acknowledgment timestamped',
+          evidence: result.evidence
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (action === 'timestamp_notification') {
+      // Timestamp a notification
+      const { notification_id, content_hash, notification_type } = params;
+
+      if (!notification_id || !content_hash) {
+        throw new Error('Missing required parameters: notification_id, content_hash');
+      }
+
+      const tableName = notification_type === 'employee' ? 'employee_notifications' : 'compliance_notifications';
+      const yearMonth = new Date().toISOString().substring(0, 7);
+      const evidenceGroup = await getOrCreateEvidenceGroup(
+        supabase, token, caseFile.id, caseFile.externalId, yearMonth
+      );
+
+      const result = await createGenericHashEvidence(
+        supabase, token, caseFile.externalId, evidenceGroup.externalId, evidenceGroup.id,
+        'notification_hash', notification_id, content_hash, tableName, company.id
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Notification timestamped',
+          evidence: result.evidence
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 

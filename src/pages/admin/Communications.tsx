@@ -115,24 +115,66 @@ export default function Communications() {
   // Get unique departments
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))] as string[];
 
-  // Send message mutation
+  // Compute SHA-256 hash from content
+  const computeHash = async (content: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(content);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  // Send message mutation with QTSP certification
   const sendMessage = useMutation({
     mutationFn: async (data: MessageFormData & { thread_id?: string }) => {
-      const { error } = await supabase.from('company_messages').insert({
-        company_id: company!.id,
-        sender_type: 'company' as const,
-        sender_user_id: user!.id,
-        recipient_type: data.recipient_type,
-        recipient_employee_id: data.recipient_employee_id || null,
-        recipient_department: data.recipient_department || null,
+      // Compute hash of message content
+      const contentToHash = JSON.stringify({
         subject: data.subject,
         body: data.body,
-        priority: data.priority,
-        requires_acknowledgment: data.requires_acknowledgment,
-        thread_id: data.thread_id || null,
+        recipient_type: data.recipient_type,
+        timestamp: new Date().toISOString(),
       });
+      const contentHash = await computeHash(contentToHash);
+
+      // Insert message with hash
+      const { data: insertedMessage, error } = await supabase
+        .from('company_messages')
+        .insert({
+          company_id: company!.id,
+          sender_type: 'company' as const,
+          sender_user_id: user!.id,
+          recipient_type: data.recipient_type,
+          recipient_employee_id: data.recipient_employee_id || null,
+          recipient_department: data.recipient_department || null,
+          subject: data.subject,
+          body: data.body,
+          priority: data.priority,
+          requires_acknowledgment: data.requires_acknowledgment,
+          thread_id: data.thread_id || null,
+          content_hash: contentHash,
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Call QTSP to timestamp the message (async, non-blocking)
+      supabase.functions.invoke('qtsp-notarize', {
+        body: {
+          action: 'timestamp_message',
+          company_id: company!.id,
+          message_id: insertedMessage.id,
+          content_hash: contentHash,
+        },
+      }).then(({ error: qtspError }) => {
+        if (qtspError) {
+          console.error('QTSP timestamp failed (non-blocking):', qtspError);
+        } else {
+          console.log('Message timestamped via QTSP');
+        }
+      });
+
+      return insertedMessage;
     },
     onSuccess: () => {
       toast.success('Mensaje enviado correctamente');
