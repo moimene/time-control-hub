@@ -13,6 +13,7 @@ import CompanySetup from "./pages/CompanySetup";
 import Dashboard from "./pages/admin/Dashboard";
 import Employees from "./pages/admin/Employees";
 import Terminals from "./pages/admin/Terminals";
+import KioskDevices from "./pages/admin/KioskDevices";
 import TimeRecords from "./pages/admin/TimeRecords";
 import Corrections from "./pages/admin/Corrections";
 import Reports from "./pages/admin/Reports";
@@ -89,6 +90,11 @@ function AppRoutes() {
       <Route path="/admin/terminals" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
           <Terminals />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/kiosk-devices" element={
+        <ProtectedRoute requiredRoles={['super_admin', 'admin']}>
+          <KioskDevices />
         </ProtectedRoute>
       } />
       <Route path="/admin/time-records" element={
