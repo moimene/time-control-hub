@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.escalation-alert]
 verify_jwt = false
+
+[functions.generate-legal-reports]
+verify_jwt = false

@@ -67,6 +67,70 @@ export type Database = {
           },
         ]
       }
+      certificate_downloads: {
+        Row: {
+          company_id: string
+          created_at: string
+          document_title: string
+          download_type: string
+          downloaded_at: string
+          downloaded_by: string
+          evidence_id: string | null
+          id: string
+          ip_address: unknown
+          notification_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          document_title: string
+          download_type: string
+          downloaded_at?: string
+          downloaded_by: string
+          evidence_id?: string | null
+          id?: string
+          ip_address?: unknown
+          notification_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          document_title?: string
+          download_type?: string
+          downloaded_at?: string
+          downloaded_by?: string
+          evidence_id?: string | null
+          id?: string
+          ip_address?: unknown
+          notification_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_downloads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificate_downloads_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificate_downloads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company: {
         Row: {
           address: string | null
@@ -1479,7 +1543,13 @@ export type Database = {
       event_source: "qr" | "pin" | "manual"
       event_type: "entry" | "exit"
       evidence_status: "pending" | "processing" | "completed" | "failed"
-      evidence_type: "daily_timestamp" | "monthly_report"
+      evidence_type:
+        | "daily_timestamp"
+        | "monthly_report"
+        | "overtime_report"
+        | "breaks_report"
+        | "night_work_report"
+        | "notification_certificate"
       incident_status:
         | "open"
         | "acknowledged"
@@ -1629,7 +1699,14 @@ export const Constants = {
       event_source: ["qr", "pin", "manual"],
       event_type: ["entry", "exit"],
       evidence_status: ["pending", "processing", "completed", "failed"],
-      evidence_type: ["daily_timestamp", "monthly_report"],
+      evidence_type: [
+        "daily_timestamp",
+        "monthly_report",
+        "overtime_report",
+        "breaks_report",
+        "night_work_report",
+        "notification_certificate",
+      ],
       incident_status: [
         "open",
         "acknowledged",
