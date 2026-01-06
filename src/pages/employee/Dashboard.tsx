@@ -13,6 +13,7 @@ import type { EventType, EventSource } from '@/types/database';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
+import { ClockInCalendar } from '@/components/employee/ClockInCalendar';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -221,6 +222,11 @@ export default function EmployeeDashboard() {
             </div>
           )}
         </div>
+
+        {/* Calendar view */}
+        {recentEvents && recentEvents.length > 0 && (
+          <ClockInCalendar events={recentEvents} currentDate={today} />
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
