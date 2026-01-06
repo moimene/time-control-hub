@@ -5,46 +5,73 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-blue?logo=tailwindcss)](https://tailwindcss.com/)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-purple)](https://web.dev/progressive-web-apps/)
+[![eIDAS](https://img.shields.io/badge/eIDAS-Compliant-green)](https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation)
+[![QTSP](https://img.shields.io/badge/QTSP-Integrated-red)](https://esignature.ec.europa.eu/efda/tl-browser/)
 
-**Sistema de control horario multi-empresa con sellado de tiempo cualificado (QTSP)** conforme a la normativa española y europea de registro de jornada laboral.
+**Plataforma integral de control horario y cumplimiento laboral con sellado de tiempo cualificado (QTSP)** conforme al Reglamento eIDAS, Real Decreto-ley 8/2019 y normativa española de registro de jornada.
+
+> 🏛️ **Time Control Hub opera como Prestador Cualificado de Servicios de Confianza (QTSP)** integrando servicios de firma electrónica cualificada, sellos de tiempo RFC 3161, notificaciones certificadas y custodia de documentos críticos.
 
 ---
 
 ## 📋 Tabla de Contenidos
 
-1. [Características Principales](#-características-principales)
-2. [Arquitectura del Sistema](#-arquitectura-del-sistema)
-3. [Modelo de Datos](#-modelo-de-datos)
-4. [Roles y Permisos](#-roles-y-permisos)
-5. [Historias de Usuario](#-historias-de-usuario)
-6. [Sistema de Detección de Inconsistencias](#-sistema-de-detección-de-inconsistencias)
-7. [Notificaciones por Email](#-notificaciones-por-email)
-8. [Configuración de Notificaciones](#-configuración-de-notificaciones)
-9. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider)
-10. [Edge Functions](#-edge-functions)
-11. [Modo Offline (PWA)](#-modo-offline-pwa)
-12. [Seguridad](#-seguridad)
-13. [Instalación y Configuración](#-instalación-y-configuración)
+1. [Visión General](#-visión-general)
+2. [Características Principales](#-características-principales)
+3. [Arquitectura del Sistema](#-arquitectura-del-sistema)
+4. [Roles y Experiencia de Usuario (UX)](#-roles-y-experiencia-de-usuario-ux)
+5. [Sistema de Cumplimiento Legal](#-sistema-de-cumplimiento-legal)
+6. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider)
+7. [Generador de Paquetes ITSS](#-generador-de-paquetes-itss)
+8. [Sistema de Plantillas y Convenios](#-sistema-de-plantillas-y-convenios)
+9. [Gestión de Ausencias](#-gestión-de-ausencias)
+10. [Calendario Laboral](#-calendario-laboral)
+11. [Portal del Asesor Laboral](#-portal-del-asesor-laboral)
+12. [Documentos Legales](#-documentos-legales)
+13. [Sistema de Notificaciones](#-sistema-de-notificaciones)
+14. [Modelo de Datos](#-modelo-de-datos)
+15. [Edge Functions](#-edge-functions)
+16. [Modo Offline (PWA)](#-modo-offline-pwa)
+17. [Seguridad](#-seguridad)
+18. [Instalación y Configuración](#-instalación-y-configuración)
+
+---
+
+## 🎯 Visión General
+
+Time Control Hub es una **plataforma empresarial completa** diseñada para:
+
+### Cumplimiento Normativo
+- **RD-ley 8/2019**: Registro obligatorio de jornada laboral
+- **Reglamento eIDAS**: Servicios de confianza cualificados
+- **RGPD/LOPDGDD**: Protección de datos y privacidad
+- **Estatuto de los Trabajadores**: Límites de jornada, descansos, horas extra
+- **Convenios colectivos**: Configuración específica por sector
+
+### Valor Diferencial
+- **Evidencia legal irrefutable**: Sellado QTSP de todos los registros
+- **Proactividad en cumplimiento**: Detección automática de violaciones
+- **Preparación ante inspección**: Generador de paquetes ITSS completos
+- **Colaboración con asesores**: Portal dedicado para asesores laborales
 
 ---
 
 ## 🚀 Características Principales
 
-| Característica | Descripción |
-|----------------|-------------|
-| **Control de Fichaje** | Registro de entrada/salida vía código QR o PIN numérico |
-| **Multi-empresa** | Aislamiento completo de datos por empresa (multi-tenancy) con RLS |
-| **Modo Offline/PWA** | Funcionamiento sin conexión con sincronización automática |
-| **QTSP** | Sellado de tiempo con firma cualificada vía EADTrust/Digital Trust |
-| **Gestión de Empleados** | Alta, baja, departamentos, generación de credenciales |
-| **Sistema de Correcciones** | Solicitudes de corrección con workflow de aprobación |
-| **Reportes y Auditoría** | Informes mensuales sellados, log de auditoría completo |
-| **Panel Super Admin** | Gestión cross-tenant de todas las empresas |
-| **Calendario QTSP** | Visualización del estado de evidencias por día |
-| **Detección de Inconsistencias** | Detección automática de fichajes consecutivos del mismo tipo y entradas huérfanas (>12h) |
-| **Alertas por Email** | Notificaciones automáticas a empleados cuando se detectan inconsistencias en sus fichajes |
-| **Resumen Semanal** | Envío automático de resumen de inconsistencias a responsables de departamento |
-| **Panel de Configuración** | Configuración de notificaciones por empresa (activar/desactivar alertas individuales y resúmenes) |
+| Módulo | Características |
+|--------|-----------------|
+| **Control de Fichaje** | QR dinámico, PIN numérico, modo kiosk, offline PWA |
+| **Multi-empresa** | Aislamiento RLS, multi-centro, multi-zona horaria |
+| **QTSP Integrado** | Firma cualificada, sellos RFC 3161, notificaciones certificadas |
+| **Cumplimiento** | Evaluador automático, semáforo de riesgo, alertas proactivas |
+| **Generador ITSS** | Paquete completo 6 módulos para Inspección de Trabajo |
+| **Calendario Laboral** | Festivos nacionales/autonómicos/locales, jornada intensiva |
+| **Plantillas/Convenios** | Configuración por sector, simulador de jornadas |
+| **Ausencias** | 25+ tipos de ausencia, workflow aprobación, justificantes |
+| **Documentos Legales** | 14 plantillas, aceptación con sellado QTSP |
+| **Portal Asesor** | Acceso colaborativo, alertas, análisis de riesgos |
+| **Retención de Datos** | Purga automática 4 años, evidencia QTSP previa |
+| **Reporting** | PDF sellados, CSV técnico, exportación auditoría |
 
 ---
 
@@ -59,64 +86,1007 @@ graph TB
         ADMIN[👔 Admin Panel<br/>/admin]
         EMP[👤 Employee Portal<br/>/employee]
         SUPER[🔐 Super Admin<br/>/super-admin]
+        ADVISOR[📊 Asesor Laboral<br/>/advisor]
     end
 
-    subgraph "Backend - Supabase"
-        AUTH[🔑 Authentication<br/>Supabase Auth]
+    subgraph "Backend - Lovable Cloud"
+        AUTH[🔑 Authentication]
         DB[(📊 PostgreSQL<br/>+ RLS)]
         STORAGE[📁 Storage<br/>PDFs sellados]
         
         subgraph "Edge Functions"
             EF1[kiosk-clock]
-            EF2[generate-daily-root]
-            EF3[qtsp-notarize]
-            EF4[qtsp-scheduler]
-            EF5[qtsp-export-package]
+            EF2[compliance-evaluator]
+            EF3[generate-itss-package]
+            EF4[qtsp-notarize]
+            EF5[data-retention-purge]
         end
     end
 
-    subgraph "External Services"
-        DT[🏛️ Digital Trust<br/>EADTrust QTSP]
+    subgraph "Servicios QTSP"
+        DT[🏛️ Digital Trust<br/>EADTrust]
+        TSP[⏱️ TSP Server<br/>RFC 3161]
+        SIGN[✍️ Firma<br/>Cualificada]
+        NOTIFY[📧 Notificación<br/>Certificada]
+        CUSTODY[🔒 Custodia<br/>Documental]
     end
 
     KIOSK --> EF1
     ADMIN --> DB
+    ADMIN --> EF2
+    ADMIN --> EF3
     EMP --> DB
     SUPER --> DB
+    ADVISOR --> DB
     
     EF1 --> DB
-    EF4 --> EF2
     EF2 --> DB
-    EF2 --> EF3
-    EF3 --> DT
-    EF3 --> DB
-    EF5 --> DB
+    EF3 --> EF4
+    EF4 --> DT
+    EF4 --> TSP
+    EF4 --> SIGN
+    EF4 --> NOTIFY
+    EF4 --> CUSTODY
 
     classDef frontend fill:#61dafb,stroke:#333,color:#000
     classDef backend fill:#3ecf8e,stroke:#333,color:#000
-    classDef external fill:#ff6b6b,stroke:#333,color:#fff
+    classDef qtsp fill:#e74c3c,stroke:#333,color:#fff
     
-    class KIOSK,ADMIN,EMP,SUPER frontend
+    class KIOSK,ADMIN,EMP,SUPER,ADVISOR frontend
     class AUTH,DB,STORAGE,EF1,EF2,EF3,EF4,EF5 backend
-    class DT external
+    class DT,TSP,SIGN,NOTIFY,CUSTODY qtsp
 ```
 
-### Componentes Principales
+### Stack Tecnológico
 
-| Componente | Tecnología | Propósito |
-|------------|------------|-----------|
-| Frontend | React 18 + Vite + TypeScript | SPA con múltiples paneles |
-| UI Components | shadcn/ui + Tailwind CSS | Sistema de diseño consistente |
-| State Management | TanStack Query | Cache y sincronización de datos |
-| Backend | Supabase | Auth, DB, Storage, Edge Functions |
-| Base de Datos | PostgreSQL + RLS | Almacenamiento con seguridad por fila |
-| QTSP Provider | EADTrust / Digital Trust | Sellado de tiempo cualificado |
+| Capa | Tecnología | Propósito |
+|------|------------|-----------|
+| Frontend | React 18 + Vite + TypeScript | SPA multi-panel responsive |
+| UI | shadcn/ui + Tailwind CSS | Design system consistente |
+| State | TanStack Query | Cache, sincronización, offline |
+| Backend | Lovable Cloud (Supabase) | Auth, DB, Storage, Edge Functions |
+| Base de Datos | PostgreSQL + RLS | Multi-tenancy seguro |
+| QTSP | EADTrust / Digital Trust | Firma, sellos, custodia |
+| Cron | pg_cron + pg_net | Automatizaciones programadas |
+
+---
+
+## 👥 Roles y Experiencia de Usuario (UX)
+
+### Jerarquía de Roles
+
+```mermaid
+graph TB
+    subgraph "Roles del Sistema"
+        SA[🔐 Super Admin<br/>Gestión global plataforma]
+        AD[👔 Admin Empresa<br/>Gestión completa empresa]
+        AS[📊 Asesor Laboral<br/>Consultoría y cumplimiento]
+        RE[📋 Responsable<br/>Gestión departamento]
+        EM[👤 Empleado<br/>Fichaje y autogestión]
+    end
+
+    SA --> AD
+    SA --> AS
+    AD --> RE
+    AD --> AS
+    RE --> EM
+
+    classDef super fill:#e74c3c,stroke:#333,color:#fff
+    classDef admin fill:#3498db,stroke:#333,color:#fff
+    classDef advisor fill:#9b59b6,stroke:#333,color:#fff
+    classDef resp fill:#2ecc71,stroke:#333,color:#fff
+    classDef emp fill:#95a5a6,stroke:#333,color:#fff
+    
+    class SA super
+    class AD admin
+    class AS advisor
+    class RE resp
+    class EM emp
+```
+
+### Matriz de Permisos Detallada
+
+| Funcionalidad | Super Admin | Admin | Asesor | Responsable | Empleado |
+|---------------|:-----------:|:-----:|:------:|:-----------:|:--------:|
+| **Gestión Global** |||||
+| Ver todas las empresas | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Crear/eliminar empresas | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Monitor QTSP global | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Gestión Empresa** |||||
+| CRUD empleados | ✅ | ✅ | 👁️ | ❌ | ❌ |
+| Gestionar terminales | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Configurar plantillas | ✅ | ✅ | 💡 | ❌ | ❌ |
+| Gestionar ausencias | ✅ | ✅ | 👁️ | ✅* | ❌ |
+| **Cumplimiento** |||||
+| Ver dashboard compliance | ✅ | ✅ | ✅ | 👁️* | ❌ |
+| Generar paquete ITSS | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Gestionar incidencias | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Configurar reglas | ✅ | ✅ | 💡 | ❌ | ❌ |
+| **Documentos** |||||
+| Crear documentos legales | ✅ | ✅ | 💡 | ❌ | ❌ |
+| Ver evidencias QTSP | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Exportar reportes | ✅ | ✅ | ✅ | ✅* | ✅* |
+| **Fichajes** |||||
+| Ver todos los fichajes | ✅ | ✅ | ✅ | ✅* | ❌ |
+| Aprobar correcciones | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Fichar (QR/PIN) | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Ver fichajes propios | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Solicitar corrección | ❌ | ❌ | ❌ | ✅ | ✅ |
+
+**Leyenda**: ✅ Acceso completo | 👁️ Solo lectura | 💡 Puede sugerir/proponer | ✅* Solo su departamento/propios
+
+---
+
+### Experiencia de Usuario por Rol
+
+#### 👤 Empleado - Portal Self-Service
+
+```mermaid
+graph LR
+    subgraph "Dashboard Empleado"
+        CLOCK[⏰ Estado Fichaje<br/>Entrada/Salida hoy]
+        HOURS[📊 Horas Semana<br/>vs planificadas]
+        ALERTS[⚠️ Alertas<br/>Inconsistencias]
+    end
+
+    subgraph "Acciones Rápidas"
+        CORRECT[📝 Solicitar<br/>Corrección]
+        ABSENCE[🏖️ Pedir<br/>Ausencia]
+        DOCS[📄 Mis<br/>Documentos]
+    end
+
+    subgraph "Historial"
+        CAL[📅 Calendario<br/>de Fichajes]
+        MONTH[📈 Cierre<br/>Mensual]
+        NOTIFY[🔔 Notificaciones]
+    end
+
+    CLOCK --> CORRECT
+    HOURS --> MONTH
+    ALERTS --> CORRECT
+```
+
+**UX Highlights**:
+- Dashboard minimalista con estado actual prominente
+- Acceso directo a corrección desde alertas
+- Calendario visual de fichajes con códigos de color
+- Firma digital del cierre mensual
+- Notificaciones push de incidencias
+
+#### 👔 Admin - Centro de Control
+
+```mermaid
+graph TB
+    subgraph "Panel Principal"
+        LIVE[🔴 En Vivo<br/>Fichajes tiempo real]
+        STATS[📊 Estadísticas<br/>Diarias/Semanales]
+        COMPLIANCE[🚦 Semáforo<br/>Cumplimiento]
+    end
+
+    subgraph "Gestión"
+        EMP[👥 Empleados]
+        TERM[🖥️ Terminales]
+        TMPL[📋 Plantillas]
+        CAL[📅 Calendario]
+    end
+
+    subgraph "Cumplimiento"
+        ITSS[📦 Generador<br/>ITSS]
+        INCIDENTS[⚠️ Incidencias]
+        DOCS[📄 Documentos<br/>Legales]
+        QTSP[🔒 Evidencias<br/>QTSP]
+    end
+
+    LIVE --> EMP
+    STATS --> TMPL
+    COMPLIANCE --> ITSS
+    COMPLIANCE --> INCIDENTS
+```
+
+**UX Highlights**:
+- Vista en tiempo real de quién está fichado
+- Semáforo de cumplimiento siempre visible
+- Acceso rápido a generador ITSS
+- Alertas proactivas de violaciones
+- Drill-down desde estadísticas a detalle
+
+#### 📊 Asesor Laboral - Consultoría Proactiva
+
+```mermaid
+graph TB
+    subgraph "Vista General"
+        RISK[🎯 Análisis<br/>de Riesgos]
+        COMPANIES[🏢 Mis<br/>Empresas]
+        ALERTS[🔔 Alertas<br/>Pendientes]
+    end
+
+    subgraph "Herramientas"
+        SIMULATOR[🧮 Simulador<br/>Jornadas]
+        TEMPLATES[📋 Proponer<br/>Plantillas]
+        REPORTS[📊 Informes<br/>Cumplimiento]
+    end
+
+    subgraph "Acciones"
+        RECOMMEND[💡 Crear<br/>Recomendación]
+        REVIEW[👁️ Revisar<br/>Configuración]
+        ITSS[📦 Preparar<br/>ITSS]
+    end
+
+    RISK --> RECOMMEND
+    ALERTS --> REVIEW
+    COMPANIES --> REPORTS
+```
+
+---
+
+## ⚖️ Sistema de Cumplimiento Legal
+
+### Arquitectura del Evaluador de Cumplimiento
+
+```mermaid
+graph TB
+    subgraph "Entrada de Datos"
+        TE[📊 Time Events]
+        TMPL[📋 Plantillas<br/>Configuradas]
+        CAL[📅 Calendario<br/>Laboral]
+    end
+
+    subgraph "Motor de Reglas"
+        R1[⏰ MAX_DAILY_HOURS<br/>Límite jornada diaria]
+        R2[📅 MAX_WEEKLY_HOURS<br/>Límite semanal]
+        R3[💤 MIN_REST_BETWEEN<br/>Descanso entre jornadas]
+        R4[☕ MIN_BREAK_6H<br/>Pausa obligatoria]
+        R5[🌙 NIGHT_WORK_LIMIT<br/>Trabajo nocturno]
+        R6[📝 MISSING_CLOCKIN<br/>Fichaje ausente]
+        R7[👻 ORPHAN_ENTRY<br/>Entrada huérfana]
+        R8[🔄 CONSECUTIVE_SAME<br/>Fichajes consecutivos]
+    end
+
+    subgraph "Salida"
+        VIOLATIONS[⚠️ Violaciones<br/>Detectadas]
+        SEVERITY[🎯 Severidad<br/>critical/warning/info]
+        INCIDENT[📋 Incidencia<br/>Creada]
+    end
+
+    TE --> R1
+    TE --> R2
+    TE --> R3
+    TE --> R4
+    TE --> R5
+    TE --> R6
+    TE --> R7
+    TE --> R8
+    TMPL --> R1
+    TMPL --> R2
+    TMPL --> R4
+    TMPL --> R5
+    CAL --> R6
+
+    R1 --> VIOLATIONS
+    R2 --> VIOLATIONS
+    R3 --> VIOLATIONS
+    R4 --> VIOLATIONS
+    R5 --> VIOLATIONS
+    R6 --> VIOLATIONS
+    R7 --> VIOLATIONS
+    R8 --> VIOLATIONS
+    
+    VIOLATIONS --> SEVERITY
+    SEVERITY --> INCIDENT
+```
+
+### Reglas de Cumplimiento Implementadas
+
+| Código | Nombre | Descripción | Severidad | Base Legal |
+|--------|--------|-------------|-----------|------------|
+| `MAX_DAILY_HOURS` | Jornada diaria excesiva | > 9h diarias (o límite plantilla) | Critical | ET Art. 34.3 |
+| `MAX_WEEKLY_HOURS` | Jornada semanal excesiva | > 40h semanales (o convenio) | Critical | ET Art. 34.1 |
+| `MIN_REST_BETWEEN` | Descanso insuficiente | < 12h entre fin e inicio jornada | Critical | ET Art. 34.3 |
+| `MIN_BREAK_6H` | Pausa no realizada | Sin pausa de 15min en jornadas > 6h | Warning | ET Art. 34.4 |
+| `NIGHT_WORK_LIMIT` | Trabajo nocturno excesivo | > 8h noche o límites convenio | Critical | ET Art. 36 |
+| `MISSING_CLOCKIN` | Fichaje ausente | Día laborable sin ningún registro | Warning | RD-ley 8/2019 |
+| `ORPHAN_ENTRY` | Entrada huérfana | Entrada sin salida > 12h | Warning | RD-ley 8/2019 |
+| `CONSECUTIVE_SAME` | Fichajes consecutivos | Dos entradas/salidas seguidas | Info | RD-ley 8/2019 |
+| `OVERTIME_LIMIT` | Horas extra excesivas | > 80h/año de horas extraordinarias | Critical | ET Art. 35.2 |
+
+### Dashboard de Cumplimiento
+
+```mermaid
+graph LR
+    subgraph "Semáforo Principal"
+        GREEN[🟢 OK<br/>Sin violaciones críticas]
+        YELLOW[🟡 Alerta<br/>Warnings pendientes]
+        RED[🔴 Crítico<br/>Violaciones activas]
+    end
+
+    subgraph "KPIs"
+        K1[📊 Tasa de<br/>Cumplimiento %]
+        K2[⏱️ Tiempo medio<br/>resolución]
+        K3[📈 Tendencia<br/>30 días]
+        K4[🎯 Incidencias<br/>abiertas]
+    end
+
+    subgraph "Acciones"
+        A1[📋 Ver<br/>Violaciones]
+        A2[📦 Generar<br/>ITSS]
+        A3[📅 Calendario<br/>Laboral]
+        A4[⚙️ Configurar<br/>Reglas]
+    end
+```
+
+### Flujo de Gestión de Incidencias
+
+```mermaid
+stateDiagram-v2
+    [*] --> detected: Violación detectada
+    detected --> open: Crear incidencia
+    open --> acknowledged: Responsable reconoce
+    acknowledged --> in_progress: En resolución
+    in_progress --> resolved: Resuelto
+    in_progress --> escalated: Escalar
+    escalated --> in_progress: Reasignar
+    resolved --> [*]
+    
+    note right of detected
+        Automático por
+        compliance-evaluator
+    end note
+    
+    note right of escalated
+        Notifica a nivel
+        superior + asesor
+    end note
+```
+
+---
+
+## 🏛️ Integración QTSP (Qualified Trust Service Provider)
+
+### Visión como QTSP
+
+Time Control Hub **opera como Prestador Cualificado de Servicios de Confianza** integrando los siguientes servicios vía API:
+
+```mermaid
+graph TB
+    subgraph "Servicios QTSP Integrados"
+        subgraph "Firma Electrónica"
+            QES[✍️ Firma Electrónica<br/>Cualificada (QES)]
+            AES[📝 Firma Electrónica<br/>Avanzada (AES)]
+        end
+        
+        subgraph "Sellos de Tiempo"
+            TSP[⏱️ Sellos Cualificados<br/>RFC 3161]
+            MERKLE[🌳 Merkle Tree<br/>Hash Chain]
+        end
+        
+        subgraph "Notificaciones"
+            CERT_EMAIL[📧 Email<br/>Certificado]
+            CERT_SMS[📱 SMS<br/>Certificado]
+        end
+        
+        subgraph "Custodia"
+            CUSTODY[🔒 Repositorio<br/>Documental]
+            ARCHIVE[📁 Archivo<br/>a Largo Plazo]
+        end
+    end
+
+    subgraph "Casos de Uso"
+        DAILY[📊 Sellado Diario<br/>de Fichajes]
+        MONTHLY[📈 Cierre Mensual<br/>Firmado]
+        DOCS[📄 Documentos<br/>Legales]
+        ITSS[📦 Paquete<br/>ITSS]
+        NOTIFY[🔔 Notificaciones<br/>a Empleados]
+    end
+
+    DAILY --> TSP
+    DAILY --> MERKLE
+    MONTHLY --> QES
+    MONTHLY --> TSP
+    DOCS --> AES
+    DOCS --> CUSTODY
+    ITSS --> TSP
+    ITSS --> ARCHIVE
+    NOTIFY --> CERT_EMAIL
+
+    classDef service fill:#e74c3c,stroke:#333,color:#fff
+    classDef usecase fill:#3498db,stroke:#333,color:#fff
+    
+    class QES,AES,TSP,MERKLE,CERT_EMAIL,CERT_SMS,CUSTODY,ARCHIVE service
+    class DAILY,MONTHLY,DOCS,ITSS,NOTIFY usecase
+```
+
+### Arquitectura de Sellado Diario
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant CRON as ⏰ pg_cron
+    participant SCHED as qtsp-scheduler
+    participant GEN as generate-daily-root
+    participant DB as 📊 PostgreSQL
+    participant NOTARIZE as qtsp-notarize
+    participant DT as 🏛️ Digital Trust
+
+    Note over CRON,DT: Flujo de Sellado Diario (2:00-5:00 AM por timezone)
+    
+    CRON->>SCHED: HTTP POST (cada hora)
+    SCHED->>SCHED: Calcular empresas en ventana horaria
+    
+    loop Para cada empresa elegible
+        SCHED->>GEN: POST {company_id, date: ayer}
+        GEN->>DB: SELECT time_events del día
+        GEN->>GEN: Construir Merkle Tree (SHA-256)
+        GEN->>DB: INSERT daily_roots
+        GEN->>NOTARIZE: POST {action: timestamp_daily}
+        
+        NOTARIZE->>DT: POST /oauth/token
+        DT-->>NOTARIZE: access_token (OAuth 2.0)
+        
+        NOTARIZE->>DT: GET/POST Case File
+        DT-->>NOTARIZE: case_file_id
+        
+        NOTARIZE->>DT: GET/POST Evidence Group (YYYY-MM)
+        DT-->>NOTARIZE: evidence_group_id
+        
+        NOTARIZE->>DT: POST Evidence (root_hash)
+        DT-->>NOTARIZE: TSP Token (RFC 3161)
+        
+        NOTARIZE->>DB: UPDATE dt_evidences (status: completed)
+        NOTARIZE->>DB: INSERT qtsp_audit_log
+    end
+```
+
+### Algoritmo Hash-Chain y Merkle Tree
+
+```mermaid
+graph LR
+    subgraph "Eventos del Día (inmutables)"
+        E1[Event 1<br/>entry 08:00]
+        E2[Event 2<br/>exit 14:00]
+        E3[Event 3<br/>entry 15:00]
+        E4[Event 4<br/>exit 18:00]
+    end
+
+    subgraph "Hash Chain (cada evento)"
+        H1[hash_1 = SHA256<br/>emp_id + type + ts + prev_hash]
+        H2[hash_2 = SHA256<br/>emp_id + type + ts + hash_1]
+        H3[hash_3 = SHA256<br/>emp_id + type + ts + hash_2]
+        H4[hash_4 = SHA256<br/>emp_id + type + ts + hash_3]
+    end
+
+    subgraph "Merkle Tree"
+        M1[SHA256<br/>hash_1 + hash_2]
+        M2[SHA256<br/>hash_3 + hash_4]
+        ROOT[🔒 Merkle Root<br/>SHA256(M1 + M2)]
+    end
+
+    subgraph "QTSP"
+        TSP[⏱️ TSP Token<br/>RFC 3161]
+    end
+
+    E1 --> H1
+    E2 --> H2
+    E3 --> H3
+    E4 --> H4
+    
+    H1 --> M1
+    H2 --> M1
+    H3 --> M2
+    H4 --> M2
+    M1 --> ROOT
+    M2 --> ROOT
+    ROOT --> TSP
+```
+
+### Servicios QTSP Disponibles
+
+| Servicio | API Endpoint | Uso en Time Control Hub |
+|----------|--------------|-------------------------|
+| **Firma Cualificada (QES)** | `/signatures/qualified` | Cierre mensual, documentos críticos |
+| **Firma Avanzada (AES)** | `/signatures/advanced` | Aceptación documentos empleados |
+| **Sello de Tiempo (TSA)** | `/timestamps` | Hash diario, PDFs, paquetes ITSS |
+| **Email Certificado** | `/notifications/email` | Alertas cumplimiento, incidencias |
+| **SMS Certificado** | `/notifications/sms` | Alertas críticas urgentes |
+| **Custodia Documental** | `/custody/documents` | Documentos legales, cierres firmados |
+| **Verificación** | `/verify` | Validación de firmas y sellos |
+
+### Tabla de Estados de Evidencia
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Creación
+    pending --> processing: Envío a QTSP
+    processing --> completed: TSP Token recibido
+    processing --> failed: Error API
+    failed --> pending: Retry programado
+    completed --> [*]
+    
+    note right of completed
+        ✅ Evidencia sellada
+        con timestamp cualificado
+        RFC 3161 verificable
+    end note
+    
+    note right of failed
+        🔄 Retry automático
+        con backoff exponencial
+        máx 10 intentos
+    end note
+```
+
+### Secretos QTSP Requeridos
+
+| Secreto | Descripción |
+|---------|-------------|
+| `DIGITALTRUST_API_URL` | URL base de la API QTSP |
+| `DIGITALTRUST_LOGIN_URL` | URL endpoint OAuth 2.0 |
+| `DIGITALTRUST_CLIENT_ID` | ID del cliente OAuth |
+| `DIGITALTRUST_CLIENT_SECRET` | Secret del cliente OAuth |
+
+---
+
+## 📦 Generador de Paquetes ITSS
+
+### Visión General
+
+El generador de paquetes ITSS permite crear **documentación completa y certificada** para responder a requerimientos de la Inspección de Trabajo y Seguridad Social.
+
+### Wizard de 6 Pasos
+
+```mermaid
+graph LR
+    subgraph "Paso 1"
+        P1[📋 Parámetros<br/>del Requerimiento]
+    end
+    
+    subgraph "Paso 2"
+        P2[☑️ Selección<br/>de Módulos]
+    end
+    
+    subgraph "Paso 3"
+        P3[🔍 Verificación<br/>y Pre-checks]
+    end
+    
+    subgraph "Paso 4"
+        P4[⚙️ Generación<br/>de Informes]
+    end
+    
+    subgraph "Paso 5"
+        P5[📝 Manifiesto<br/>y Revisión]
+    end
+    
+    subgraph "Paso 6"
+        P6[📦 Publicación<br/>con QTSP]
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+```
+
+### Estructura del Paquete ZIP
+
+```
+paquete_itss_[empresa]_[fecha]/
+├── 00_portada_remision.pdf
+├── 01_indice_paquete.pdf
+├── modulo_1_registro_jornada/
+│   ├── registro_diario.csv            # Formato técnico ITSS
+│   ├── registro_diario_resumen.pdf     # PDF con totales
+│   └── indice_consolidado.pdf          # Por centro
+├── modulo_2_calendario/
+│   ├── calendario_laboral_2026.pdf     # Festivos + turnos
+│   └── calendario_laboral.csv
+├── modulo_3_politicas/
+│   ├── politica_control_horario.pdf    # Obligatoria
+│   └── politica_privacidad.pdf         # RGPD
+├── modulo_4_sumarios/
+│   ├── sumario_contratos.csv           # Si disponible
+│   └── sumario_contraste_nominas.csv
+├── modulo_5_evidencias/
+│   ├── referencias_qtsp.json           # Tokens TSP
+│   └── huellas_integridad.json         # SHA-256
+├── anexos/                              # Opcional
+│   ├── correcciones_periodo.pdf
+│   └── planificado_vs_trabajado.pdf
+└── manifest.json                        # Sellado QTSP
+```
+
+### Especificación CSV Registro Diario
+
+| Columna | Tipo | Descripción |
+|---------|------|-------------|
+| `company_id` | UUID | ID empresa |
+| `company_name` | Text | Nombre empresa |
+| `center_id` | UUID | ID centro trabajo |
+| `center_name` | Text | Nombre centro |
+| `employee_id` | UUID | ID empleado |
+| `employee_name` | Text | Nombre completo |
+| `nif` | Text | NIF/NIE empleado |
+| `date` | Date | AAAA-MM-DD |
+| `entry_time` | Timestamp | HH:MM:SS TZ |
+| `exit_time` | Timestamp | HH:MM:SS TZ |
+| `daily_worked_minutes` | Integer | Minutos trabajados |
+| `event_count` | Integer | Número fichajes |
+| `terminal_id` | UUID | Terminal usado |
+| `terminal_name` | Text | Nombre terminal |
+| `auth_factor` | Enum | QR / PIN / QR+PIN |
+| `origin` | Enum | online / offline / contingency |
+| `correction_flag` | Boolean | Si tiene corrección |
+| `correction_reason` | Text | Motivo corrección |
+| `audit_ref` | Text | Hash encadenado |
+
+### Manifiesto JSON
+
+```json
+{
+  "version": "1.0",
+  "company": {
+    "id": "uuid",
+    "name": "Empresa S.L.",
+    "cif": "B12345678"
+  },
+  "centers": [
+    { "id": "uuid", "name": "Oficina Central" }
+  ],
+  "period": {
+    "start": "2025-01-01",
+    "end": "2025-12-31"
+  },
+  "itss_reference": {
+    "expedient_id": "12345/2026",
+    "request_date": "2026-01-05",
+    "contact_person": "Juan García"
+  },
+  "deliverables": [
+    { "name": "registro_diario.csv", "sha256": "abc...", "rows": 12345 },
+    { "name": "calendario_laboral.pdf", "sha256": "def..." }
+  ],
+  "qtsp_evidences": [
+    { "date": "2025-01-15", "daily_root_hash": "...", "tsp_token": "..." }
+  ],
+  "generated_at": "2026-01-06T10:30:00Z",
+  "generated_by": { "id": "uuid", "email": "admin@empresa.com" },
+  "integrity": {
+    "algorithm": "SHA-256",
+    "package_hash": "xyz..."
+  }
+}
+```
+
+---
+
+## 📋 Sistema de Plantillas y Convenios
+
+### Estructura de Plantillas
+
+```mermaid
+graph TB
+    subgraph "Biblioteca de Plantillas"
+        SEED[🌱 Plantillas Semilla<br/>Por CNAE/Sector]
+        CUSTOM[✏️ Personalizadas<br/>Por Empresa]
+    end
+
+    subgraph "Configuración"
+        HOURS[⏰ Jornada<br/>Diaria/Semanal]
+        SHIFTS[🔄 Turnos<br/>Horarios tipo]
+        BREAKS[☕ Pausas<br/>Obligatorias]
+        OVERTIME[📈 Horas Extra<br/>Límites y compensación]
+        NIGHT[🌙 Nocturnidad<br/>Horario y límites]
+        VACATION[🏖️ Vacaciones<br/>Días y políticas]
+    end
+
+    subgraph "Simulador"
+        SIM[🧮 Simulador<br/>de Jornadas]
+        VALID[✅ Validación<br/>vs Convenio]
+    end
+
+    SEED --> CUSTOM
+    CUSTOM --> HOURS
+    CUSTOM --> SHIFTS
+    CUSTOM --> BREAKS
+    CUSTOM --> OVERTIME
+    CUSTOM --> NIGHT
+    CUSTOM --> VACATION
+    
+    HOURS --> SIM
+    SHIFTS --> SIM
+    SIM --> VALID
+```
+
+### Wizard de Configuración de Plantilla
+
+| Paso | Nombre | Configuración |
+|------|--------|---------------|
+| 1 | Convenio | Selección de convenio colectivo base |
+| 2 | Jornada | Horas diarias/semanales, tipo jornada |
+| 3 | Turnos | Definición de horarios tipo |
+| 4 | Pausas | Configuración de descansos obligatorios |
+| 5 | Horas Extra | Límites, compensación, bolsa de horas |
+| 6 | Nocturnidad | Horario nocturno, límites, plus |
+| 7 | Vacaciones | Días base, políticas de solicitud |
+| 8 | Notificaciones | Alertas de cumplimiento |
+| 9 | Simulación | Prueba con datos de ejemplo |
+| 10 | Publicación | Activación y asignación a empleados |
+
+---
+
+## 🏖️ Gestión de Ausencias
+
+### Tipos de Ausencia Configurables
+
+El sistema incluye **25+ tipos de ausencia** basados en el Estatuto de los Trabajadores y convenios:
+
+| Categoría | Tipos | Configuración |
+|-----------|-------|---------------|
+| **Vacaciones** | Anuales, Adicionales convenio | Días/año, acumulación |
+| **Permisos Retribuidos** | Matrimonio, Nacimiento, Fallecimiento, Mudanza, Exámenes | Días fijos, justificante |
+| **Permisos No Retribuidos** | Asuntos propios, Excedencia | Límite días/año |
+| **IT/Enfermedad** | Enfermedad común, Accidente laboral | Justificante médico |
+| **Maternidad/Paternidad** | Nacimiento, Adopción, Lactancia | Duración legal |
+| **Formación** | Formación empresa, PIF | Autorización previa |
+| **Otros** | Deber público, Fuerza mayor | Justificante específico |
+
+### Workflow de Aprobación
+
+```mermaid
+stateDiagram-v2
+    [*] --> draft: Empleado crea
+    draft --> pending: Enviar solicitud
+    pending --> approved: Aprobado
+    pending --> rejected: Rechazado
+    pending --> more_info: Más información
+    more_info --> pending: Empleado responde
+    approved --> [*]
+    rejected --> [*]
+    
+    note right of pending
+        Notifica a responsable
+        y/o admin según config
+    end note
+```
+
+---
+
+## 📅 Calendario Laboral
+
+### Gestión de Calendario
+
+```mermaid
+graph TB
+    subgraph "Fuentes de Festivos"
+        NAC[🇪🇸 Festivos<br/>Nacionales]
+        AUTO[🏛️ Festivos<br/>Autonómicos]
+        LOCAL[🏘️ Festivos<br/>Locales]
+    end
+
+    subgraph "Configuración"
+        YEAR[📅 Año<br/>Calendario]
+        CENTER[🏢 Centro<br/>de Trabajo]
+        INTENSIVE[☀️ Jornada<br/>Intensiva]
+    end
+
+    subgraph "Salidas"
+        PDF[📄 PDF<br/>Calendario]
+        CSV[📊 CSV<br/>Exportable]
+        ITSS[📦 Módulo<br/>ITSS]
+    end
+
+    NAC --> YEAR
+    AUTO --> YEAR
+    LOCAL --> YEAR
+    YEAR --> CENTER
+    CENTER --> INTENSIVE
+    
+    INTENSIVE --> PDF
+    INTENSIVE --> CSV
+    INTENSIVE --> ITSS
+```
+
+### Estructura del Calendario
+
+```typescript
+interface LaborCalendar {
+  id: string;
+  company_id: string;
+  center_id?: string;  // null = todos los centros
+  year: number;
+  name: string;
+  holidays: Holiday[];
+  shifts_summary: Shift[];
+  intensive_periods: IntensivePeriod[];
+  published_at?: string;
+}
+
+interface Holiday {
+  date: string;  // YYYY-MM-DD
+  type: 'nacional' | 'autonomico' | 'local';
+  description: string;
+}
+
+interface IntensivePeriod {
+  start_date: string;
+  end_date: string;
+  hours_per_day: number;
+}
+```
+
+---
+
+## 📊 Portal del Asesor Laboral
+
+### Rol del Asesor Laboral
+
+El sistema está diseñado para integrar la función del **asesor laboral externo** como colaborador activo en el cumplimiento:
+
+```mermaid
+graph TB
+    subgraph "Acceso del Asesor"
+        VIEW[👁️ Vista de<br/>Empresas Asignadas]
+        ALERTS[🔔 Recibe<br/>Alertas Compliance]
+        REPORTS[📊 Acceso<br/>a Informes]
+    end
+
+    subgraph "Capacidades Proactivas"
+        RISK[🎯 Análisis<br/>de Riesgos]
+        SUGGEST[💡 Proponer<br/>Mejoras]
+        TEMPLATE[📋 Sugerir<br/>Plantillas]
+    end
+
+    subgraph "Colaboración"
+        COMMENT[💬 Comentar<br/>Incidencias]
+        PREPARE[📦 Preparar<br/>ITSS]
+        TRAIN[🎓 Formación<br/>a Admins]
+    end
+
+    VIEW --> RISK
+    ALERTS --> SUGGEST
+    REPORTS --> PREPARE
+    
+    RISK --> COMMENT
+    SUGGEST --> TEMPLATE
+```
+
+### Funcionalidades del Asesor
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Dashboard Proactivo** | Vista de todas las empresas asignadas con indicadores de riesgo |
+| **Alertas en Tiempo Real** | Recibe notificaciones de violaciones críticas |
+| **Análisis de Riesgos** | Herramientas para identificar patrones de incumplimiento |
+| **Propuestas de Mejora** | Puede crear recomendaciones vinculadas a incidencias |
+| **Preparación ITSS** | Acceso a generador de paquetes para anticipar inspecciones |
+| **Histórico de Cumplimiento** | Acceso a tendencias y evolución por empresa |
+| **Simulador de Jornadas** | Prueba de escenarios "what-if" |
+| **Documentación** | Acceso a documentos legales y políticas |
+
+### Flujo de Colaboración
+
+```mermaid
+sequenceDiagram
+    participant SYS as 🖥️ Sistema
+    participant ADMIN as 👔 Admin
+    participant ASESOR as 📊 Asesor
+
+    Note over SYS,ASESOR: Detección de Violación Crítica
+    
+    SYS->>SYS: Detectar violación MAX_WEEKLY_HOURS
+    SYS->>ADMIN: 🔔 Notificación alerta crítica
+    SYS->>ASESOR: 🔔 Notificación alerta crítica
+    
+    ASESOR->>SYS: Ver detalle de violación
+    ASESOR->>SYS: Crear recomendación
+    Note right of ASESOR: "Revisar distribución<br/>de turnos en plantilla"
+    
+    SYS->>ADMIN: 💡 Nueva recomendación del asesor
+    ADMIN->>SYS: Revisar y aplicar cambios
+    ADMIN->>SYS: Marcar incidencia como resuelta
+    
+    SYS->>ASESOR: ✅ Incidencia resuelta
+```
+
+---
+
+## 📄 Documentos Legales
+
+### Plantillas Disponibles (14 Documentos)
+
+| Código | Documento | Categoría | Requiere Aceptación |
+|--------|-----------|-----------|:-------------------:|
+| `POL_CONTROL_HORARIO` | Política de Control Horario | Política | ✅ |
+| `POL_PRIVACIDAD_CONTROL` | Política de Privacidad | RGPD | ✅ |
+| `INFO_TRATAMIENTO_DATOS` | Información sobre Tratamiento | RGPD | ✅ |
+| `CONSENTIMIENTO_BIOMETRICO` | Consentimiento Biométrico | RGPD | ✅ |
+| `ACUERDO_TELETRABAJO` | Acuerdo de Teletrabajo | Laboral | ✅ |
+| `MANUAL_FICHAJE` | Manual de Fichaje | Formación | ❌ |
+| `POLITICA_AUSENCIAS` | Política de Ausencias | Política | ✅ |
+| `CALENDARIO_LABORAL` | Calendario Laboral Anual | Informativo | ❌ |
+| `ACUERDO_FLEXIBILIDAD` | Acuerdo de Flexibilidad | Laboral | ✅ |
+| `POLITICA_HORAS_EXTRA` | Política de Horas Extra | Política | ✅ |
+| `AVISO_LEGAL` | Aviso Legal Aplicación | Legal | ❌ |
+| `PROTOCOLO_DESCONEXION` | Protocolo Desconexión Digital | Política | ✅ |
+| `POLITICA_VACACIONES` | Política de Vacaciones | Política | ✅ |
+| `ACUERDO_REGISTRO_JORNADA` | Acuerdo Colectivo Registro | Laboral | ❌ |
+
+### Flujo de Aceptación con QTSP
+
+```mermaid
+sequenceDiagram
+    participant ADMIN as 👔 Admin
+    participant SYS as 🖥️ Sistema
+    participant EMP as 👤 Empleado
+    participant QTSP as 🏛️ QTSP
+
+    ADMIN->>SYS: Publicar documento
+    SYS->>EMP: 🔔 Notificación: documento pendiente
+    
+    EMP->>SYS: Ver documento
+    EMP->>SYS: Aceptar documento
+    
+    SYS->>SYS: Calcular hash contenido
+    SYS->>SYS: Generar firma empleado
+    SYS->>QTSP: Sellar aceptación (TSP)
+    QTSP-->>SYS: TSP Token
+    
+    SYS->>SYS: Guardar document_acknowledgment
+    SYS->>ADMIN: ✅ Documento aceptado por empleado
+```
+
+---
+
+## 🔔 Sistema de Notificaciones
+
+### Canales de Notificación
+
+| Canal | Casos de Uso | Certificación |
+|-------|--------------|:-------------:|
+| **In-App** | Alertas diarias, recordatorios | ❌ |
+| **Email** | Incidencias, documentos, resúmenes | Opcional |
+| **Email Certificado** | Avisos críticos compliance | ✅ QTSP |
+| **SMS** | Alertas urgentes (opcional) | ❌ |
+| **SMS Certificado** | Comunicaciones legales | ✅ QTSP |
+| **Push (PWA)** | Fichaje exitoso, alertas | ❌ |
+
+### Tipos de Notificación
+
+```mermaid
+graph TB
+    subgraph "Empleado"
+        N1[⏰ Recordatorio<br/>fichaje pendiente]
+        N2[⚠️ Inconsistencia<br/>detectada]
+        N3[✅ Corrección<br/>aprobada/rechazada]
+        N4[📄 Documento<br/>pendiente aceptar]
+        N5[🏖️ Ausencia<br/>aprobada/rechazada]
+    end
+
+    subgraph "Responsable"
+        N6[📋 Resumen semanal<br/>departamento]
+        N7[⚠️ Corrección<br/>pendiente aprobar]
+        N8[🏖️ Ausencia<br/>pendiente aprobar]
+    end
+
+    subgraph "Admin/Asesor"
+        N9[🔴 Violación crítica<br/>detectada]
+        N10[📊 Informe<br/>cumplimiento mensual]
+        N11[🔒 Error QTSP<br/>sellado fallido]
+        N12[📦 Paquete ITSS<br/>generado]
+    end
+```
+
+### Edge Functions de Notificación
+
+| Función | Trigger | Destinatario |
+|---------|---------|--------------|
+| `inconsistency-alert` | Detección en dashboard | Empleado |
+| `weekly-inconsistency-summary` | Cron lunes 9:00 | Responsables |
+| `escalation-alert` | Nivel escalado | Admin + Asesor |
+| `orphan-alert` | Entrada > 12h sin salida | Empleado |
+| `notification-dispatcher` | Genérico | Configurable |
+| `qtsp-health-alert` | Fallo QTSP | Super Admin |
 
 ---
 
 ## 📊 Modelo de Datos
 
-### Diagrama Entidad-Relación
+### Diagrama Entidad-Relación Principal
 
 ```mermaid
 erDiagram
@@ -124,21 +1094,27 @@ erDiagram
     COMPANY ||--o{ TERMINALS : "tiene"
     COMPANY ||--o{ TIME_EVENTS : "registra"
     COMPANY ||--o{ DAILY_ROOTS : "genera"
-    COMPANY ||--o{ DT_CASE_FILES : "tiene"
+    COMPANY ||--o{ LABOR_CALENDARS : "configura"
+    COMPANY ||--o{ ITSS_PACKAGES : "genera"
+    COMPANY ||--o{ COMPLIANCE_VIOLATIONS : "detecta"
+    COMPANY ||--o{ ABSENCE_TYPES : "define"
     
     EMPLOYEES ||--o{ TIME_EVENTS : "ficha"
-    EMPLOYEES ||--o{ EMPLOYEE_QR : "tiene"
     EMPLOYEES ||--o{ CORRECTION_REQUESTS : "solicita"
+    EMPLOYEES ||--o{ ABSENCE_REQUESTS : "solicita"
+    EMPLOYEES ||--o{ DOCUMENT_ACKNOWLEDGMENTS : "acepta"
+    EMPLOYEES ||--o{ MONTHLY_CLOSURES : "firma"
+    EMPLOYEES ||--o{ COMPLIANCE_VIOLATIONS : "genera"
     
     DAILY_ROOTS ||--o{ DT_EVIDENCES : "sella"
     DT_CASE_FILES ||--o{ DT_EVIDENCE_GROUPS : "contiene"
     DT_EVIDENCE_GROUPS ||--o{ DT_EVIDENCES : "agrupa"
     
-    CORRECTION_REQUESTS ||--o{ CORRECTED_EVENTS : "genera"
+    LEGAL_DOCUMENT_TEMPLATES ||--o{ LEGAL_DOCUMENTS : "genera"
+    LEGAL_DOCUMENTS ||--o{ DOCUMENT_ACKNOWLEDGMENTS : "recibe"
     
-    USER_ROLES }o--|| AUTH_USERS : "asigna"
-    USER_COMPANY }o--|| AUTH_USERS : "asocia"
-    USER_COMPANY }o--|| COMPANY : "pertenece"
+    COMPLIANCE_VIOLATIONS ||--o{ COMPLIANCE_INCIDENTS : "crea"
+    COMPLIANCE_INCIDENTS ||--o{ COMPLIANCE_NOTIFICATIONS : "dispara"
 
     COMPANY {
         uuid id PK
@@ -151,12 +1127,9 @@ erDiagram
     EMPLOYEES {
         uuid id PK
         uuid company_id FK
-        uuid user_id FK
         text employee_code
         text first_name
         text last_name
-        text email
-        text pin_hash
         text department
         boolean is_department_responsible
         enum status
@@ -173,22 +1146,26 @@ erDiagram
         text previous_hash
     }
     
-    DAILY_ROOTS {
+    COMPLIANCE_VIOLATIONS {
         uuid id PK
         uuid company_id FK
-        date date
-        text root_hash
-        int event_count
+        uuid employee_id FK
+        text rule_code
+        enum severity
+        enum status
+        date violation_date
     }
     
-    DT_EVIDENCES {
+    ITSS_PACKAGES {
         uuid id PK
-        uuid evidence_group_id FK
-        uuid daily_root_id FK
-        enum evidence_type
+        uuid company_id FK
+        date period_start
+        date period_end
+        text expedient_number
+        jsonb components
+        jsonb manifest
+        text package_hash
         enum status
-        text tsp_token
-        timestamptz tsp_timestamp
     }
 ```
 
@@ -196,860 +1173,102 @@ erDiagram
 
 | Tabla | Descripción | RLS |
 |-------|-------------|-----|
-| `company` | Empresas registradas en el sistema | Por empresa |
-| `employees` | Empleados con sus credenciales (PIN hash) | Por empresa |
+| `company` | Empresas registradas | Por empresa |
+| `employees` | Empleados con credenciales | Por empresa |
+| `user_roles` | Roles de usuarios (separado por seguridad) | Por usuario |
 | `time_events` | Eventos de fichaje (inmutables) | Por empresa/empleado |
-| `daily_roots` | Hash Merkle raíz diario por empresa | Por empresa |
-| `dt_case_files` | Case Files de Digital Trust (1 por empresa) | Por empresa |
-| `dt_evidence_groups` | Grupos de evidencia mensuales (YYYY-MM) | Por empresa |
-| `dt_evidences` | Evidencias selladas (timestamp/PDF) | Por empresa |
-| `correction_requests` | Solicitudes de corrección de fichaje | Por empresa/empleado |
-| `corrected_events` | Eventos corregidos aprobados | Por empresa |
-| `audit_log` | Log de auditoría general | Por empresa |
-| `qtsp_audit_log` | Log específico de operaciones QTSP | Por empresa |
-| `terminals` | Terminales/kioskos de fichaje | Por empresa |
-| `employee_qr` | Códigos QR activos por empleado | Por empresa |
-| `user_roles` | Roles asignados a usuarios | Por usuario |
-| `user_company` | Asociación usuario-empresa | Por usuario |
-| `company_settings` | Configuración por empresa (notificaciones, etc.) | Por empresa |
-
----
-
-## 👥 Roles y Permisos
-
-```mermaid
-graph LR
-    subgraph "Roles del Sistema"
-        SA[🔐 super_admin]
-        AD[👔 admin]
-        RE[📋 responsible]
-        EM[👤 employee]
-    end
-
-    subgraph "Permisos"
-        P1[Gestión cross-tenant]
-        P2[CRUD empresa completo]
-        P3[Aprobar correcciones]
-        P4[Fichar y ver propios]
-    end
-
-    SA --> P1
-    SA --> P2
-    SA --> P3
-    SA --> P4
-    
-    AD --> P2
-    AD --> P3
-    AD --> P4
-    
-    RE --> P3
-    RE --> P4
-    
-    EM --> P4
-
-    classDef super fill:#e74c3c,stroke:#333,color:#fff
-    classDef admin fill:#3498db,stroke:#333,color:#fff
-    classDef resp fill:#2ecc71,stroke:#333,color:#fff
-    classDef emp fill:#95a5a6,stroke:#333,color:#fff
-    
-    class SA super
-    class AD admin
-    class RE resp
-    class EM emp
-```
-
-### Matriz de Permisos Detallada
-
-| Acción | super_admin | admin | responsible | employee |
-|--------|:-----------:|:-----:|:-----------:|:--------:|
-| Ver todas las empresas | ✅ | ❌ | ❌ | ❌ |
-| Crear empresas | ✅ | ❌ | ❌ | ❌ |
-| Gestionar usuarios cross-tenant | ✅ | ❌ | ❌ | ❌ |
-| Ver estadísticas globales | ✅ | ❌ | ❌ | ❌ |
-| CRUD empleados | ✅ | ✅ | ❌ | ❌ |
-| Gestionar terminales | ✅ | ✅ | ❌ | ❌ |
-| Ver todos los fichajes | ✅ | ✅ | ✅ | ❌ |
-| Aprobar correcciones | ✅ | ✅ | ✅ | ❌ |
-| Generar reportes | ✅ | ✅ | ❌ | ❌ |
-| Ver evidencias QTSP | ✅ | ✅ | ❌ | ❌ |
-| Fichar (QR/PIN) | ❌ | ❌ | ❌ | ✅ |
-| Ver fichajes propios | ✅ | ✅ | ✅ | ✅ |
-| Solicitar correcciones | ❌ | ❌ | ❌ | ✅ |
-
----
-
-## 📖 Historias de Usuario
-
-### 👤 Empleado
-
-| ID | Historia | Criterios de Aceptación |
-|----|----------|-------------------------|
-| E1 | Como empleado, quiero fichar mi entrada/salida con QR para registrar mi jornada | - Escaneo QR en < 2 segundos<br/>- Confirmación visual y sonora<br/>- Funciona offline |
-| E2 | Como empleado, quiero fichar con código+PIN cuando no tenga mi QR | - Introducir código de empleado<br/>- PIN de 4-6 dígitos<br/>- Bloqueo tras 5 intentos fallidos |
-| E3 | Como empleado, quiero ver mis fichajes del día/semana/mes | - Listado cronológico<br/>- Filtros por período<br/>- Horas totales calculadas |
-| E4 | Como empleado, quiero solicitar una corrección si olvidé fichar | - Formulario con fecha/hora/motivo<br/>- Estado visible (pendiente/aprobada/rechazada)<br/>- Notificación de resolución |
-| E5 | Como empleado, quiero ver alertas de inconsistencias en mi dashboard | - Alerta visual con detalle de inconsistencias<br/>- Botón para solicitar corrección directa con datos pre-rellenados |
-| E6 | Como empleado, quiero recibir email cuando se detecten inconsistencias | - Email automático con detalle de inconsistencias<br/>- Enlace directo a solicitud de corrección |
-
-### 👔 Administrador
-
-| ID | Historia | Criterios de Aceptación |
-|----|----------|-------------------------|
-| A1 | Como admin, quiero dar de alta empleados y generar sus credenciales | - Formulario completo de datos<br/>- Generación automática de código QR<br/>- Configuración de PIN |
-| A2 | Como admin, quiero ver el dashboard con fichajes en tiempo real | - Contador de empleados presentes<br/>- Últimos fichajes actualizados<br/>- Alertas de anomalías |
-| A3 | Como admin, quiero aprobar/rechazar solicitudes de corrección | - Lista de pendientes<br/>- Detalle de solicitud<br/>- Campo de notas de revisión |
-| A4 | Como admin, quiero generar reportes mensuales sellados con QTSP | - Selección de mes/empleado<br/>- PDF con firma cualificada<br/>- Verificable externamente |
-| A5 | Como admin, quiero ver el calendario de evidencias QTSP | - Vista mensual<br/>- Estados: completado/pendiente/fallido<br/>- Acceso a detalles |
-| A6 | Como admin, quiero configurar notificaciones de inconsistencias | - Activar/desactivar emails individuales a empleados<br/>- Activar/desactivar resumen semanal a responsables |
-| A7 | Como admin, quiero ver el historial de alertas enviadas en el audit log | - Filtro por tipo `inconsistency_alert_sent`<br/>- Filtro por tipo `weekly_inconsistency_summary`<br/>- Detalle de emails enviados |
-
-### 🔐 Super Admin
-
-| ID | Historia | Criterios de Aceptación |
-|----|----------|-------------------------|
-| S1 | Como super admin, quiero ver todas las empresas del sistema | - Listado con métricas<br/>- Búsqueda y filtros<br/>- Acceso a detalles |
-| S2 | Como super admin, quiero gestionar usuarios cross-tenant | - Cambio de roles<br/>- Asignación a empresas<br/>- Eliminación de usuarios |
-| S3 | Como super admin, quiero ver estadísticas globales de QTSP | - Total de evidencias por estado<br/>- Alertas de fallos<br/>- Tendencias temporales |
-
-### 📋 Responsable de Departamento
-
-| ID | Historia | Criterios de Aceptación |
-|----|----------|-------------------------|
-| R1 | Como responsable, quiero recibir resumen semanal de inconsistencias | - Email con listado agrupado por empleado<br/>- Solo empleados de mi departamento<br/>- Estadísticas del período |
-
----
-
-## 🔍 Sistema de Detección de Inconsistencias
-
-El sistema detecta automáticamente inconsistencias en los fichajes de los empleados para ayudar a mantener registros precisos.
-
-### Tipos de Inconsistencias Detectadas
-
-| Tipo | Código | Descripción | Criterio |
-|------|--------|-------------|----------|
-| **Fichajes consecutivos** | `consecutive_same_type` | Dos fichajes seguidos del mismo tipo | Entrada seguida de entrada, o salida seguida de salida |
-| **Entrada huérfana** | `orphan_entry` | Entrada sin salida correspondiente | Última entrada hace más de 12 horas sin salida posterior |
-
-### Hook `useTimeEventInconsistencies`
-
-```typescript
-interface Inconsistency {
-  type: 'consecutive_same_type' | 'orphan_entry';
-  employeeId: string;
-  employeeName: string;
-  employeeCode: string;
-  eventType: 'entry' | 'exit';
-  timestamp: string;
-  previousTimestamp?: string;
-}
-
-// Uso del hook
-const { inconsistencies, hasInconsistencies, count } = useTimeEventInconsistencies(events);
-```
-
-### Componente `InconsistencyAlert`
-
-Muestra alertas visuales en el dashboard con:
-- Listado detallado de inconsistencias detectadas
-- Tipo de inconsistencia con icono y descripción
-- Fecha y hora del evento problemático
-- **Botón de corrección directa**: Un clic navega al formulario de corrección con datos pre-rellenados
-
-```tsx
-<InconsistencyAlert 
-  inconsistencies={inconsistencies} 
-  maxDisplay={5} 
-  showCorrectionButton={true}
-/>
-```
-
----
-
-## 📧 Notificaciones por Email
-
-El sistema envía notificaciones automáticas por email utilizando **Resend** para alertar sobre inconsistencias.
-
-### Diagrama de Flujo de Notificaciones
-
-```mermaid
-flowchart TB
-    subgraph "Detección en Frontend"
-        D[Dashboard Empleado] --> I[Detectar Inconsistencias]
-        I --> H{¿Hay inconsistencias?}
-    end
-
-    subgraph "Edge Function: inconsistency-alert"
-        H -->|Sí| C{¿Configuración activa?}
-        C -->|Sí| E[Enviar Email Individual]
-        C -->|No| S1[Skip]
-        E --> L1[Log en audit_log]
-    end
-
-    subgraph "Edge Function: weekly-inconsistency-summary"
-        CRON[pg_cron Lunes 9:00] --> W{¿Resumen activo?}
-        W -->|Sí| D2[Agrupar por Departamento]
-        W -->|No| S2[Skip]
-        D2 --> R[Enviar a Responsables]
-        R --> L2[Log en audit_log]
-    end
-
-    classDef frontend fill:#61dafb,stroke:#333,color:#000
-    classDef edge fill:#3ecf8e,stroke:#333,color:#000
-    classDef action fill:#f1c40f,stroke:#333,color:#000
-    
-    class D,I,H frontend
-    class C,E,W,D2,R edge
-    class L1,L2 action
-```
-
-### Edge Function: `inconsistency-alert`
-
-Envía email individual al empleado cuando se detectan inconsistencias en su dashboard.
-
-**Endpoint:** `POST /functions/v1/inconsistency-alert`
-
-**Request:**
-```json
-{
-  "employee_id": "uuid",
-  "inconsistencies": [
-    {
-      "type": "consecutive_same_type",
-      "employeeId": "uuid",
-      "employeeName": "Juan García",
-      "employeeCode": "EMP001",
-      "eventType": "entry",
-      "timestamp": "2025-01-15T09:00:00Z",
-      "previousTimestamp": "2025-01-15T08:30:00Z"
-    }
-  ]
-}
-```
-
-**Comportamiento:**
-1. Verifica configuración `company_settings.inconsistency_email_enabled`
-2. Obtiene datos del empleado y empresa
-3. Genera email HTML formateado con detalle de inconsistencias
-4. Incluye botón de acceso directo a solicitud de corrección
-5. Registra en `audit_log` con action `inconsistency_alert_sent`
-
-**Contenido del Email:**
-- Título con icono de alerta
-- Saludo personalizado al empleado
-- Lista detallada de inconsistencias con fecha/hora
-- Botón CTA para solicitar corrección
-- Pie con información de la empresa
-
-### Edge Function: `weekly-inconsistency-summary`
-
-Envía resumen semanal a responsables de departamento con las inconsistencias de su equipo.
-
-**Endpoint:** `POST /functions/v1/weekly-inconsistency-summary`
-
-**Comportamiento:**
-1. Ejecutado por cron job cada lunes a las 9:00 AM
-2. Itera por todas las empresas con resumen semanal activo
-3. Agrupa inconsistencias de los últimos 7 días por departamento
-4. Envía email resumen a empleados con `is_department_responsible = true`
-5. Registra en `audit_log` con action `weekly_inconsistency_summary`
-
-**Contenido del Resumen:**
-- Período cubierto (últimos 7 días)
-- Tabla de empleados con inconsistencias
-- Conteo por tipo de inconsistencia
-- Estadísticas del departamento
-
----
-
-## ⚙️ Configuración de Notificaciones
-
-### Panel de Administración
-
-Los administradores pueden configurar las notificaciones desde **Configuración > Notificaciones**.
-
-| Opción | Descripción | Default |
-|--------|-------------|:-------:|
-| **Email por inconsistencia** | Enviar email individual al empleado cuando se detecta una inconsistencia | ✅ |
-| **Resumen semanal** | Enviar resumen semanal a responsables de departamento | ✅ |
-
-### Componente `NotificationSettings`
-
-```tsx
-// Ubicación: src/components/admin/NotificationSettings.tsx
-// Integrado en: src/pages/admin/Settings.tsx
-```
-
-### Tabla `company_settings`
-
-```sql
-CREATE TABLE public.company_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES public.company(id) ON DELETE CASCADE,
-  setting_key TEXT NOT NULL,
-  setting_value JSONB NOT NULL DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(company_id, setting_key)
-);
-```
-
-**Ejemplo de configuración de notificaciones:**
-```json
-{
-  "setting_key": "notifications",
-  "setting_value": {
-    "inconsistency_email_enabled": true,
-    "weekly_summary_enabled": true
-  }
-}
-```
-
-### Acciones en Audit Log
-
-| Action | Descripción | Datos Registrados |
-|--------|-------------|-------------------|
-| `inconsistency_alert_sent` | Email de alerta enviado a empleado | `employee_id`, `email`, `inconsistency_count`, `inconsistencies` |
-| `weekly_inconsistency_summary` | Resumen semanal enviado a responsable | `responsible_id`, `department`, `employee_count`, `total_inconsistencies` |
-
----
-
-
-### ¿Qué es QTSP?
-
-Un **Qualified Trust Service Provider** (Prestador Cualificado de Servicios de Confianza) es una entidad acreditada por la UE para proporcionar servicios de firma electrónica, sellado de tiempo y otros servicios de confianza con validez legal según el Reglamento eIDAS.
-
-Time Control Hub utiliza **EADTrust / Digital Trust** como QTSP para:
-- **Sellado de tiempo cualificado**: Prueba de que los datos existían en un momento determinado
-- **Firma cualificada de PDFs**: Documentos con validez legal equivalente a firma manuscrita
-
-### Arquitectura QTSP
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant CRON as ⏰ pg_cron
-    participant SCHED as qtsp-scheduler
-    participant GEN as generate-daily-root
-    participant DB as 📊 PostgreSQL
-    participant NOTARIZE as qtsp-notarize
-    participant DT as 🏛️ Digital Trust
-
-    Note over CRON,DT: Flujo de Sellado Diario (ejecutado cada hora)
-    
-    CRON->>SCHED: HTTP POST (cada hora)
-    SCHED->>SCHED: Calcular empresas en ventana 2-5 AM
-    
-    loop Para cada empresa elegible
-        SCHED->>GEN: POST {company_id, date: ayer}
-        GEN->>DB: SELECT time_events del día
-        GEN->>GEN: Calcular Merkle Root (SHA-256)
-        GEN->>DB: INSERT daily_roots
-        GEN->>NOTARIZE: POST {action: timestamp_daily}
-        
-        NOTARIZE->>DT: POST /oauth/token
-        DT-->>NOTARIZE: access_token
-        
-        NOTARIZE->>DT: GET/POST Case File
-        DT-->>NOTARIZE: case_file_id
-        
-        NOTARIZE->>DT: GET/POST Evidence Group (YYYY-MM)
-        DT-->>NOTARIZE: evidence_group_id
-        
-        NOTARIZE->>DT: POST Evidence (root_hash)
-        DT-->>NOTARIZE: TSP Token (RFC 3161)
-        
-        NOTARIZE->>DB: UPDATE dt_evidences (status: completed)
-        NOTARIZE->>DB: INSERT qtsp_audit_log
-    end
-    
-    SCHED-->>CRON: Resultados procesados
-```
-
-### Modelo Multi-empresa en Digital Trust
-
-```mermaid
-graph TB
-    subgraph "Digital Trust Platform"
-        TENANT[🏢 Platform Tenant<br/>Time Control Hub]
-        
-        subgraph "Company A"
-            CFA[📁 Case File A]
-            EGA1[📂 Evidence Group<br/>2025-01]
-            EGA2[📂 Evidence Group<br/>2025-02]
-            EVA1[📄 Evidence 2025-01-15]
-            EVA2[📄 Evidence 2025-01-16]
-        end
-        
-        subgraph "Company B"
-            CFB[📁 Case File B]
-            EGB1[📂 Evidence Group<br/>2025-01]
-            EVB1[📄 Evidence 2025-01-15]
-        end
-    end
-
-    TENANT --> CFA
-    TENANT --> CFB
-    CFA --> EGA1
-    CFA --> EGA2
-    EGA1 --> EVA1
-    EGA1 --> EVA2
-    EGB1 --> EVB1
-    CFB --> EGB1
-
-    classDef tenant fill:#3498db,stroke:#333,color:#fff
-    classDef casefile fill:#2ecc71,stroke:#333,color:#fff
-    classDef group fill:#f1c40f,stroke:#333,color:#000
-    classDef evidence fill:#e74c3c,stroke:#333,color:#fff
-    
-    class TENANT tenant
-    class CFA,CFB casefile
-    class EGA1,EGA2,EGB1 group
-    class EVA1,EVA2,EVB1 evidence
-```
-
-### Algoritmo Hash-Chain
-
-```mermaid
-graph LR
-    subgraph "Time Events del Día"
-        E1[Event 1<br/>entry 08:00]
-        E2[Event 2<br/>exit 14:00]
-        E3[Event 3<br/>entry 15:00]
-        E4[Event 4<br/>exit 18:00]
-    end
-
-    subgraph "Hash Chain"
-        H0[previous_hash<br/>null]
-        H1[event_hash_1]
-        H2[event_hash_2]
-        H3[event_hash_3]
-        H4[event_hash_4]
-    end
-
-    subgraph "Merkle Tree"
-        M1[Hash 1+2]
-        M2[Hash 3+4]
-        ROOT[🔒 Merkle Root]
-    end
-
-    E1 --> H1
-    H0 --> H1
-    E2 --> H2
-    H1 --> H2
-    E3 --> H3
-    H2 --> H3
-    E4 --> H4
-    H3 --> H4
-
-    H1 --> M1
-    H2 --> M1
-    H3 --> M2
-    H4 --> M2
-    M1 --> ROOT
-    M2 --> ROOT
-
-    classDef event fill:#3498db,stroke:#333,color:#fff
-    classDef hash fill:#2ecc71,stroke:#333,color:#fff
-    classDef merkle fill:#e74c3c,stroke:#333,color:#fff
-    
-    class E1,E2,E3,E4 event
-    class H0,H1,H2,H3,H4 hash
-    class M1,M2,ROOT merkle
-```
-
-#### Pseudocódigo
-
-```typescript
-// Cada time_event tiene un hash encadenado:
-event_hash = SHA256(
-  employee_id + "|" + 
-  event_type + "|" + 
-  timestamp + "|" + 
-  previous_hash
-)
-
-// El daily_root es el Merkle Root de todos los hashes del día:
-function buildMerkleRoot(hashes: string[]): string {
-  if (hashes.length === 0) return SHA256("empty")
-  if (hashes.length === 1) return hashes[0]
-  
-  const nextLevel = []
-  for (let i = 0; i < hashes.length; i += 2) {
-    const left = hashes[i]
-    const right = hashes[i + 1] || left
-    nextLevel.push(SHA256(left + right))
-  }
-  return buildMerkleRoot(nextLevel)
-}
-```
-
-### Tablas QTSP
-
-| Tabla | Propósito | Campos Clave |
-|-------|-----------|--------------|
-| `daily_roots` | Hash Merkle raíz diario | `date`, `root_hash`, `event_count`, `company_id` |
-| `dt_case_files` | Case Files (1 por empresa) | `external_id`, `name`, `company_id` |
-| `dt_evidence_groups` | Grupos mensuales | `year_month`, `external_id`, `case_file_id` |
-| `dt_evidences` | Evidencias individuales | `evidence_type`, `status`, `tsp_token`, `daily_root_id` |
-| `qtsp_audit_log` | Log de operaciones | `action`, `status`, `duration_ms`, `error_message` |
-
-### Estados de Evidencia
-
-```mermaid
-stateDiagram-v2
-    [*] --> pending: Creación
-    pending --> processing: Envío a QTSP
-    processing --> completed: TSP Token recibido
-    processing --> failed: Error API
-    failed --> processing: Reintento
-    completed --> [*]
-    
-    note right of completed
-        Evidencia sellada
-        con timestamp cualificado
-    end note
-    
-    note right of failed
-        Se reintentará automáticamente
-        max 3 intentos
-    end note
-```
-
-### Acciones de qtsp-notarize
-
-| Acción | Descripción | Parámetros |
-|--------|-------------|------------|
-| `health_check` | Verifica conectividad y autenticación con QTSP | Ninguno |
-| `timestamp_daily` | Sella hash diario con timestamp cualificado | `company_id`, `daily_root_id` |
-| `seal_pdf` | Sella PDF mensual con firma cualificada | `company_id`, `report_month`, `pdf_path` |
-| `check_status` | Verifica estado de evidencias en procesamiento | `company_id` |
-| `retry_failed` | Reintenta evidencias fallidas | `company_id` |
-
-### Gestión de Health y Monitorización QTSP
-
-El sistema incluye un monitor de salud integrado para supervisar la conectividad con Digital Trust:
-
-```mermaid
-graph TB
-    subgraph "Health Check Flow"
-        HC[🔍 Health Check]
-        AUTH[🔐 Test Auth]
-        API[📡 Test API]
-        RESULT[📊 Health Status]
-    end
-
-    subgraph "Estados de Salud"
-        HEALTHY[✅ Healthy<br/>Latencia < 200ms]
-        DEGRADED[⚠️ Degraded<br/>200-500ms]
-        CRITICAL[❌ Critical<br/>> 500ms o Error]
-    end
-
-    subgraph "Respuesta Automática"
-        LOG[📝 Log en qtsp_audit_log]
-        ALERT[🔔 Alerta Visual]
-        RETRY[🔄 Retry Automático]
-    end
-
-    HC --> AUTH
-    AUTH --> API
-    API --> RESULT
-    
-    RESULT --> HEALTHY
-    RESULT --> DEGRADED
-    RESULT --> CRITICAL
-    
-    HEALTHY --> LOG
-    DEGRADED --> LOG
-    DEGRADED --> ALERT
-    CRITICAL --> LOG
-    CRITICAL --> ALERT
-    CRITICAL --> RETRY
-
-    classDef check fill:#3498db,stroke:#333,color:#fff
-    classDef status fill:#2ecc71,stroke:#333,color:#fff
-    classDef action fill:#e74c3c,stroke:#333,color:#fff
-    
-    class HC,AUTH,API,RESULT check
-    class HEALTHY,DEGRADED,CRITICAL status
-    class LOG,ALERT,RETRY action
-```
-
-#### Respuesta del Health Check
-
-```typescript
-interface HealthCheckResult {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  latency_ms: number;
-  auth_ok: boolean;
-  api_reachable: boolean;
-  last_check: string;      // ISO timestamp
-  error?: string;          // Solo si hay error
-}
-```
-
-#### Gráfico de Latencia en Tiempo Real
-
-El panel Super Admin incluye un gráfico de historial de latencia que:
-- Muestra los últimos 15 minutos de datos
-- Actualiza automáticamente cada 30 segundos
-- Visualiza umbrales de rendimiento (healthy/degraded/critical)
-- Permite identificar patrones de degradación
-
-### Secretos Requeridos
-
-| Secreto | Descripción | Ejemplo |
-|---------|-------------|---------|
-| `DIGITALTRUST_API_URL` | URL base de la API | `https://api.digitaltrust.example.com` |
-| `DIGITALTRUST_LOGIN_URL` | URL de autenticación OAuth | `https://auth.digitaltrust.example.com/oauth/token` |
-| `DIGITALTRUST_CLIENT_ID` | ID del cliente OAuth | `timecontrol-prod` |
-| `DIGITALTRUST_CLIENT_SECRET` | Secret del cliente OAuth | `****` |
-
-### Exportación de Paquete Probatorio
-
-La Edge Function `qtsp-export-package` genera un paquete JSON completo para auditorías:
-
-```json
-{
-  "version": "1.0",
-  "generated_at": "2025-01-05T10:30:00Z",
-  "company": {
-    "id": "uuid",
-    "name": "Empresa S.L.",
-    "cif": "B12345678"
-  },
-  "period": {
-    "start": "2025-01-01",
-    "end": "2025-01-31"
-  },
-  "case_file": {
-    "id": "uuid",
-    "external_id": "dt-casefile-123"
-  },
-  "evidence_groups": [...],
-  "evidences": [...],
-  "daily_roots": [...],
-  "integrity": {
-    "algorithm": "SHA-256",
-    "hash": "abc123..."
-  },
-  "statistics": {
-    "total_days": 31,
-    "days_with_events": 22,
-    "total_evidences": 22,
-    "completed_evidences": 22
-  }
-}
-```
+| `daily_roots` | Hash Merkle raíz diario | Por empresa |
+| `dt_evidences` | Evidencias selladas QTSP | Por empresa |
+| `compliance_violations` | Violaciones detectadas | Por empresa |
+| `compliance_incidents` | Incidencias de cumplimiento | Por empresa |
+| `labor_calendars` | Calendarios laborales | Por empresa |
+| `itss_packages` | Paquetes generados para ITSS | Por empresa |
+| `absence_types` | Tipos de ausencia configurables | Por empresa |
+| `absence_requests` | Solicitudes de ausencia | Por empresa/empleado |
+| `legal_documents` | Documentos legales generados | Por empresa |
+| `document_acknowledgments` | Aceptaciones con QTSP | Por empresa |
+| `monthly_closures` | Cierres mensuales firmados | Por empresa/empleado |
+| `qtsp_audit_log` | Log de operaciones QTSP | Por empresa |
+| `escalation_rules` | Reglas de escalado | Por empresa |
+| `data_retention_config` | Configuración retención datos | Por empresa |
 
 ---
 
 ## ⚡ Edge Functions
 
+### Diagrama de Funciones
+
 ```mermaid
 graph TB
-    subgraph "Edge Functions"
-        KC[kiosk-clock<br/>Fichaje QR/PIN]
-        GDR[generate-daily-root<br/>Merkle Hash]
-        QN[qtsp-notarize<br/>Sellado QTSP]
-        QS[qtsp-scheduler<br/>Cron multi-TZ]
-        QEP[qtsp-export-package<br/>Exportación]
-        LE[log-export<br/>Exportar logs]
-        STU[setup-test-users<br/>Usuarios test]
-        STD[setup-test-data<br/>Datos test]
-        IA[inconsistency-alert<br/>Email inconsistencias]
-        WIS[weekly-inconsistency-summary<br/>Resumen semanal]
+    subgraph "Fichaje"
+        KC[kiosk-clock]
+        KA[kiosk-auth]
     end
 
-    KIOSK[🖥️ Kiosk] --> KC
-    CRON[⏰ pg_cron] --> QS
-    CRON --> WIS
-    QS --> GDR
-    GDR --> QN
-    ADMIN[👔 Admin] --> QEP
-    ADMIN --> LE
-    DASHBOARD[👤 Employee Dashboard] --> IA
+    subgraph "QTSP"
+        GDR[generate-daily-root]
+        QN[qtsp-notarize]
+        QS[qtsp-scheduler]
+        QR[qtsp-retry]
+        QH[qtsp-health-monitor]
+        QE[qtsp-export-package]
+    end
 
-    classDef func fill:#3ecf8e,stroke:#333,color:#000
-    classDef notify fill:#f1c40f,stroke:#333,color:#000
-    class KC,GDR,QN,QS,QEP,LE,STU,STD func
-    class IA,WIS notify
+    subgraph "Cumplimiento"
+        CE[compliance-evaluator]
+        GIP[generate-itss-package]
+        GLD[generate-legal-document]
+        GLR[generate-legal-reports]
+    end
+
+    subgraph "Notificaciones"
+        IA[inconsistency-alert]
+        WIS[weekly-inconsistency-summary]
+        EA[escalation-alert]
+        OA[orphan-alert]
+        ND[notification-dispatcher]
+        QHA[qtsp-health-alert]
+    end
+
+    subgraph "Utilidades"
+        LE[log-export]
+        DRP[data-retention-purge]
+        TD[templates-diff]
+        TP[templates-publish]
+        TS[templates-simulate]
+        TV[templates-validate]
+        VC[vacation-calculator]
+    end
+
+    subgraph "Admin"
+        STU[setup-test-users]
+        STD[setup-test-data]
+        AD[acknowledge-document]
+        ECP[employee-change-pin]
+        SMH[sign-monthly-hours]
+    end
 ```
 
-| Función | Propósito | JWT | Trigger |
-|---------|-----------|:---:|---------|
-| `kiosk-clock` | Procesa fichajes QR/PIN desde terminales kiosk | ❌ | HTTP POST desde kiosk |
-| `generate-daily-root` | Calcula y almacena Merkle root de eventos diarios | ❌ | Llamada desde scheduler |
-| `qtsp-notarize` | Gestiona sellado con Digital Trust (timestamp, PDF, health) | ❌ | Llamada desde generate-daily-root o manual |
-| `qtsp-scheduler` | Coordina sellado automático respetando timezones | ❌ | pg_cron cada hora |
-| `qtsp-export-package` | Genera paquete probatorio JSON para auditorías | ❌ | HTTP POST desde admin |
-| `log-export` | Exporta logs de auditoría en formato CSV/JSON | ❌ | HTTP POST desde admin |
-| `setup-test-users` | Crea usuarios de prueba con roles predefinidos | ❌ | Manual |
-| `setup-test-data` | Genera datos de prueba (empresas, empleados, fichajes) | ❌ | Manual |
-| `inconsistency-alert` | Envía email a empleados cuando se detectan inconsistencias | ❌ | HTTP POST desde dashboard |
-| `weekly-inconsistency-summary` | Envía resumen semanal de inconsistencias a responsables de departamento | ❌ | pg_cron (lunes 9:00) / Manual |
+### Detalle de Funciones Principales
 
-### Detalle de Edge Functions
-
-#### `kiosk-clock`
-Procesa fichajes desde terminales kiosk, validando credenciales QR o PIN.
-
-```typescript
-// Request
-POST /functions/v1/kiosk-clock
-{
-  "action": "clock",
-  "terminal_id": "uuid",
-  "credential_type": "qr" | "pin",
-  "credential": "token_or_pin",
-  "employee_code": "EMP001",  // Solo para PIN
-  "event_type": "entry" | "exit"
-}
-
-// Response
-{
-  "success": true,
-  "event_id": "uuid",
-  "employee_name": "Juan García",
-  "event_type": "entry",
-  "timestamp": "2025-01-05T09:00:00Z"
-}
-```
-
-#### `generate-daily-root`
-Calcula el hash Merkle raíz de todos los eventos del día para una empresa.
-
-```typescript
-// Request
-POST /functions/v1/generate-daily-root
-{
-  "company_id": "uuid",
-  "date": "2025-01-04"  // Fecha a procesar (normalmente ayer)
-}
-
-// Response
-{
-  "success": true,
-  "daily_root_id": "uuid",
-  "root_hash": "sha256...",
-  "event_count": 42,
-  "notarization_triggered": true
-}
-```
-
-#### `qtsp-notarize`
-Gestiona todas las operaciones con Digital Trust QTSP.
-
-```typescript
-// Health Check
-POST /functions/v1/qtsp-notarize
-{ "action": "health_check" }
-
-// Response
-{
-  "status": "healthy",
-  "latency_ms": 145,
-  "auth_ok": true,
-  "api_reachable": true,
-  "last_check": "2025-01-05T10:30:00Z"
-}
-
-// Timestamp Daily
-POST /functions/v1/qtsp-notarize
-{
-  "action": "timestamp_daily",
-  "company_id": "uuid",
-  "daily_root_id": "uuid"
-}
-
-// Check Status
-POST /functions/v1/qtsp-notarize
-{
-  "action": "check_status",
-  "company_id": "uuid"
-}
-
-// Response
-{
-  "checked": 3,
-  "completed": 2,
-  "still_processing": 1,
-  "details": [...]
-}
-
-// Retry Failed
-POST /functions/v1/qtsp-notarize
-{
-  "action": "retry_failed",
-  "company_id": "uuid"
-}
-```
-
-#### `qtsp-scheduler`
-Orquesta el sellado automático respetando las zonas horarias de cada empresa.
-
-```typescript
-// Ejecutado por pg_cron cada hora
-POST /functions/v1/qtsp-scheduler
-{}
-
-// Response
-{
-  "executed_at": "2025-01-05T03:00:00Z",
-  "companies_processed": 5,
-  "results": [
-    { "company_id": "uuid", "status": "success", "daily_root_id": "uuid" },
-    { "company_id": "uuid", "status": "skipped", "reason": "outside_window" }
-  ]
-}
-```
-
-#### `qtsp-export-package`
-Genera paquete probatorio completo para auditorías externas.
-
-```typescript
-// Request
-POST /functions/v1/qtsp-export-package
-{
-  "company_id": "uuid",
-  "start_date": "2025-01-01",
-  "end_date": "2025-01-31"
-}
-
-// Response: JSON con todo el paquete probatorio
-// Ver sección "Exportación de Paquete Probatorio" para estructura completa
-```
-
-#### `log-export`
-Exporta registros de auditoría en diferentes formatos.
-
-```typescript
-// Request
-POST /functions/v1/log-export
-{
-  "company_id": "uuid",
-  "start_date": "2025-01-01",
-  "end_date": "2025-01-31",
-  "format": "csv" | "json",
-  "log_type": "audit" | "qtsp"
-}
-```
-
-#### `setup-test-data`
-Genera datos de prueba para desarrollo y testing.
-
-```typescript
-// Request
-POST /functions/v1/setup-test-data
-{
-  "company_id": "uuid",
-  "num_employees": 10,
-  "days_of_events": 30
-}
-```
+| Función | Propósito | Trigger |
+|---------|-----------|---------|
+| `kiosk-clock` | Procesa fichajes QR/PIN | HTTP POST kiosk |
+| `generate-daily-root` | Calcula Merkle root diario | Scheduler |
+| `qtsp-notarize` | Gestiona sellado con QTSP | generate-daily-root |
+| `qtsp-scheduler` | Orquesta sellado por timezone | pg_cron cada hora |
+| `compliance-evaluator` | Evalúa reglas de cumplimiento | HTTP POST / Cron |
+| `generate-itss-package` | Genera paquete completo ITSS | HTTP POST admin |
+| `generate-legal-document` | Genera PDFs de documentos | HTTP POST admin |
+| `data-retention-purge` | Purga datos > 4 años | pg_cron diario 3:00 AM |
+| `inconsistency-alert` | Envía alerta a empleado | HTTP POST dashboard |
+| `escalation-alert` | Notifica escalado | Trigger DB |
 
 ---
 
 ## 📱 Modo Offline (PWA)
+
+### Flujo Offline
 
 ```mermaid
 sequenceDiagram
@@ -1059,8 +1278,8 @@ sequenceDiagram
     participant IDB as 💾 IndexedDB
     participant API as ☁️ API
 
-    Note over USER,API: Escenario: Sin conexión
-
+    Note over USER,API: Sin conexión
+    
     USER->>KIOSK: Escanea QR
     KIOSK->>SW: Verifica conexión
     SW-->>KIOSK: offline
@@ -1069,126 +1288,83 @@ sequenceDiagram
     KIOSK->>IDB: Guardar evento (cola offline)
     KIOSK-->>USER: ✅ Fichaje guardado offline
 
-    Note over USER,API: Escenario: Conexión restaurada
-
-    SW->>SW: Detectar conexión
+    Note over USER,API: Conexión restaurada
+    
     SW->>IDB: Obtener cola pendiente
-    IDB-->>SW: [eventos offline]
     
     loop Para cada evento
         SW->>API: POST sync_offline
         API-->>SW: ✅ Sincronizado
         SW->>IDB: Eliminar de cola
     end
-    
-    SW-->>KIOSK: Sincronización completa
 ```
 
 ### Características PWA
 
 | Característica | Implementación |
 |----------------|----------------|
-| **Service Worker** | Vite PWA Plugin para cache de assets |
-| **IndexedDB** | Cola de fichajes offline encriptados |
-| **Detección de Red** | Hook `useConnectionStatus` |
-| **Sincronización** | Automática al recuperar conexión |
-| **Encriptación Local** | AES-GCM para datos sensibles (PIN) |
-
-### Estructura de Cola Offline
-
-```typescript
-interface OfflineEvent {
-  uuid: string;           // UUID único generado localmente
-  employee_id: string;    // ID del empleado (del QR)
-  event_type: 'entry' | 'exit';
-  local_timestamp: string; // ISO timestamp local
-  timezone: string;
-  event_source: 'qr' | 'pin';
-  qr_version?: number;
-  created_at: string;
-}
-```
+| **Service Worker** | Vite PWA Plugin |
+| **IndexedDB** | Cola encriptada AES-GCM |
+| **Detección Red** | Hook `useConnectionStatus` |
+| **Sincronización** | Automática al reconectar |
+| **Indicador Visual** | `OfflineIndicator` component |
 
 ---
 
 ## 🔒 Seguridad
 
-### Row Level Security (RLS)
-
-```mermaid
-graph TB
-    subgraph "Políticas RLS"
-        SA[super_admin<br/>Acceso global]
-        CA[Company Admin<br/>Solo su empresa]
-        RE[Responsible<br/>Solo lectura empresa]
-        EM[Employee<br/>Solo sus datos]
-    end
-
-    subgraph "Funciones Helper"
-        F1[is_super_admin]
-        F2[is_admin_or_above]
-        F3[user_belongs_to_company]
-        F4[get_employee_id]
-        F5[has_role]
-    end
-
-    SA --> F1
-    CA --> F2
-    CA --> F3
-    RE --> F3
-    RE --> F5
-    EM --> F4
-
-    classDef policy fill:#3498db,stroke:#333,color:#fff
-    classDef func fill:#2ecc71,stroke:#333,color:#fff
-    
-    class SA,CA,RE,EM policy
-    class F1,F2,F3,F4,F5 func
-```
-
-### Medidas de Seguridad
+### Medidas Implementadas
 
 | Área | Medida |
 |------|--------|
-| **Autenticación** | Supabase Auth con email/password |
+| **Autenticación** | Supabase Auth (email/password, magic link) |
 | **Autorización** | RLS en todas las tablas |
+| **Roles** | Tabla separada `user_roles` (no en profile) |
 | **Multi-tenancy** | Aislamiento completo por `company_id` |
-| **PINs** | Hash con salt (SHA-256) |
-| **Bloqueo** | Cuenta bloqueada tras 5 intentos fallidos |
-| **Inmutabilidad** | `time_events` solo INSERT (sin UPDATE/DELETE) |
+| **PINs** | Hash con salt (SHA-256), bloqueo 5 intentos |
+| **Inmutabilidad** | `time_events` solo INSERT |
 | **Hash Chain** | Cada evento referencia al anterior |
-| **Auditoría** | Log completo de todas las acciones |
-| **QTSP** | Sellado cualificado con validez legal |
+| **Auditoría** | Log completo de acciones |
+| **QTSP** | Sellado cualificado eIDAS |
 | **Offline** | Encriptación AES-GCM en IndexedDB |
+| **Retención** | Purga automática con evidencia QTSP |
 
-### Ejemplo de Política RLS
+### Funciones RLS Helper
 
 ```sql
--- Empleados solo pueden ver sus propios fichajes
-CREATE POLICY "mt_te_employee_own" 
-ON public.time_events 
-FOR SELECT 
-USING (employee_id = get_employee_id(auth.uid()));
+-- Verificar rol de usuario
+CREATE FUNCTION has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
 
--- Admins pueden ver todos los fichajes de su empresa
-CREATE POLICY "mt_te_company_admin" 
-ON public.time_events 
-FOR SELECT 
-USING (
-  user_belongs_to_company(auth.uid(), company_id) 
-  AND is_admin_or_above(auth.uid())
-);
+-- Verificar pertenencia a empresa
+CREATE FUNCTION user_belongs_to_company(_user_id uuid, _company_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_company
+    WHERE user_id = _user_id AND company_id = _company_id
+  )
+$$;
 ```
 
 ---
 
 ## 🛠 Instalación y Configuración
 
-### Requisitos Previos
+### Requisitos
 
 - Node.js 18+
-- npm o bun
-- Cuenta en Lovable.dev (backend incluido)
+- Cuenta en Lovable.dev
 
 ### Variables de Entorno
 
@@ -1198,11 +1374,14 @@ VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
 VITE_SUPABASE_PROJECT_ID=xxx
 
-# Secretos para QTSP (configurar en Lovable)
-DIGITALTRUST_API_URL=https://api.digitaltrust.example.com
-DIGITALTRUST_LOGIN_URL=https://auth.digitaltrust.example.com/oauth/token
+# Secretos QTSP (configurar en Lovable)
+DIGITALTRUST_API_URL=https://api.eadtrust.eu
+DIGITALTRUST_LOGIN_URL=https://auth.eadtrust.eu/oauth/token
 DIGITALTRUST_CLIENT_ID=your-client-id
 DIGITALTRUST_CLIENT_SECRET=your-secret
+
+# Email (opcional)
+RESEND_API_KEY=re_xxx
 ```
 
 ### Desarrollo Local
@@ -1215,168 +1394,48 @@ cd <YOUR_PROJECT_NAME>
 # Instalar dependencias
 npm install
 
-# Iniciar servidor de desarrollo
+# Iniciar desarrollo
 npm run dev
 ```
 
-### Configuración de QTSP
-
-1. **Obtener credenciales** de EADTrust/Digital Trust
-2. **Configurar secretos** en Lovable Cloud → Secrets
-3. **Verificar cron job** `qtsp-scheduler-hourly` activo
-4. **Probar conexión** con una empresa de prueba
-
-### Configuración del Cron Job
+### Configuración de Cron Jobs
 
 ```sql
--- Habilitado automáticamente
-SELECT cron.schedule(
-  'qtsp-scheduler-hourly',
-  '0 * * * *',  -- Cada hora en punto
-  $$
-  SELECT net.http_post(
-    url := 'https://PROJECT_ID.supabase.co/functions/v1/qtsp-scheduler',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer ANON_KEY"}'::jsonb,
-    body := '{}'::jsonb
-  );
-  $$
-);
+-- Sellado QTSP cada hora
+SELECT cron.schedule('qtsp-scheduler-hourly', '0 * * * *', ...);
+
+-- Purga de datos diaria 3:00 AM
+SELECT cron.schedule('data-retention-purge', '0 3 * * *', ...);
+
+-- Resumen semanal lunes 9:00 AM
+SELECT cron.schedule('weekly-inconsistency-summary', '0 9 * * 1', ...);
+
+-- Evaluación compliance diaria 1:00 AM
+SELECT cron.schedule('compliance-evaluator', '0 1 * * *', ...);
 ```
-
----
-
-## 🧪 Pruebas Realizadas
-
-### Pruebas de Integración QTSP
-
-Las siguientes pruebas se han ejecutado para validar la integración completa con Digital Trust:
-
-| Prueba | Fecha | Resultado | Observaciones |
-|--------|-------|-----------|---------------|
-| **Health Check API** | 2025-01-05 | ✅ Passed | Latencia ~145ms, autenticación OAuth2 exitosa |
-| **Crear Case File** | 2025-01-05 | ✅ Passed | Case File creado en Digital Trust correctamente |
-| **Crear Evidence Group** | 2025-01-05 | ✅ Passed | Grupo mensual 2025-01 creado |
-| **Timestamp Daily (TSP)** | 2025-01-05 | ⏳ Processing | Evidencia creada, esperando TSP token RFC 3161 |
-| **Check Status** | 2025-01-05 | ✅ Passed | Polling de estado funciona correctamente |
-| **Retry Failed** | 2025-01-05 | ✅ Passed | Sin evidencias fallidas para reintentar |
-
-### Flujo de Prueba Ejecutado
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant TEST as 🧪 Tester
-    participant NOTARIZE as qtsp-notarize
-    participant DT as 🏛️ Digital Trust
-    participant DB as 📊 PostgreSQL
-
-    Note over TEST,DB: Prueba Completa de Integración QTSP
-
-    TEST->>NOTARIZE: health_check
-    NOTARIZE->>DT: POST /oauth/token
-    DT-->>NOTARIZE: access_token ✅
-    NOTARIZE->>DT: GET /api/health
-    DT-->>NOTARIZE: API reachable ✅
-    NOTARIZE-->>TEST: {status: "healthy", latency_ms: 145}
-
-    TEST->>NOTARIZE: timestamp_daily
-    NOTARIZE->>DT: GET/POST Case File
-    DT-->>NOTARIZE: case_file_id: "dt-xxx"
-    NOTARIZE->>DB: INSERT dt_case_files
-    
-    NOTARIZE->>DT: GET/POST Evidence Group
-    DT-->>NOTARIZE: evidence_group_id: "dt-yyy"
-    NOTARIZE->>DB: INSERT dt_evidence_groups
-    
-    NOTARIZE->>DT: POST Evidence (root_hash)
-    DT-->>NOTARIZE: evidence_id: "dt-zzz" (processing)
-    NOTARIZE->>DB: INSERT dt_evidences (status: processing)
-    
-    loop Polling cada 2s (max 5 intentos)
-        NOTARIZE->>DT: GET /evidence/{id}
-        DT-->>NOTARIZE: status: processing
-    end
-    
-    NOTARIZE-->>TEST: {success: true, status: "processing"}
-
-    TEST->>NOTARIZE: check_status
-    NOTARIZE->>DB: SELECT dt_evidences WHERE status = 'processing'
-    NOTARIZE->>DT: GET /evidence/{id}
-    DT-->>NOTARIZE: {status: "completed", tsp_token: "..."}
-    NOTARIZE->>DB: UPDATE dt_evidences SET status = 'completed'
-    NOTARIZE-->>TEST: {checked: 1, completed: 1}
-```
-
-### Datos de Prueba Utilizados
-
-| Entidad | ID/Valor | Descripción |
-|---------|----------|-------------|
-| Company | `empresa_prueba_qtsp` | Empresa de prueba para validación |
-| Daily Root | Hash SHA-256 | Merkle root de eventos del día |
-| Evidence Type | `daily_timestamp` | Tipo de evidencia para sellado diario |
-| Case File | Creado en Digital Trust | Expediente único por empresa |
-| Evidence Group | `2025-01` | Agrupación mensual de evidencias |
-
-### Métricas de Rendimiento Observadas
-
-| Métrica | Valor | Umbral Aceptable |
-|---------|-------|------------------|
-| Latencia autenticación OAuth | ~100ms | < 500ms |
-| Latencia creación evidencia | ~200ms | < 1000ms |
-| Tiempo total timestamp_daily | ~2-3s | < 10s |
-| Polling hasta TSP token | Variable | < 5 min típico |
-
-### Pruebas Pendientes
-
-| Prueba | Estado | Notas |
-|--------|--------|-------|
-| Sellado PDF mensual | ❌ Bloqueado | Error 404 en endpoint evidence-groups. La API de DT devuelve ID en búsqueda que no corresponde a evidence group válido. Requiere investigación de endpoints correctos. |
-| Retry de evidencias fallidas | ✅ Validado (sin fallos) | Simular fallo para test completo |
-| Exportación paquete probatorio | 🔜 Pendiente | Requiere evidencias completadas |
-| Alertas por email inconsistencias | ✅ Implementado | Requiere configuración RESEND_API_KEY |
-| Resumen semanal de inconsistencias | ✅ Implementado | Requiere cron job configurado y responsables de departamento asignados |
-| Detección de inconsistencias | ✅ Funcional | Hook y componente integrados en dashboard |
-| Corrección directa desde alerta | ✅ Funcional | Navega a formulario con datos pre-rellenados |
-
-### Incidencias Detectadas
-
-| Incidencia | Descripción | Acción Requerida |
-|------------|-------------|------------------|
-| Evidence Group ID inconsistente | La búsqueda global de evidence-groups en DT devuelve IDs que no funcionan en el endpoint de creación de evidencias | Verificar documentación de API Digital Trust para endpoints correctos |
-| Constraint daily_roots | El constraint unique es solo por `date`, debería ser por `(date, company_id)` | Migración para corregir constraint |
-
----
-
-## 📄 Licencia
-
-Proyecto propietario - Todos los derechos reservados.
-
----
-
-## 📞 Contacto
-
-Para soporte técnico o consultas comerciales, contactar al equipo de desarrollo.
-
----
-
-<p align="center">
-  <strong>Time Control Hub</strong> - Sistema de Control Horario con Sellado Cualificado<br/>
-  Desarrollado con ❤️ usando React, Supabase y Digital Trust
-</p>
 
 ---
 
 ## 📝 Changelog
 
+### v2.0.0 (2026-01-06)
+- ✨ **Sistema de Cumplimiento Completo**: Dashboard con semáforo, KPIs, incidencias
+- ✨ **Generador Paquetes ITSS**: Wizard 6 pasos, 5 módulos, sellado QTSP
+- ✨ **Calendario Laboral**: Gestión festivos, jornada intensiva, multi-centro
+- ✨ **Plantillas y Convenios**: Wizard configuración, simulador, versionado
+- ✨ **Gestión de Ausencias**: 25+ tipos, workflow aprobación, bloqueo fichaje
+- ✨ **Documentos Legales**: 14 plantillas, aceptación con QTSP
+- ✨ **Portal Asesor Laboral**: Acceso colaborativo, análisis proactivo
+- ✨ **Retención de Datos**: Purga automática 4 años, evidencia QTSP
+- ✨ **Escalado de Alertas**: Niveles configurables, notificación asesor
+- ✨ **Cierres Mensuales**: Firma empleado con sellado QTSP
+- 🗃️ **Nuevas tablas**: labor_calendars, itss_packages, compliance_*, absence_*, etc.
+
 ### v1.2.0 (2026-01-06)
-- ✨ **Sistema de detección de inconsistencias**: Hook `useTimeEventInconsistencies` y componente `InconsistencyAlert`
-- ✨ **Alertas por email**: Edge function `inconsistency-alert` para notificar a empleados
-- ✨ **Resumen semanal**: Edge function `weekly-inconsistency-summary` para responsables de departamento
-- ✨ **Panel de configuración**: Componente `NotificationSettings` para activar/desactivar notificaciones
-- ✨ **Corrección directa**: Botón en alertas para solicitar corrección con datos pre-rellenados
-- 🗃️ **Nueva tabla**: `company_settings` para configuración por empresa
-- 🗃️ **Nuevos campos**: `department` e `is_department_responsible` en tabla `employees`
-- 📝 **Audit log**: Nuevas acciones `inconsistency_alert_sent` y `weekly_inconsistency_summary`
+- ✨ **Sistema de detección de inconsistencias**
+- ✨ **Alertas por email a empleados**
+- ✨ **Resumen semanal a responsables**
+- ✨ **Panel de configuración notificaciones**
 
 ### v1.1.0
 - ✨ Integración QTSP con EADTrust
@@ -1389,3 +1448,24 @@ Para soporte técnico o consultas comerciales, contactar al equipo de desarrollo
 - ✨ Gestión de empleados
 - ✨ Flujo de correcciones
 - ✨ Modo offline PWA
+
+---
+
+## 📞 Contacto
+
+Para soporte técnico o consultas comerciales, contactar al equipo de desarrollo.
+
+---
+
+## 📄 Licencia
+
+Proyecto propietario - Todos los derechos reservados.
+
+---
+
+<p align="center">
+  <strong>Time Control Hub</strong><br/>
+  Plataforma de Control Horario y Cumplimiento Laboral<br/>
+  con Servicios de Confianza Cualificados (QTSP)<br/><br/>
+  Desarrollado con ❤️ usando React, Lovable Cloud y Digital Trust
+</p>
