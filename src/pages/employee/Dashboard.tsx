@@ -14,6 +14,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { ClockInCalendar } from '@/components/employee/ClockInCalendar';
+import { useTimeEventInconsistencies } from '@/hooks/useTimeEventInconsistencies';
+import { InconsistencyAlert } from '@/components/admin/InconsistencyAlert';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -52,6 +54,15 @@ export default function EmployeeDashboard() {
       return data;
     },
   });
+
+  // Check for inconsistencies in employee's own events
+  const eventsForInconsistencyCheck = recentEvents?.map(event => ({
+    id: event.id,
+    employee_id: event.employee_id,
+    event_type: event.event_type as 'entry' | 'exit',
+    timestamp: event.timestamp,
+  }));
+  const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(eventsForInconsistencyCheck);
 
   // Group events by date
   const groupedEvents = recentEvents?.reduce((acc: any, event: any) => {
@@ -222,6 +233,11 @@ export default function EmployeeDashboard() {
             </div>
           )}
         </div>
+
+        {/* Inconsistency alert for employee's own records */}
+        {hasInconsistencies && (
+          <InconsistencyAlert inconsistencies={inconsistencies} />
+        )}
 
         {/* Calendar view */}
         {recentEvents && recentEvents.length > 0 && (
