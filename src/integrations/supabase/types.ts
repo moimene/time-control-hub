@@ -479,9 +479,11 @@ export type Database = {
           attachments: Json | null
           body: string
           company_id: string
+          content_hash: string | null
           created_at: string
           id: string
           priority: Database["public"]["Enums"]["message_priority"]
+          qtsp_evidence_id: string | null
           recipient_department: string | null
           recipient_employee_id: string | null
           recipient_type: string
@@ -497,9 +499,11 @@ export type Database = {
           attachments?: Json | null
           body: string
           company_id: string
+          content_hash?: string | null
           created_at?: string
           id?: string
           priority?: Database["public"]["Enums"]["message_priority"]
+          qtsp_evidence_id?: string | null
           recipient_department?: string | null
           recipient_employee_id?: string | null
           recipient_type: string
@@ -515,9 +519,11 @@ export type Database = {
           attachments?: Json | null
           body?: string
           company_id?: string
+          content_hash?: string | null
           created_at?: string
           id?: string
           priority?: Database["public"]["Enums"]["message_priority"]
+          qtsp_evidence_id?: string | null
           recipient_department?: string | null
           recipient_employee_id?: string | null
           recipient_type?: string
@@ -535,6 +541,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_messages_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
           {
@@ -682,12 +695,14 @@ export type Database = {
           body_json: Json
           channel: Database["public"]["Enums"]["notification_channel"]
           company_id: string
+          content_hash: string | null
           created_at: string
           error_message: string | null
           failed_at: string | null
           id: string
           incident_id: string | null
           notification_type: string
+          qtsp_evidence_id: string | null
           quiet_hours_delayed: boolean | null
           recipient_email: string | null
           recipient_employee_id: string | null
@@ -701,12 +716,14 @@ export type Database = {
           body_json?: Json
           channel?: Database["public"]["Enums"]["notification_channel"]
           company_id: string
+          content_hash?: string | null
           created_at?: string
           error_message?: string | null
           failed_at?: string | null
           id?: string
           incident_id?: string | null
           notification_type: string
+          qtsp_evidence_id?: string | null
           quiet_hours_delayed?: boolean | null
           recipient_email?: string | null
           recipient_employee_id?: string | null
@@ -720,12 +737,14 @@ export type Database = {
           body_json?: Json
           channel?: Database["public"]["Enums"]["notification_channel"]
           company_id?: string
+          content_hash?: string | null
           created_at?: string
           error_message?: string | null
           failed_at?: string | null
           id?: string
           incident_id?: string | null
           notification_type?: string
+          qtsp_evidence_id?: string | null
           quiet_hours_delayed?: boolean | null
           recipient_email?: string | null
           recipient_employee_id?: string | null
@@ -748,6 +767,13 @@ export type Database = {
             columns: ["incident_id"]
             isOneToOne: false
             referencedRelation: "compliance_incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_notifications_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
           {
@@ -1514,12 +1540,14 @@ export type Database = {
         Row: {
           action_url: string | null
           company_id: string
+          content_hash: string | null
           created_at: string
           employee_id: string
           id: string
           is_read: boolean
           message: string
           notification_type: string
+          qtsp_evidence_id: string | null
           read_at: string | null
           related_entity_id: string | null
           related_entity_type: string | null
@@ -1528,12 +1556,14 @@ export type Database = {
         Insert: {
           action_url?: string | null
           company_id: string
+          content_hash?: string | null
           created_at?: string
           employee_id: string
           id?: string
           is_read?: boolean
           message: string
           notification_type: string
+          qtsp_evidence_id?: string | null
           read_at?: string | null
           related_entity_id?: string | null
           related_entity_type?: string | null
@@ -1542,12 +1572,14 @@ export type Database = {
         Update: {
           action_url?: string | null
           company_id?: string
+          content_hash?: string | null
           created_at?: string
           employee_id?: string
           id?: string
           is_read?: boolean
           message?: string
           notification_type?: string
+          qtsp_evidence_id?: string | null
           read_at?: string | null
           related_entity_id?: string | null
           related_entity_type?: string | null
@@ -1566,6 +1598,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_notifications_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
         ]
@@ -2122,27 +2161,33 @@ export type Database = {
       }
       message_recipients: {
         Row: {
+          ack_content_hash: string | null
           acknowledged_at: string | null
           created_at: string
           employee_id: string
           id: string
           message_id: string
+          qtsp_evidence_id: string | null
           read_at: string | null
         }
         Insert: {
+          ack_content_hash?: string | null
           acknowledged_at?: string | null
           created_at?: string
           employee_id: string
           id?: string
           message_id: string
+          qtsp_evidence_id?: string | null
           read_at?: string | null
         }
         Update: {
+          ack_content_hash?: string | null
           acknowledged_at?: string | null
           created_at?: string
           employee_id?: string
           id?: string
           message_id?: string
+          qtsp_evidence_id?: string | null
           read_at?: string | null
         }
         Relationships: [
@@ -2158,6 +2203,13 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "company_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_recipients_qtsp_evidence_id_fkey"
+            columns: ["qtsp_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
         ]
@@ -2775,6 +2827,9 @@ export type Database = {
         | "breaks_report"
         | "night_work_report"
         | "notification_certificate"
+        | "message_hash"
+        | "acknowledgment"
+        | "notification_hash"
       incident_status:
         | "open"
         | "acknowledged"
@@ -2933,6 +2988,9 @@ export const Constants = {
         "breaks_report",
         "night_work_report",
         "notification_certificate",
+        "message_hash",
+        "acknowledgment",
+        "notification_hash",
       ],
       incident_status: [
         "open",
