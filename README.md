@@ -17,11 +17,14 @@
 3. [Modelo de Datos](#-modelo-de-datos)
 4. [Roles y Permisos](#-roles-y-permisos)
 5. [Historias de Usuario](#-historias-de-usuario)
-6. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider)
-7. [Edge Functions](#-edge-functions)
-8. [Modo Offline (PWA)](#-modo-offline-pwa)
-9. [Seguridad](#-seguridad)
-10. [Instalación y Configuración](#-instalación-y-configuración)
+6. [Sistema de Detección de Inconsistencias](#-sistema-de-detección-de-inconsistencias)
+7. [Notificaciones por Email](#-notificaciones-por-email)
+8. [Configuración de Notificaciones](#-configuración-de-notificaciones)
+9. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider)
+10. [Edge Functions](#-edge-functions)
+11. [Modo Offline (PWA)](#-modo-offline-pwa)
+12. [Seguridad](#-seguridad)
+13. [Instalación y Configuración](#-instalación-y-configuración)
 
 ---
 
@@ -38,6 +41,10 @@
 | **Reportes y Auditoría** | Informes mensuales sellados, log de auditoría completo |
 | **Panel Super Admin** | Gestión cross-tenant de todas las empresas |
 | **Calendario QTSP** | Visualización del estado de evidencias por día |
+| **Detección de Inconsistencias** | Detección automática de fichajes consecutivos del mismo tipo y entradas huérfanas (>12h) |
+| **Alertas por Email** | Notificaciones automáticas a empleados cuando se detectan inconsistencias en sus fichajes |
+| **Resumen Semanal** | Envío automático de resumen de inconsistencias a responsables de departamento |
+| **Panel de Configuración** | Configuración de notificaciones por empresa (activar/desactivar alertas individuales y resúmenes) |
 
 ---
 
@@ -148,7 +155,10 @@ erDiagram
         text employee_code
         text first_name
         text last_name
+        text email
         text pin_hash
+        text department
+        boolean is_department_responsible
         enum status
     }
     
@@ -201,6 +211,7 @@ erDiagram
 | `employee_qr` | Códigos QR activos por empleado | Por empresa |
 | `user_roles` | Roles asignados a usuarios | Por usuario |
 | `user_company` | Asociación usuario-empresa | Por usuario |
+| `company_settings` | Configuración por empresa (notificaciones, etc.) | Por empresa |
 
 ---
 
@@ -277,6 +288,8 @@ graph LR
 | E2 | Como empleado, quiero fichar con código+PIN cuando no tenga mi QR | - Introducir código de empleado<br/>- PIN de 4-6 dígitos<br/>- Bloqueo tras 5 intentos fallidos |
 | E3 | Como empleado, quiero ver mis fichajes del día/semana/mes | - Listado cronológico<br/>- Filtros por período<br/>- Horas totales calculadas |
 | E4 | Como empleado, quiero solicitar una corrección si olvidé fichar | - Formulario con fecha/hora/motivo<br/>- Estado visible (pendiente/aprobada/rechazada)<br/>- Notificación de resolución |
+| E5 | Como empleado, quiero ver alertas de inconsistencias en mi dashboard | - Alerta visual con detalle de inconsistencias<br/>- Botón para solicitar corrección directa con datos pre-rellenados |
+| E6 | Como empleado, quiero recibir email cuando se detecten inconsistencias | - Email automático con detalle de inconsistencias<br/>- Enlace directo a solicitud de corrección |
 
 ### 👔 Administrador
 
@@ -287,6 +300,8 @@ graph LR
 | A3 | Como admin, quiero aprobar/rechazar solicitudes de corrección | - Lista de pendientes<br/>- Detalle de solicitud<br/>- Campo de notas de revisión |
 | A4 | Como admin, quiero generar reportes mensuales sellados con QTSP | - Selección de mes/empleado<br/>- PDF con firma cualificada<br/>- Verificable externamente |
 | A5 | Como admin, quiero ver el calendario de evidencias QTSP | - Vista mensual<br/>- Estados: completado/pendiente/fallido<br/>- Acceso a detalles |
+| A6 | Como admin, quiero configurar notificaciones de inconsistencias | - Activar/desactivar emails individuales a empleados<br/>- Activar/desactivar resumen semanal a responsables |
+| A7 | Como admin, quiero ver el historial de alertas enviadas en el audit log | - Filtro por tipo `inconsistency_alert_sent`<br/>- Filtro por tipo `weekly_inconsistency_summary`<br/>- Detalle de emails enviados |
 
 ### 🔐 Super Admin
 
@@ -296,9 +311,208 @@ graph LR
 | S2 | Como super admin, quiero gestionar usuarios cross-tenant | - Cambio de roles<br/>- Asignación a empresas<br/>- Eliminación de usuarios |
 | S3 | Como super admin, quiero ver estadísticas globales de QTSP | - Total de evidencias por estado<br/>- Alertas de fallos<br/>- Tendencias temporales |
 
+### 📋 Responsable de Departamento
+
+| ID | Historia | Criterios de Aceptación |
+|----|----------|-------------------------|
+| R1 | Como responsable, quiero recibir resumen semanal de inconsistencias | - Email con listado agrupado por empleado<br/>- Solo empleados de mi departamento<br/>- Estadísticas del período |
+
 ---
 
-## 🔐 Integración QTSP (Qualified Trust Service Provider)
+## 🔍 Sistema de Detección de Inconsistencias
+
+El sistema detecta automáticamente inconsistencias en los fichajes de los empleados para ayudar a mantener registros precisos.
+
+### Tipos de Inconsistencias Detectadas
+
+| Tipo | Código | Descripción | Criterio |
+|------|--------|-------------|----------|
+| **Fichajes consecutivos** | `consecutive_same_type` | Dos fichajes seguidos del mismo tipo | Entrada seguida de entrada, o salida seguida de salida |
+| **Entrada huérfana** | `orphan_entry` | Entrada sin salida correspondiente | Última entrada hace más de 12 horas sin salida posterior |
+
+### Hook `useTimeEventInconsistencies`
+
+```typescript
+interface Inconsistency {
+  type: 'consecutive_same_type' | 'orphan_entry';
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  eventType: 'entry' | 'exit';
+  timestamp: string;
+  previousTimestamp?: string;
+}
+
+// Uso del hook
+const { inconsistencies, hasInconsistencies, count } = useTimeEventInconsistencies(events);
+```
+
+### Componente `InconsistencyAlert`
+
+Muestra alertas visuales en el dashboard con:
+- Listado detallado de inconsistencias detectadas
+- Tipo de inconsistencia con icono y descripción
+- Fecha y hora del evento problemático
+- **Botón de corrección directa**: Un clic navega al formulario de corrección con datos pre-rellenados
+
+```tsx
+<InconsistencyAlert 
+  inconsistencies={inconsistencies} 
+  maxDisplay={5} 
+  showCorrectionButton={true}
+/>
+```
+
+---
+
+## 📧 Notificaciones por Email
+
+El sistema envía notificaciones automáticas por email utilizando **Resend** para alertar sobre inconsistencias.
+
+### Diagrama de Flujo de Notificaciones
+
+```mermaid
+flowchart TB
+    subgraph "Detección en Frontend"
+        D[Dashboard Empleado] --> I[Detectar Inconsistencias]
+        I --> H{¿Hay inconsistencias?}
+    end
+
+    subgraph "Edge Function: inconsistency-alert"
+        H -->|Sí| C{¿Configuración activa?}
+        C -->|Sí| E[Enviar Email Individual]
+        C -->|No| S1[Skip]
+        E --> L1[Log en audit_log]
+    end
+
+    subgraph "Edge Function: weekly-inconsistency-summary"
+        CRON[pg_cron Lunes 9:00] --> W{¿Resumen activo?}
+        W -->|Sí| D2[Agrupar por Departamento]
+        W -->|No| S2[Skip]
+        D2 --> R[Enviar a Responsables]
+        R --> L2[Log en audit_log]
+    end
+
+    classDef frontend fill:#61dafb,stroke:#333,color:#000
+    classDef edge fill:#3ecf8e,stroke:#333,color:#000
+    classDef action fill:#f1c40f,stroke:#333,color:#000
+    
+    class D,I,H frontend
+    class C,E,W,D2,R edge
+    class L1,L2 action
+```
+
+### Edge Function: `inconsistency-alert`
+
+Envía email individual al empleado cuando se detectan inconsistencias en su dashboard.
+
+**Endpoint:** `POST /functions/v1/inconsistency-alert`
+
+**Request:**
+```json
+{
+  "employee_id": "uuid",
+  "inconsistencies": [
+    {
+      "type": "consecutive_same_type",
+      "employeeId": "uuid",
+      "employeeName": "Juan García",
+      "employeeCode": "EMP001",
+      "eventType": "entry",
+      "timestamp": "2025-01-15T09:00:00Z",
+      "previousTimestamp": "2025-01-15T08:30:00Z"
+    }
+  ]
+}
+```
+
+**Comportamiento:**
+1. Verifica configuración `company_settings.inconsistency_email_enabled`
+2. Obtiene datos del empleado y empresa
+3. Genera email HTML formateado con detalle de inconsistencias
+4. Incluye botón de acceso directo a solicitud de corrección
+5. Registra en `audit_log` con action `inconsistency_alert_sent`
+
+**Contenido del Email:**
+- Título con icono de alerta
+- Saludo personalizado al empleado
+- Lista detallada de inconsistencias con fecha/hora
+- Botón CTA para solicitar corrección
+- Pie con información de la empresa
+
+### Edge Function: `weekly-inconsistency-summary`
+
+Envía resumen semanal a responsables de departamento con las inconsistencias de su equipo.
+
+**Endpoint:** `POST /functions/v1/weekly-inconsistency-summary`
+
+**Comportamiento:**
+1. Ejecutado por cron job cada lunes a las 9:00 AM
+2. Itera por todas las empresas con resumen semanal activo
+3. Agrupa inconsistencias de los últimos 7 días por departamento
+4. Envía email resumen a empleados con `is_department_responsible = true`
+5. Registra en `audit_log` con action `weekly_inconsistency_summary`
+
+**Contenido del Resumen:**
+- Período cubierto (últimos 7 días)
+- Tabla de empleados con inconsistencias
+- Conteo por tipo de inconsistencia
+- Estadísticas del departamento
+
+---
+
+## ⚙️ Configuración de Notificaciones
+
+### Panel de Administración
+
+Los administradores pueden configurar las notificaciones desde **Configuración > Notificaciones**.
+
+| Opción | Descripción | Default |
+|--------|-------------|:-------:|
+| **Email por inconsistencia** | Enviar email individual al empleado cuando se detecta una inconsistencia | ✅ |
+| **Resumen semanal** | Enviar resumen semanal a responsables de departamento | ✅ |
+
+### Componente `NotificationSettings`
+
+```tsx
+// Ubicación: src/components/admin/NotificationSettings.tsx
+// Integrado en: src/pages/admin/Settings.tsx
+```
+
+### Tabla `company_settings`
+
+```sql
+CREATE TABLE public.company_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID REFERENCES public.company(id) ON DELETE CASCADE,
+  setting_key TEXT NOT NULL,
+  setting_value JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(company_id, setting_key)
+);
+```
+
+**Ejemplo de configuración de notificaciones:**
+```json
+{
+  "setting_key": "notifications",
+  "setting_value": {
+    "inconsistency_email_enabled": true,
+    "weekly_summary_enabled": true
+  }
+}
+```
+
+### Acciones en Audit Log
+
+| Action | Descripción | Datos Registrados |
+|--------|-------------|-------------------|
+| `inconsistency_alert_sent` | Email de alerta enviado a empleado | `employee_id`, `email`, `inconsistency_count`, `inconsistencies` |
+| `weekly_inconsistency_summary` | Resumen semanal enviado a responsable | `responsible_id`, `department`, `employee_count`, `total_inconsistencies` |
+
+---
+
 
 ### ¿Qué es QTSP?
 
@@ -642,17 +856,23 @@ graph TB
         LE[log-export<br/>Exportar logs]
         STU[setup-test-users<br/>Usuarios test]
         STD[setup-test-data<br/>Datos test]
+        IA[inconsistency-alert<br/>Email inconsistencias]
+        WIS[weekly-inconsistency-summary<br/>Resumen semanal]
     end
 
     KIOSK[🖥️ Kiosk] --> KC
     CRON[⏰ pg_cron] --> QS
+    CRON --> WIS
     QS --> GDR
     GDR --> QN
     ADMIN[👔 Admin] --> QEP
     ADMIN --> LE
+    DASHBOARD[👤 Employee Dashboard] --> IA
 
     classDef func fill:#3ecf8e,stroke:#333,color:#000
+    classDef notify fill:#f1c40f,stroke:#333,color:#000
     class KC,GDR,QN,QS,QEP,LE,STU,STD func
+    class IA,WIS notify
 ```
 
 | Función | Propósito | JWT | Trigger |
@@ -665,6 +885,8 @@ graph TB
 | `log-export` | Exporta logs de auditoría en formato CSV/JSON | ❌ | HTTP POST desde admin |
 | `setup-test-users` | Crea usuarios de prueba con roles predefinidos | ❌ | Manual |
 | `setup-test-data` | Genera datos de prueba (empresas, empleados, fichajes) | ❌ | Manual |
+| `inconsistency-alert` | Envía email a empleados cuando se detectan inconsistencias | ❌ | HTTP POST desde dashboard |
+| `weekly-inconsistency-summary` | Envía resumen semanal de inconsistencias a responsables de departamento | ❌ | pg_cron (lunes 9:00) / Manual |
 
 ### Detalle de Edge Functions
 
@@ -1111,7 +1333,10 @@ sequenceDiagram
 | Sellado PDF mensual | ❌ Bloqueado | Error 404 en endpoint evidence-groups. La API de DT devuelve ID en búsqueda que no corresponde a evidence group válido. Requiere investigación de endpoints correctos. |
 | Retry de evidencias fallidas | ✅ Validado (sin fallos) | Simular fallo para test completo |
 | Exportación paquete probatorio | 🔜 Pendiente | Requiere evidencias completadas |
-| Alertas por email | 🔜 Pendiente | Requiere configuración Resend |
+| Alertas por email inconsistencias | ✅ Implementado | Requiere configuración RESEND_API_KEY |
+| Resumen semanal de inconsistencias | ✅ Implementado | Requiere cron job configurado y responsables de departamento asignados |
+| Detección de inconsistencias | ✅ Funcional | Hook y componente integrados en dashboard |
+| Corrección directa desde alerta | ✅ Funcional | Navega a formulario con datos pre-rellenados |
 
 ### Incidencias Detectadas
 
@@ -1138,3 +1363,29 @@ Para soporte técnico o consultas comerciales, contactar al equipo de desarrollo
   <strong>Time Control Hub</strong> - Sistema de Control Horario con Sellado Cualificado<br/>
   Desarrollado con ❤️ usando React, Supabase y Digital Trust
 </p>
+
+---
+
+## 📝 Changelog
+
+### v1.2.0 (2026-01-06)
+- ✨ **Sistema de detección de inconsistencias**: Hook `useTimeEventInconsistencies` y componente `InconsistencyAlert`
+- ✨ **Alertas por email**: Edge function `inconsistency-alert` para notificar a empleados
+- ✨ **Resumen semanal**: Edge function `weekly-inconsistency-summary` para responsables de departamento
+- ✨ **Panel de configuración**: Componente `NotificationSettings` para activar/desactivar notificaciones
+- ✨ **Corrección directa**: Botón en alertas para solicitar corrección con datos pre-rellenados
+- 🗃️ **Nueva tabla**: `company_settings` para configuración por empresa
+- 🗃️ **Nuevos campos**: `department` e `is_department_responsible` en tabla `employees`
+- 📝 **Audit log**: Nuevas acciones `inconsistency_alert_sent` y `weekly_inconsistency_summary`
+
+### v1.1.0
+- ✨ Integración QTSP con EADTrust
+- ✨ Exportación de paquete probatorio
+- ✨ Monitoreo de salud QTSP
+
+### v1.0.0
+- 🎉 Release inicial
+- ✨ Fichaje QR/PIN
+- ✨ Gestión de empleados
+- ✨ Flujo de correcciones
+- ✨ Modo offline PWA
