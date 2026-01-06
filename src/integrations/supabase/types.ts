@@ -846,6 +846,126 @@ export type Database = {
           },
         ]
       }
+      escalation_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          company_id: string | null
+          error_category: string | null
+          error_message: string | null
+          escalation_level: number
+          id: string
+          notification_channel: string | null
+          notification_sent: boolean | null
+          qtsp_log_id: string | null
+          resolved_at: string | null
+          rule_id: string | null
+          triggered_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          company_id?: string | null
+          error_category?: string | null
+          error_message?: string | null
+          escalation_level: number
+          id?: string
+          notification_channel?: string | null
+          notification_sent?: boolean | null
+          qtsp_log_id?: string | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          triggered_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          company_id?: string | null
+          error_category?: string | null
+          error_message?: string | null
+          escalation_level?: number
+          id?: string
+          notification_channel?: string | null
+          notification_sent?: boolean | null
+          qtsp_log_id?: string | null
+          resolved_at?: string | null
+          rule_id?: string | null
+          triggered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_history_qtsp_log_id_fkey"
+            columns: ["qtsp_log_id"]
+            isOneToOne: false
+            referencedRelation: "qtsp_audit_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalation_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "escalation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escalation_rules: {
+        Row: {
+          company_id: string | null
+          consecutive_failures_threshold: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          level: number
+          notify_emails: string[]
+          notify_in_app: boolean | null
+          severity_threshold: string
+          time_threshold_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          consecutive_failures_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          level?: number
+          notify_emails?: string[]
+          notify_in_app?: boolean | null
+          severity_threshold: string
+          time_threshold_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          consecutive_failures_threshold?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          level?: number
+          notify_emails?: string[]
+          notify_in_app?: boolean | null
+          severity_threshold?: string
+          time_threshold_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kiosk_sessions: {
         Row: {
           activated_by: string | null

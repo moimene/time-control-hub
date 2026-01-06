@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Shield, 
   Building2, 
@@ -24,7 +25,10 @@ import {
   BellOff,
   Eye,
   FileText,
-  RotateCcw
+  RotateCcw,
+  TrendingUp,
+  FileDown,
+  Users
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -35,6 +39,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { QTSPLogDetailModal } from "@/components/admin/QTSPLogDetailModal";
 import { QTSPErrorReport } from "@/components/admin/QTSPErrorReport";
 import { QTSPTrendsChart } from "@/components/admin/QTSPTrendsChart";
+import { SLAMetricsDashboard } from "@/components/admin/SLAMetricsDashboard";
+import { QTSPPDFExport } from "@/components/admin/QTSPPDFExport";
+import { EscalationManager } from "@/components/admin/EscalationManager";
 import { useQTSPRealtimeAlerts } from "@/hooks/useQTSPRealtimeAlerts";
 
 interface LatencyDataPoint {
@@ -746,14 +753,49 @@ export default function QTSPMonitor() {
           </CardContent>
         </Card>
 
-        {/* Historical Trends Chart */}
-        <QTSPTrendsChart />
-
-        {/* QTSP Error Report */}
-        <QTSPErrorReport 
-          logs={(recentLogs || []) as QTSPLogType[]} 
-          healthCheckLogs={(healthCheckHistory || []) as QTSPLogType[]} 
-        />
+        {/* Tabs for Additional Features */}
+        <Tabs defaultValue="trends" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="trends" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Tendencias
+            </TabsTrigger>
+            <TabsTrigger value="sla" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Métricas SLA
+            </TabsTrigger>
+            <TabsTrigger value="escalation" className="gap-2">
+              <Users className="h-4 w-4" />
+              Escalado
+            </TabsTrigger>
+            <TabsTrigger value="export" className="gap-2">
+              <FileDown className="h-4 w-4" />
+              Exportar
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="trends" className="mt-6">
+            <QTSPTrendsChart />
+          </TabsContent>
+          
+          <TabsContent value="sla" className="mt-6">
+            <SLAMetricsDashboard />
+          </TabsContent>
+          
+          <TabsContent value="escalation" className="mt-6">
+            <EscalationManager />
+          </TabsContent>
+          
+          <TabsContent value="export" className="mt-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <QTSPPDFExport />
+              <QTSPErrorReport 
+                logs={(recentLogs || []) as QTSPLogType[]} 
+                healthCheckLogs={(healthCheckHistory || []) as QTSPLogType[]} 
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Recent QTSP Operations */}
         <Card>
