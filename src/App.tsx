@@ -28,6 +28,9 @@ import Templates from "./pages/admin/Templates";
 import RequestCorrection from "./pages/employee/RequestCorrection";
 import MyRequests from "./pages/employee/MyRequests";
 import EmployeeSettings from "./pages/employee/Settings";
+import EmployeeAbsences from "./pages/employee/Absences";
+import MonthlyClosure from "./pages/employee/MonthlyClosure";
+import EmployeeNotifications from "./pages/employee/Notifications";
 import KioskHome from "./pages/kiosk/KioskHome";
 import NotFound from "./pages/NotFound";
 import TestCredentials from "./pages/TestCredentials";
@@ -185,6 +188,16 @@ function AppRoutes() {
           <EmployeeDashboard />
         </ProtectedRoute>
       } />
+      <Route path="/employee/absences" element={
+        <ProtectedRoute requiredRoles={['employee']}>
+          <EmployeeAbsences />
+        </ProtectedRoute>
+      } />
+      <Route path="/employee/closure" element={
+        <ProtectedRoute requiredRoles={['employee']}>
+          <MonthlyClosure />
+        </ProtectedRoute>
+      } />
       <Route path="/employee/corrections" element={
         <ProtectedRoute requiredRoles={['employee']}>
           <RequestCorrection />
@@ -193,6 +206,11 @@ function AppRoutes() {
       <Route path="/employee/requests" element={
         <ProtectedRoute requiredRoles={['employee']}>
           <MyRequests />
+        </ProtectedRoute>
+      } />
+      <Route path="/employee/notifications" element={
+        <ProtectedRoute requiredRoles={['employee']}>
+          <EmployeeNotifications />
         </ProtectedRoute>
       } />
       <Route path="/employee/settings" element={

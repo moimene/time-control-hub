@@ -1,8 +1,11 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Clock, FileText, FileEdit, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Clock, FileText, FileEdit, Settings, LogOut, Menu, X, Calendar, FileSignature, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +19,23 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Fetch unread notifications count
+  const { data: unreadCount } = useQuery({
+    queryKey: ['employee-notifications-count', employee?.id],
+    queryFn: async () => {
+      if (!employee?.id) return 0;
+      const { count, error } = await supabase
+        .from('employee_notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('employee_id', employee.id)
+        .eq('is_read', false);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!employee?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -23,8 +43,16 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
 
   const navItems = [
     { href: '/employee', label: 'Mis Fichajes', icon: <Clock className="h-5 w-5" /> },
+    { href: '/employee/absences', label: 'Ausencias', icon: <Calendar className="h-5 w-5" /> },
+    { href: '/employee/closure', label: 'Cierre Mensual', icon: <FileSignature className="h-5 w-5" /> },
     { href: '/employee/corrections', label: 'Solicitar Corrección', icon: <FileEdit className="h-5 w-5" /> },
     { href: '/employee/requests', label: 'Mis Solicitudes', icon: <FileText className="h-5 w-5" /> },
+    { 
+      href: '/employee/notifications', 
+      label: 'Notificaciones', 
+      icon: <Bell className="h-5 w-5" />,
+      badge: unreadCount && unreadCount > 0 ? unreadCount : undefined
+    },
     { href: '/employee/settings', label: 'Configuración', icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -69,14 +97,21 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
                 to={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   location.pathname === item.href
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                {item.icon}
-                {item.label}
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  {item.label}
+                </div>
+                {item.badge && (
+                  <Badge variant="secondary" className="h-5 min-w-5 flex items-center justify-center text-xs">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </Badge>
+                )}
               </Link>
             ))}
           </nav>
