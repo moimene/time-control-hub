@@ -48,6 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { href: '/admin/employees', label: 'Empleados', icon: <Users className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/terminals', label: 'Terminales', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/kiosk-devices', label: 'Dispositivos Kiosco', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
     { href: '/admin/corrections', label: 'Correcciones', icon: <FileEdit className="h-5 w-5" /> },
     { href: '/admin/reports', label: 'Informes', icon: <FileText className="h-5 w-5" /> },

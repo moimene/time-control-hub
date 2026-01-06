@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, QrCode, KeyRound, Loader2, LogOut } from 'lucide-react';
+import { Clock, QrCode, KeyRound, Loader2, LogOut, Maximize, Minimize } from 'lucide-react';
 import { KioskPinPad } from '@/components/kiosk/KioskPinPad';
 import { KioskQrScanner } from '@/components/kiosk/KioskQrScanner';
 import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useKioskSession } from '@/hooks/useKioskSession';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import { supabase } from '@/integrations/supabase/client';
 
 type KioskMode = 'loading' | 'login' | 'select' | 'home' | 'pin' | 'qr' | 'success';
@@ -54,6 +55,21 @@ export default function KioskHome() {
     logout, 
     setTerminal 
   } = useKioskSession();
+  const { isFullscreen, isSupported: fullscreenSupported, enterFullscreen, exitFullscreen } = useFullscreen();
+
+  // Auto-enter fullscreen when session is established and terminal is selected
+  useEffect(() => {
+    if (session?.terminalId && fullscreenSupported && !isFullscreen) {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        enterFullscreen().catch(() => {
+          // Fullscreen might fail due to user interaction requirement
+          console.log('[KioskHome] Auto-fullscreen failed - user interaction required');
+        });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [session?.terminalId, fullscreenSupported, isFullscreen, enterFullscreen]);
 
   // Determine mode based on session state
   useEffect(() => {
@@ -574,6 +590,26 @@ export default function KioskHome() {
           {!isOnline ? 'Modo sin conexión activo - Los fichajes se guardarán localmente' : 'Toca una opción para fichar'}
         </div>
         <div className="flex gap-2">
+          {fullscreenSupported && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize className="h-3 w-3 mr-1" />
+                  Salir pantalla completa
+                </>
+              ) : (
+                <>
+                  <Maximize className="h-3 w-3 mr-1" />
+                  Pantalla completa
+                </>
+              )}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
