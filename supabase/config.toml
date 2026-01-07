@@ -125,3 +125,12 @@ verify_jwt = false
 
 [functions.message-scheduler]
 verify_jwt = false
+
+[functions.company-create]
+verify_jwt = false
+
+[functions.admin-password-reset]
+verify_jwt = false
+
+[functions.company-provision]
+verify_jwt = false
