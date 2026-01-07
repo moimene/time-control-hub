@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { EvidenceExportDialog } from './EvidenceExportDialog';
 
 interface MessageTrackingPanelProps {
   threadId: string;
@@ -49,6 +51,7 @@ export function MessageTrackingPanel({
   onSendReminder,
   onExportEvidence 
 }: MessageTrackingPanelProps) {
+  const [showExportDialog, setShowExportDialog] = useState(false);
   // Fetch thread details
   const { data: thread, isLoading: threadLoading } = useQuery({
     queryKey: ['thread-detail', threadId],
@@ -174,8 +177,8 @@ export function MessageTrackingPanel({
             </p>
           </div>
           <div className="flex gap-2">
-            {onExportEvidence && evidenceCount > 0 && (
-              <Button variant="outline" size="sm" onClick={onExportEvidence}>
+            {evidenceCount > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
                 <Download className="h-4 w-4 mr-1" />
                 Exportar
               </Button>
@@ -183,6 +186,15 @@ export function MessageTrackingPanel({
           </div>
         </div>
       </CardHeader>
+
+      <EvidenceExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        threadId={threadId}
+        threadSubject={thread.subject}
+        certificationLevel={thread.certification_level || 'basic'}
+        evidenceCount={evidenceCount}
+      />
 
       <ScrollArea className="flex-1">
         <CardContent className="p-4 space-y-6">
