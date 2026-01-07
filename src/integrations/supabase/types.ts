@@ -2775,6 +2775,88 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          assigned_to_employee_id: string | null
+          assigned_to_user_id: string | null
+          category: string | null
+          company_id: string | null
+          conversation_context: Json | null
+          created_at: string
+          created_by_employee_id: string | null
+          created_by_user_id: string
+          description: string
+          id: string
+          priority: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to_employee_id?: string | null
+          assigned_to_user_id?: string | null
+          category?: string | null
+          company_id?: string | null
+          conversation_context?: Json | null
+          created_at?: string
+          created_by_employee_id?: string | null
+          created_by_user_id: string
+          description: string
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to_employee_id?: string | null
+          assigned_to_user_id?: string | null
+          category?: string | null
+          company_id?: string | null
+          conversation_context?: Json | null
+          created_at?: string
+          created_by_employee_id?: string | null
+          created_by_user_id?: string
+          description?: string
+          id?: string
+          priority?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_assigned_to_employee_id_fkey"
+            columns: ["assigned_to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_created_by_employee_id_fkey"
+            columns: ["created_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       template_absence_links: {
         Row: {
           absence_type_id: string
