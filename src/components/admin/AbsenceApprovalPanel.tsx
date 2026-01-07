@@ -483,7 +483,7 @@ export function AbsenceApprovalPanel() {
             )}
 
             {/* Justification warning */}
-            {reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && !hasJustification(selectedRequest) && (
+            {reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && selectedRequest && !hasJustification(selectedRequest) && (
               <div className="flex items-start gap-2 p-3 border border-destructive/30 rounded-lg bg-destructive/5">
                 <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                 <div>
@@ -496,7 +496,7 @@ export function AbsenceApprovalPanel() {
             )}
 
             {/* Attached files preview */}
-            {hasJustification(selectedRequest!) && (
+            {selectedRequest && hasJustification(selectedRequest) && (
               <div className="space-y-2">
                 <Label>Justificantes adjuntos</Label>
                 <div className="flex flex-wrap gap-2">
@@ -532,7 +532,7 @@ export function AbsenceApprovalPanel() {
                 onClick={confirmReview}
                 disabled={
                   reviewMutation.isPending ||
-                  (reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && !hasJustification(selectedRequest)) ||
+                  (reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && selectedRequest && !hasJustification(selectedRequest)) ||
                   (reviewAction === 'approve' && coverageResult && !coverageResult.can_approve && (!forceOverride || !overrideReason.trim()))
                 }
               >
