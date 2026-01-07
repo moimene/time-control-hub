@@ -7,13 +7,13 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/communications/MessageList';
 import { AdvancedMessageComposer, type AdvancedMessageFormData } from '@/components/communications/AdvancedMessageComposer';
 import { MessageTrackingPanel } from '@/components/communications/MessageTrackingPanel';
+import { MessageStatsDashboard } from '@/components/communications/MessageStatsDashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Send, FileText, Clock, Users, Loader2, Shield } from 'lucide-react';
-
+import { Plus, Send, FileText, Clock, Users, Loader2, Shield, BarChart3 } from 'lucide-react';
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
@@ -40,6 +40,7 @@ export default function Communications() {
   const [showComposer, setShowComposer] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [activeTab, setActiveTab] = useState('sent');
+  const [showStats, setShowStats] = useState(false);
 
   // Fetch all message threads
   const { data: threads = [], isLoading } = useQuery({
@@ -283,11 +284,19 @@ export default function Communications() {
               Gestiona las comunicaciones oficiales con trazabilidad completa
             </p>
           </div>
-          <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva comunicación
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowStats(!showStats)}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {showStats ? 'Ocultar estadísticas' : 'Ver estadísticas'}
+            </Button>
+            <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setShowStats(false); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva comunicación
+            </Button>
+          </div>
         </div>
+
+        {showStats && <MessageStatsDashboard />}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Messages List */}
