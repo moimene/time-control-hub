@@ -1,15 +1,20 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
-import { Building2 } from 'lucide-react';
+import { Building2, Monitor, CalendarDays, FileCheck, Database, Scale, Bell } from 'lucide-react';
 import { NotificationSettings } from '@/components/admin/NotificationSettings';
+import { ClockingDevicesSection } from '@/components/settings/ClockingDevicesSection';
+import { CalendarLaboralSection } from '@/components/settings/CalendarLaboralSection';
+import { LegalDocumentsSection } from '@/components/settings/LegalDocumentsSection';
+import { DataRetentionSection } from '@/components/settings/DataRetentionSection';
+import { MarcoNormativoSection } from '@/components/settings/MarcoNormativoSection';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -75,77 +80,134 @@ export default function Settings() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
-          <p className="text-muted-foreground">Configura los datos de la empresa</p>
+          <p className="text-muted-foreground">Configura todos los aspectos de tu empresa</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              <CardTitle>Datos de la Empresa</CardTitle>
-            </div>
-            <CardDescription>
-              Información general de la empresa para los informes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la empresa *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    defaultValue={company.name || ''}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cif">CIF</Label>
-                  <Input
-                    id="cif"
-                    name="cif"
-                    defaultValue={company.cif || ''}
-                  />
-                </div>
-              </div>
+        <Tabs defaultValue="empresa" className="space-y-6">
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="empresa" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Empresa
+            </TabsTrigger>
+            <TabsTrigger value="notificaciones" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notificaciones
+            </TabsTrigger>
+            <TabsTrigger value="dispositivos" className="flex items-center gap-2">
+              <Monitor className="h-4 w-4" />
+              Dispositivos
+            </TabsTrigger>
+            <TabsTrigger value="calendario" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Calendario
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="flex items-center gap-2">
+              <FileCheck className="h-4 w-4" />
+              Documentos
+            </TabsTrigger>
+            <TabsTrigger value="retencion" className="flex items-center gap-2">
+              <Database className="h-4 w-4" />
+              Retención
+            </TabsTrigger>
+            <TabsTrigger value="marco-normativo" className="flex items-center gap-2">
+              <Scale className="h-4 w-4" />
+              Marco Normativo
+            </TabsTrigger>
+          </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Dirección</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  defaultValue={company.address || ''}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="city">Ciudad</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    defaultValue={company.city || ''}
-                  />
+          <TabsContent value="empresa">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  <CardTitle>Datos de la Empresa</CardTitle>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="postal_code">Código Postal</Label>
-                  <Input
-                    id="postal_code"
-                    name="postal_code"
-                    defaultValue={company.postal_code || ''}
-                  />
-                </div>
-              </div>
+                <CardDescription>
+                  Información general de la empresa para los informes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nombre de la empresa *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        defaultValue={company.name || ''}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cif">CIF</Label>
+                      <Input
+                        id="cif"
+                        name="cif"
+                        defaultValue={company.cif || ''}
+                      />
+                    </div>
+                  </div>
 
-              <Button type="submit" disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? 'Guardando...' : 'Guardar configuración'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Dirección</Label>
+                    <Input
+                      id="address"
+                      name="address"
+                      defaultValue={company.address || ''}
+                    />
+                  </div>
 
-        <NotificationSettings />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">Ciudad</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        defaultValue={company.city || ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="postal_code">Código Postal</Label>
+                      <Input
+                        id="postal_code"
+                        name="postal_code"
+                        defaultValue={company.postal_code || ''}
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={saveMutation.isPending}>
+                    {saveMutation.isPending ? 'Guardando...' : 'Guardar configuración'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notificaciones">
+            <NotificationSettings />
+          </TabsContent>
+
+          <TabsContent value="dispositivos">
+            <ClockingDevicesSection />
+          </TabsContent>
+
+          <TabsContent value="calendario">
+            <CalendarLaboralSection />
+          </TabsContent>
+
+          <TabsContent value="documentos">
+            <LegalDocumentsSection />
+          </TabsContent>
+
+          <TabsContent value="retencion">
+            <DataRetentionSection />
+          </TabsContent>
+
+          <TabsContent value="marco-normativo">
+            <MarcoNormativoSection />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );

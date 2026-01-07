@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
   Users, 
-  Monitor, 
   Clock, 
-  FileEdit, 
   FileText, 
   Settings, 
   LogOut,
@@ -18,11 +16,7 @@ import {
   Building2,
   AlertTriangle,
   Scale,
-  FileCode,
   CalendarDays,
-  FileCheck,
-  Database,
-  ClipboardList,
   MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
@@ -57,14 +51,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     { href: '/admin/employees', label: 'Empleados', icon: <Users className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/absences', label: 'Ausencias', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/communications', label: 'Comunicaciones', icon: <MessageSquare className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/clocking-devices', label: 'Dispositivos de Fichaje', icon: <Monitor className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
     { href: '/admin/clocking-incidents', label: 'Incidencias Fichaje', icon: <AlertTriangle className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/compliance', label: 'Cumplimiento', icon: <Scale className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/calendar-laboral', label: 'Calendario Laboral', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/legal-documents', label: 'Documentos Legales', icon: <FileCheck className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/data-retention', label: 'Retención Datos', icon: <Database className="h-5 w-5" />, adminOnly: true },
-    { href: '/admin/templates', label: 'Reglas', icon: <FileCode className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/reports', label: 'Informes', icon: <FileText className="h-5 w-5" /> },
     { href: '/admin/audit', label: 'Auditoría', icon: <Shield className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/settings', label: 'Configuración', icon: <Settings className="h-5 w-5" />, adminOnly: true },
