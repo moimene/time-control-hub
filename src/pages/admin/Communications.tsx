@@ -119,6 +119,14 @@ export default function Communications() {
   // Send message mutation
   const sendMessage = useMutation({
     mutationFn: async (data: AdvancedMessageFormData) => {
+      // Validar que company existe
+      if (!company?.id) {
+        throw new Error('No se pudo determinar la empresa. Por favor recarga la página.');
+      }
+      if (!user?.id) {
+        throw new Error('No se pudo determinar el usuario. Por favor inicia sesión de nuevo.');
+      }
+
       // Create thread
       const audienceFilter = data.audience_type === 'department' 
         ? { department: data.audience_department }
@@ -129,7 +137,7 @@ export default function Communications() {
       const { data: thread, error: threadError } = await supabase
         .from('message_threads')
         .insert({
-          company_id: company!.id,
+          company_id: company.id,
           subject: data.subject,
           thread_type: data.thread_type,
           priority: data.priority,
@@ -140,7 +148,7 @@ export default function Communications() {
           status: data.send_now ? 'sent' : 'scheduled',
           sent_at: data.send_now ? new Date().toISOString() : null,
           scheduled_at: !data.send_now ? data.scheduled_at?.toISOString() : null,
-          created_by: user!.id,
+          created_by: user.id,
           sender_role: 'admin',
           audience_type: data.audience_type,
           audience_filter: audienceFilter,
@@ -182,15 +190,22 @@ export default function Communications() {
       setShowComposer(false);
       queryClient.invalidateQueries({ queryKey: ['admin-message-threads'] });
     },
-    onError: (error) => {
-      toast.error('Error al enviar el mensaje');
-      console.error(error);
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al enviar el mensaje');
+      console.error('Error completo:', error);
     },
   });
 
   // Save draft mutation
   const saveDraft = useMutation({
     mutationFn: async (data: AdvancedMessageFormData) => {
+      if (!company?.id) {
+        throw new Error('No se pudo determinar la empresa. Por favor recarga la página.');
+      }
+      if (!user?.id) {
+        throw new Error('No se pudo determinar el usuario. Por favor inicia sesión de nuevo.');
+      }
+
       const audienceFilter = data.audience_type === 'department' 
         ? { department: data.audience_department }
         : data.audience_type === 'individual' && data.audience_employee_ids?.length
@@ -200,7 +215,7 @@ export default function Communications() {
       const { data: thread, error: threadError } = await supabase
         .from('message_threads')
         .insert({
-          company_id: company!.id,
+          company_id: company.id,
           subject: data.subject || 'Sin asunto',
           thread_type: data.thread_type,
           priority: data.priority,
@@ -208,7 +223,7 @@ export default function Communications() {
           requires_response: data.requires_response,
           requires_signature: data.requires_signature,
           status: 'draft',
-          created_by: user!.id,
+          created_by: user.id,
           sender_role: 'admin',
           audience_type: data.audience_type,
           audience_filter: audienceFilter,
@@ -234,9 +249,9 @@ export default function Communications() {
       setShowComposer(false);
       queryClient.invalidateQueries({ queryKey: ['admin-message-threads'] });
     },
-    onError: (error) => {
-      toast.error('Error al guardar el borrador');
-      console.error(error);
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al guardar el borrador');
+      console.error('Error completo:', error);
     },
   });
 
@@ -306,7 +321,10 @@ export default function Communications() {
               <BarChart3 className="h-4 w-4 mr-2" />
               {showStats ? 'Ocultar' : 'Estadísticas'}
             </Button>
-            <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setShowStats(false); setMainView('messages'); }}>
+            <Button 
+              onClick={() => { setShowComposer(true); setSelectedMessage(null); setShowStats(false); setMainView('messages'); }}
+              disabled={!company || isLoading}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Nueva comunicación
             </Button>
