@@ -99,53 +99,80 @@ export type Database = {
       absence_requests: {
         Row: {
           absence_type_id: string
+          center_id: string | null
           company_id: string
+          coverage_check: Json | null
           created_at: string
+          created_by: string | null
           employee_id: string
           end_date: string
           end_half_day: boolean | null
+          extra_days_applied: number
           id: string
+          justification_files: Json
+          justification_meta: Json | null
           justification_path: string | null
+          justification_required: boolean
           reason: string | null
           requested_at: string
           start_date: string
           start_half_day: boolean | null
           status: string
           total_days: number
+          total_hours: number | null
+          travel_km: number | null
           updated_at: string
         }
         Insert: {
           absence_type_id: string
+          center_id?: string | null
           company_id: string
+          coverage_check?: Json | null
           created_at?: string
+          created_by?: string | null
           employee_id: string
           end_date: string
           end_half_day?: boolean | null
+          extra_days_applied?: number
           id?: string
+          justification_files?: Json
+          justification_meta?: Json | null
           justification_path?: string | null
+          justification_required?: boolean
           reason?: string | null
           requested_at?: string
           start_date: string
           start_half_day?: boolean | null
           status?: string
           total_days: number
+          total_hours?: number | null
+          travel_km?: number | null
           updated_at?: string
         }
         Update: {
           absence_type_id?: string
+          center_id?: string | null
           company_id?: string
+          coverage_check?: Json | null
           created_at?: string
+          created_by?: string | null
           employee_id?: string
           end_date?: string
           end_half_day?: boolean | null
+          extra_days_applied?: number
           id?: string
+          justification_files?: Json
+          justification_meta?: Json | null
           justification_path?: string | null
+          justification_required?: boolean
           reason?: string | null
           requested_at?: string
           start_date?: string
           start_half_day?: boolean | null
           status?: string
           total_days?: number
+          total_hours?: number | null
+          travel_km?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -205,8 +232,10 @@ export type Database = {
           justification_types: Json | null
           legal_origin: string | null
           max_days_per_year: number | null
+          min_block_days: number | null
           name: string
           notes: string | null
+          preaviso_hours: number | null
           requires_approval: boolean
           requires_justification: boolean
           sla_hours: number | null
@@ -245,8 +274,10 @@ export type Database = {
           justification_types?: Json | null
           legal_origin?: string | null
           max_days_per_year?: number | null
+          min_block_days?: number | null
           name: string
           notes?: string | null
+          preaviso_hours?: number | null
           requires_approval?: boolean
           requires_justification?: boolean
           sla_hours?: number | null
@@ -285,8 +316,10 @@ export type Database = {
           justification_types?: Json | null
           legal_origin?: string | null
           max_days_per_year?: number | null
+          min_block_days?: number | null
           name?: string
           notes?: string | null
+          preaviso_hours?: number | null
           requires_approval?: boolean
           requires_justification?: boolean
           sla_hours?: number | null
@@ -349,6 +382,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_holidays: {
+        Row: {
+          center_id: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          holiday_date: string
+          holiday_type: string
+          id: string
+          is_working_day: boolean
+          updated_at: string
+        }
+        Insert: {
+          center_id?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          holiday_date: string
+          holiday_type?: string
+          id?: string
+          is_working_day?: boolean
+          updated_at?: string
+        }
+        Update: {
+          center_id?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          holiday_date?: string
+          holiday_type?: string
+          id?: string
+          is_working_day?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_holidays_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "company"
@@ -1083,6 +1160,62 @@ export type Database = {
             columns: ["original_event_id"]
             isOneToOne: false
             referencedRelation: "time_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coverage_rules: {
+        Row: {
+          approval_overrides: boolean
+          blackout_ranges: Json
+          center_id: string | null
+          company_id: string
+          created_at: string
+          department: string | null
+          id: string
+          is_active: boolean
+          job_profile: string | null
+          max_simultaneous_absences: number | null
+          min_team_available_pct: number
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          approval_overrides?: boolean
+          blackout_ranges?: Json
+          center_id?: string | null
+          company_id: string
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          job_profile?: string | null
+          max_simultaneous_absences?: number | null
+          min_team_available_pct?: number
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          approval_overrides?: boolean
+          blackout_ranges?: Json
+          center_id?: string | null
+          company_id?: string
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          job_profile?: string | null
+          max_simultaneous_absences?: number | null
+          min_team_available_pct?: number
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
             referencedColumns: ["id"]
           },
         ]
@@ -2159,6 +2292,76 @@ export type Database = {
           },
         ]
       }
+      medical_docs: {
+        Row: {
+          access_scope: string
+          company_id: string
+          created_at: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          request_id: string
+          retention_until: string | null
+          scope: string
+          uploaded_by: string
+        }
+        Insert: {
+          access_scope?: string
+          company_id: string
+          created_at?: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          request_id: string
+          retention_until?: string | null
+          scope?: string
+          uploaded_by: string
+        }
+        Update: {
+          access_scope?: string
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          request_id?: string
+          retention_until?: string | null
+          scope?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_docs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_docs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_docs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "absence_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_recipients: {
         Row: {
           ack_content_hash: string | null
@@ -2530,6 +2733,64 @@ export type Database = {
           },
         ]
       }
+      template_absence_links: {
+        Row: {
+          absence_type_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          mapping_config: Json
+          rule_version_id: string | null
+          template_leave_code: string
+          updated_at: string
+        }
+        Insert: {
+          absence_type_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mapping_config?: Json
+          rule_version_id?: string | null
+          template_leave_code: string
+          updated_at?: string
+        }
+        Update: {
+          absence_type_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mapping_config?: Json
+          rule_version_id?: string | null
+          template_leave_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_absence_links_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_absence_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_absence_links_rule_version_id_fkey"
+            columns: ["rule_version_id"]
+            isOneToOne: false
+            referencedRelation: "rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terminals: {
         Row: {
           auth_token_hash: string | null
@@ -2726,43 +2987,58 @@ export type Database = {
       }
       vacation_balances: {
         Row: {
+          accrual_type: string
           available_days: number | null
           carried_over_days: number
           company_id: string
           created_at: string
+          devengado_days: number
           employee_id: string
           entitled_days: number
           id: string
+          last_calc_at: string | null
           notes: string | null
           pending_days: number
+          policy: Json | null
+          total_hours_equiv: number | null
           updated_at: string
           used_days: number
           year: number
         }
         Insert: {
+          accrual_type?: string
           available_days?: number | null
           carried_over_days?: number
           company_id: string
           created_at?: string
+          devengado_days?: number
           employee_id: string
           entitled_days?: number
           id?: string
+          last_calc_at?: string | null
           notes?: string | null
           pending_days?: number
+          policy?: Json | null
+          total_hours_equiv?: number | null
           updated_at?: string
           used_days?: number
           year: number
         }
         Update: {
+          accrual_type?: string
           available_days?: number | null
           carried_over_days?: number
           company_id?: string
           created_at?: string
+          devengado_days?: number
           employee_id?: string
           entitled_days?: number
           id?: string
+          last_calc_at?: string | null
           notes?: string | null
           pending_days?: number
+          policy?: Json | null
+          total_hours_equiv?: number | null
           updated_at?: string
           used_days?: number
           year?: number
