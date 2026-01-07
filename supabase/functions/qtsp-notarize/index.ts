@@ -863,7 +863,8 @@ async function sealPDF(
         signature: {
           provider: 'EADTRUST',
           type: 'PADES_LTV',
-          level: 'QUALIFIED',
+          level: 'SIMPLE',
+          authenticationFactor: 1,
         },
       }),
     });
