@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,18 +25,32 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Listen for password recovery event
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    // Listener: only sync state updates here (no async calls)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // User is in password recovery mode, show the form
         setError(null);
       }
+      setSession(nextSession);
+    });
+
+    // Then check current session (recovery link should establish a session)
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      if (!data.session) {
+        setError('Sesión de recuperación no encontrada o enlace caducado. Solicita un nuevo enlace para restablecer tu contraseña.');
+      }
+    }).catch(() => {
+      setError('No se pudo verificar la sesión de recuperación.');
+    }).finally(() => {
+      setCheckingSession(false);
     });
 
     return () => subscription.unsubscribe();
@@ -55,7 +70,17 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (checkingSession) return;
+    if (!session) {
+      toast({
+        variant: 'destructive',
+        title: 'Sesión no válida',
+        description: 'El enlace de recuperación no es válido o ha caducado. Solicita uno nuevo desde el inicio de sesión.',
+      });
+      return;
+    }
+
     const validation = passwordSchema.safeParse({ password, confirmPassword });
     if (!validation.success) {
       toast({
@@ -69,7 +94,7 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
-      
+
       if (error) {
         throw error;
       }
