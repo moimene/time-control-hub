@@ -91,43 +91,21 @@ export default function CompanySetup() {
 
       const identifier = formData.entityType === 'autonomo' ? formData.nif : formData.cif;
 
-      // Create company
-      const { data: company, error: companyError } = await supabase
-        .from('company')
-        .insert({
+      const { data, error } = await supabase.functions.invoke('company-create', {
+        body: {
+          entityType: formData.entityType,
           name: companyName,
           cif: identifier || null,
-          entity_type: formData.entityType,
           trade_name: formData.nombreComercial || null,
           sector: formData.selectedSector || null,
           cnae: formData.cnae || null,
-        })
-        .select()
-        .single();
+        },
+      });
 
-      if (companyError) throw companyError;
+      if (error) throw error;
+      if (!data?.company?.id) throw new Error('No se pudo crear la empresa');
 
-      // Link user to company
-      const { error: linkError } = await supabase
-        .from('user_company')
-        .insert({
-          user_id: user.id,
-          company_id: company.id,
-        });
-
-      if (linkError) throw linkError;
-
-      // Assign admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: user.id,
-          role: 'admin',
-        });
-
-      if (roleError) throw roleError;
-
-      return company;
+      return data.company;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-company'] });
@@ -136,7 +114,7 @@ export default function CompanySetup() {
       window.location.href = '/admin';
     },
     onError: (error) => {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
     },
   });
 
