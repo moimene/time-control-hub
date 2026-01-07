@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { HelpAgent } from '@/components/help/HelpAgent';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -140,6 +141,9 @@ export function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Help Agent */}
+      <HelpAgent />
     </div>
   );
 }
