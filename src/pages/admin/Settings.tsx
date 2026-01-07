@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
-import { Building2, Monitor, CalendarDays, FileCheck, Database, Scale, Bell, Users, Calendar } from 'lucide-react';
+import { Building2, Monitor, CalendarDays, FileCheck, Database, Scale, Bell, Users, Calendar, Shield } from 'lucide-react';
 import { NotificationSettings } from '@/components/admin/NotificationSettings';
 import { ClockingDevicesSection } from '@/components/settings/ClockingDevicesSection';
 import { CalendarLaboralSection } from '@/components/settings/CalendarLaboralSection';
@@ -17,6 +17,7 @@ import { DataRetentionSection } from '@/components/settings/DataRetentionSection
 import { MarcoNormativoSection } from '@/components/settings/MarcoNormativoSection';
 import { HolidayCalendarEditor } from '@/components/settings/HolidayCalendarEditor';
 import { CoverageRulesEditor } from '@/components/settings/CoverageRulesEditor';
+import { SecuritySection } from '@/components/settings/SecuritySection';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -123,6 +124,10 @@ export default function Settings() {
               <Users className="h-4 w-4" />
               Cobertura
             </TabsTrigger>
+            <TabsTrigger value="seguridad" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Seguridad
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="empresa">
@@ -224,6 +229,10 @@ export default function Settings() {
 
           <TabsContent value="cobertura">
             <CoverageRulesEditor />
+          </TabsContent>
+
+          <TabsContent value="seguridad">
+            <SecuritySection />
           </TabsContent>
         </Tabs>
       </div>
