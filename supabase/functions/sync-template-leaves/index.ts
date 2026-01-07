@@ -252,27 +252,27 @@ serve(async (req) => {
     // 3. Procesar cada tipo del catálogo de la plantilla
     for (const leave of leavesCatalog) {
       const code = leave.code || leave.id;
-      const defaultType = defaultAbsenceTypes[code as keyof typeof defaultAbsenceTypes];
+      const defaultType = defaultAbsenceTypes[code as keyof typeof defaultAbsenceTypes] as Record<string, unknown> | undefined;
 
       const typeData = {
         company_id,
         code,
-        name: leave.name || defaultType?.name || code,
-        category: leave.category || defaultType?.category || 'otros',
-        compute_on: leave.compute_on || defaultType?.compute_on || 'dias_naturales',
-        duration_value: leave.duration_value || defaultType?.duration_value,
-        duration_unit: leave.duration_unit || defaultType?.duration_unit,
-        is_paid: leave.is_paid ?? defaultType?.is_paid ?? true,
-        requires_approval: leave.requires_approval ?? defaultType?.requires_approval ?? true,
-        requires_justification: leave.requires_justification ?? defaultType?.requires_justification ?? false,
-        blocks_clocking: leave.blocks_clocking ?? defaultType?.blocks_clocking ?? true,
-        half_day_allowed: leave.half_day_allowed ?? defaultType?.half_day_allowed ?? false,
-        advance_notice_days: leave.advance_notice_days || defaultType?.advance_notice_days,
-        extra_travel_days: leave.extra_travel_days || defaultType?.extra_travel_days,
-        travel_threshold_km: leave.travel_threshold_km || defaultType?.travel_threshold_km,
-        max_days_per_year: leave.max_days_per_year || defaultType?.max_days_per_year,
-        legal_origin: leave.legal_origin || defaultType?.legal_origin || 'empresa',
-        description: leave.description || defaultType?.description,
+        name: (leave as Record<string, unknown>).name || defaultType?.name || code,
+        category: (leave as Record<string, unknown>).category || defaultType?.category || 'otros',
+        compute_on: (leave as Record<string, unknown>).compute_on || defaultType?.compute_on || 'dias_naturales',
+        duration_value: (leave as Record<string, unknown>).duration_value || defaultType?.duration_value,
+        duration_unit: (leave as Record<string, unknown>).duration_unit || defaultType?.duration_unit,
+        is_paid: (leave as Record<string, unknown>).is_paid ?? defaultType?.is_paid ?? true,
+        requires_approval: (leave as Record<string, unknown>).requires_approval ?? defaultType?.requires_approval ?? true,
+        requires_justification: (leave as Record<string, unknown>).requires_justification ?? defaultType?.requires_justification ?? false,
+        blocks_clocking: (leave as Record<string, unknown>).blocks_clocking ?? defaultType?.blocks_clocking ?? true,
+        half_day_allowed: (leave as Record<string, unknown>).half_day_allowed ?? defaultType?.half_day_allowed ?? false,
+        advance_notice_days: (leave as Record<string, unknown>).advance_notice_days || defaultType?.advance_notice_days,
+        extra_travel_days: (leave as Record<string, unknown>).extra_travel_days || defaultType?.extra_travel_days,
+        travel_threshold_km: (leave as Record<string, unknown>).travel_threshold_km || defaultType?.travel_threshold_km,
+        max_days_per_year: (leave as Record<string, unknown>).max_days_per_year || defaultType?.max_days_per_year,
+        legal_origin: (leave as Record<string, unknown>).legal_origin || defaultType?.legal_origin || 'empresa',
+        description: (leave as Record<string, unknown>).description || defaultType?.description,
         is_active: true,
         updated_at: new Date().toISOString()
       };
@@ -361,8 +361,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[sync-template-leaves] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

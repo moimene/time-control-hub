@@ -170,14 +170,23 @@ serve(async (req) => {
       // Si estaba pendiente y era vacaciones, liberar pending_days
       if (absenceType?.category === 'vacaciones' || absenceType?.code === 'VACACIONES') {
         const currentYear = new Date().getFullYear();
-        await supabase
+        const { data: currentBalance } = await supabase
           .from('vacation_balances')
-          .update({
-            pending_days: supabase.sql`GREATEST(0, pending_days - ${request.total_days})`,
-            updated_at: new Date().toISOString()
-          })
+          .select('pending_days')
           .eq('employee_id', request.employee_id)
-          .eq('year', currentYear);
+          .eq('year', currentYear)
+          .single();
+
+        if (currentBalance) {
+          await supabase
+            .from('vacation_balances')
+            .update({
+              pending_days: Math.max(0, (currentBalance.pending_days || 0) - request.total_days),
+              updated_at: new Date().toISOString()
+            })
+            .eq('employee_id', request.employee_id)
+            .eq('year', currentYear);
+        }
       }
 
     } else if (action === 'escalate') {
@@ -193,15 +202,24 @@ serve(async (req) => {
       // Devolver días al balance
       if (absenceType?.category === 'vacaciones' || absenceType?.code === 'VACACIONES') {
         const currentYear = new Date().getFullYear();
-        await supabase
+        const { data: currentBalance } = await supabase
           .from('vacation_balances')
-          .update({
-            used_days: supabase.sql`GREATEST(0, used_days - ${request.total_days})`,
-            updated_at: new Date().toISOString()
-          })
+          .select('used_days')
           .eq('employee_id', request.employee_id)
-          .eq('year', currentYear);
-        balanceUpdated = true;
+          .eq('year', currentYear)
+          .single();
+
+        if (currentBalance) {
+          await supabase
+            .from('vacation_balances')
+            .update({
+              used_days: Math.max(0, (currentBalance.used_days || 0) - request.total_days),
+              updated_at: new Date().toISOString()
+            })
+            .eq('employee_id', request.employee_id)
+            .eq('year', currentYear);
+          balanceUpdated = true;
+        }
       }
     }
 
@@ -327,8 +345,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('[absence-approve] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
