@@ -8,12 +8,14 @@ import { MessageList } from '@/components/communications/MessageList';
 import { AdvancedMessageComposer, type AdvancedMessageFormData } from '@/components/communications/AdvancedMessageComposer';
 import { MessageTrackingPanel } from '@/components/communications/MessageTrackingPanel';
 import { MessageStatsDashboard } from '@/components/communications/MessageStatsDashboard';
+import { MessageTemplatesManager } from '@/components/communications/MessageTemplatesManager';
+import { ScheduledMessagesPanel } from '@/components/communications/ScheduledMessagesPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Send, FileText, Clock, Users, Loader2, Shield, BarChart3 } from 'lucide-react';
+import { Plus, Send, FileText, Clock, Users, Loader2, Shield, BarChart3, Settings2 } from 'lucide-react';
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
@@ -41,6 +43,7 @@ export default function Communications() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [activeTab, setActiveTab] = useState('sent');
   const [showStats, setShowStats] = useState(false);
+  const [mainView, setMainView] = useState<'messages' | 'templates' | 'scheduled'>('messages');
 
   // Fetch all message threads
   const { data: threads = [], isLoading } = useQuery({
@@ -285,11 +288,25 @@ export default function Communications() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant={mainView === 'templates' ? 'secondary' : 'outline'} 
+              onClick={() => setMainView(mainView === 'templates' ? 'messages' : 'templates')}
+            >
+              <Settings2 className="h-4 w-4 mr-2" />
+              Plantillas
+            </Button>
+            <Button 
+              variant={mainView === 'scheduled' ? 'secondary' : 'outline'} 
+              onClick={() => setMainView(mainView === 'scheduled' ? 'messages' : 'scheduled')}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Programados
+            </Button>
             <Button variant="outline" onClick={() => setShowStats(!showStats)}>
               <BarChart3 className="h-4 w-4 mr-2" />
-              {showStats ? 'Ocultar estadísticas' : 'Ver estadísticas'}
+              {showStats ? 'Ocultar' : 'Estadísticas'}
             </Button>
-            <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setShowStats(false); }}>
+            <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setShowStats(false); setMainView('messages'); }}>
               <Plus className="h-4 w-4 mr-2" />
               Nueva comunicación
             </Button>
@@ -297,6 +314,12 @@ export default function Communications() {
         </div>
 
         {showStats && <MessageStatsDashboard />}
+
+        {mainView === 'templates' ? (
+          <MessageTemplatesManager />
+        ) : mainView === 'scheduled' ? (
+          <ScheduledMessagesPanel />
+        ) : (
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Messages List */}
@@ -393,6 +416,7 @@ export default function Communications() {
             )}
           </div>
         </div>
+        )}
       </div>
     </AppLayout>
   );
