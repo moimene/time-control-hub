@@ -17,7 +17,7 @@ const TestCredentials = () => {
     setTimeout(() => setCopiedItem(null), 2000);
   };
 
-  const CopyButton = ({ text, label }: { text: string; label: string }) => (
+  const renderCopyButton = (text: string, label: string) => (
     <Button
       variant="ghost"
       size="sm"
@@ -74,7 +74,7 @@ const TestCredentials = () => {
                       <TableCell className="font-mono">admin123</TableCell>
                       <TableCell><Badge variant="outline">/super-admin</Badge></TableCell>
                       <TableCell>
-                        <CopyButton text="admin@test.com" label="super-email-1" />
+                        {renderCopyButton("admin@test.com", "super-email-1")}
                       </TableCell>
                     </TableRow>
                     <TableRow>
@@ -82,7 +82,7 @@ const TestCredentials = () => {
                       <TableCell className="font-mono">super123</TableCell>
                       <TableCell><Badge variant="outline">/super-admin</Badge></TableCell>
                       <TableCell>
-                        <CopyButton text="superadmin@timecontrol.com" label="super-email-2" />
+                        {renderCopyButton("superadmin@timecontrol.com", "super-email-2")}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -117,25 +117,25 @@ const TestCredentials = () => {
                       <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
                       <TableCell className="font-mono">admin@elrincon.com</TableCell>
                       <TableCell className="font-mono">bar123</TableCell>
-                      <TableCell><CopyButton text="admin@elrincon.com" label="admin-bar" /></TableCell>
+                      <TableCell>{renderCopyButton("admin@elrincon.com", "admin-bar")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
                       <TableCell className="font-mono">admin@zapateria-lopez.com</TableCell>
                       <TableCell className="font-mono">zap123</TableCell>
-                      <TableCell><CopyButton text="admin@zapateria-lopez.com" label="admin-zap" /></TableCell>
+                      <TableCell>{renderCopyButton("admin@zapateria-lopez.com", "admin-zap")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Clínica Dental Sonrisas</Badge></TableCell>
                       <TableCell className="font-mono">admin@dentalsonrisas.com</TableCell>
                       <TableCell className="font-mono">den123</TableCell>
-                      <TableCell><CopyButton text="admin@dentalsonrisas.com" label="admin-den" /></TableCell>
+                      <TableCell>{renderCopyButton("admin@dentalsonrisas.com", "admin-den")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Fisioterapia Wellness</Badge></TableCell>
                       <TableCell className="font-mono">admin@fisio-wellness.com</TableCell>
                       <TableCell className="font-mono">fis123</TableCell>
-                      <TableCell><CopyButton text="admin@fisio-wellness.com" label="admin-fis" /></TableCell>
+                      <TableCell>{renderCopyButton("admin@fisio-wellness.com", "admin-fis")}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -169,25 +169,25 @@ const TestCredentials = () => {
                       <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
                       <TableCell className="font-mono">responsable@elrincon.com</TableCell>
                       <TableCell className="font-mono">resp123</TableCell>
-                      <TableCell><CopyButton text="responsable@elrincon.com" label="resp-bar" /></TableCell>
+                      <TableCell>{renderCopyButton("responsable@elrincon.com", "resp-bar")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
                       <TableCell className="font-mono">responsable@zapateria-lopez.com</TableCell>
                       <TableCell className="font-mono">resp123</TableCell>
-                      <TableCell><CopyButton text="responsable@zapateria-lopez.com" label="resp-zap" /></TableCell>
+                      <TableCell>{renderCopyButton("responsable@zapateria-lopez.com", "resp-zap")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Clínica Dental Sonrisas</Badge></TableCell>
                       <TableCell className="font-mono">responsable@dentalsonrisas.com</TableCell>
                       <TableCell className="font-mono">resp123</TableCell>
-                      <TableCell><CopyButton text="responsable@dentalsonrisas.com" label="resp-den" /></TableCell>
+                      <TableCell>{renderCopyButton("responsable@dentalsonrisas.com", "resp-den")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Fisioterapia Wellness</Badge></TableCell>
                       <TableCell className="font-mono">responsable@fisio-wellness.com</TableCell>
                       <TableCell className="font-mono">resp123</TableCell>
-                      <TableCell><CopyButton text="responsable@fisio-wellness.com" label="resp-fis" /></TableCell>
+                      <TableCell>{renderCopyButton("responsable@fisio-wellness.com", "resp-fis")}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -223,35 +223,35 @@ const TestCredentials = () => {
                       <TableCell className="font-mono">juan.martinez@elrincon.com</TableCell>
                       <TableCell className="font-mono">BAR001</TableCell>
                       <TableCell className="font-mono">emp123</TableCell>
-                      <TableCell><CopyButton text="juan.martinez@elrincon.com" label="emp-bar1" /></TableCell>
+                      <TableCell>{renderCopyButton("juan.martinez@elrincon.com", "emp-bar1")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
                       <TableCell className="font-mono">ana.lopez@elrincon.com</TableCell>
                       <TableCell className="font-mono">BAR002</TableCell>
                       <TableCell className="font-mono">emp123</TableCell>
-                      <TableCell><CopyButton text="ana.lopez@elrincon.com" label="emp-bar2" /></TableCell>
+                      <TableCell>{renderCopyButton("ana.lopez@elrincon.com", "emp-bar2")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
                       <TableCell className="font-mono">lucia.moreno@zapateria-lopez.com</TableCell>
                       <TableCell className="font-mono">ZAP001</TableCell>
                       <TableCell className="font-mono">emp123</TableCell>
-                      <TableCell><CopyButton text="lucia.moreno@zapateria-lopez.com" label="emp-zap" /></TableCell>
+                      <TableCell>{renderCopyButton("lucia.moreno@zapateria-lopez.com", "emp-zap")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Clínica Dental</Badge></TableCell>
                       <TableCell className="font-mono">alberto.ruiz@dentalsonrisas.com</TableCell>
                       <TableCell className="font-mono">DEN001</TableCell>
                       <TableCell className="font-mono">emp123</TableCell>
-                      <TableCell><CopyButton text="alberto.ruiz@dentalsonrisas.com" label="emp-den" /></TableCell>
+                      <TableCell>{renderCopyButton("alberto.ruiz@dentalsonrisas.com", "emp-den")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Fisioterapia</Badge></TableCell>
                       <TableCell className="font-mono">david.molina@fisio-wellness.com</TableCell>
                       <TableCell className="font-mono">FIS001</TableCell>
                       <TableCell className="font-mono">emp123</TableCell>
-                      <TableCell><CopyButton text="david.molina@fisio-wellness.com" label="emp-fis" /></TableCell>
+                      <TableCell>{renderCopyButton("david.molina@fisio-wellness.com", "emp-fis")}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -287,35 +287,35 @@ const TestCredentials = () => {
                       <TableCell className="font-mono font-bold">BAR001</TableCell>
                       <TableCell className="font-mono font-bold">1234</TableCell>
                       <TableCell>Juan Martínez</TableCell>
-                      <TableCell><CopyButton text="BAR001" label="kiosk-bar1" /></TableCell>
+                      <TableCell>{renderCopyButton("BAR001", "kiosk-bar1")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
                       <TableCell className="font-mono font-bold">BAR002</TableCell>
                       <TableCell className="font-mono font-bold">2345</TableCell>
                       <TableCell>Ana López</TableCell>
-                      <TableCell><CopyButton text="BAR002" label="kiosk-bar2" /></TableCell>
+                      <TableCell>{renderCopyButton("BAR002", "kiosk-bar2")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
                       <TableCell className="font-mono font-bold">ZAP001</TableCell>
                       <TableCell className="font-mono font-bold">1111</TableCell>
                       <TableCell>Lucía Moreno</TableCell>
-                      <TableCell><CopyButton text="ZAP001" label="kiosk-zap" /></TableCell>
+                      <TableCell>{renderCopyButton("ZAP001", "kiosk-zap")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Clínica Dental</Badge></TableCell>
                       <TableCell className="font-mono font-bold">DEN001</TableCell>
                       <TableCell className="font-mono font-bold">1212</TableCell>
                       <TableCell>Dr. Alberto Ruiz</TableCell>
-                      <TableCell><CopyButton text="DEN001" label="kiosk-den" /></TableCell>
+                      <TableCell>{renderCopyButton("DEN001", "kiosk-den")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell><Badge variant="secondary">Fisioterapia</Badge></TableCell>
                       <TableCell className="font-mono font-bold">FIS001</TableCell>
                       <TableCell className="font-mono font-bold">6666</TableCell>
                       <TableCell>David Molina</TableCell>
-                      <TableCell><CopyButton text="FIS001" label="kiosk-fis" /></TableCell>
+                      <TableCell>{renderCopyButton("FIS001", "kiosk-fis")}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
