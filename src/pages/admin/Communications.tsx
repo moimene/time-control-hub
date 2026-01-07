@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Send, FileText, Clock, Users, Loader2, Shield, BarChart3, Settings2 } from 'lucide-react';
+import { Plus, Send, FileText, Clock, Users, Loader2, Shield, BarChart3, Settings2, Inbox } from 'lucide-react';
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
@@ -26,6 +26,7 @@ interface Message {
   priority: MessagePriority;
   thread_type: string;
   sender_type: 'company' | 'employee';
+  sender_role?: string;
   requires_read_confirmation: boolean;
   created_at: string;
   status: string;
@@ -33,6 +34,10 @@ interface Message {
   recipient_count: number;
   read_at?: string | null;
   acknowledged_at?: string | null;
+  sender_employee?: {
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 export default function Communications() {
@@ -54,6 +59,7 @@ export default function Communications() {
         .from('message_threads')
         .select('*')
         .eq('company_id', company!.id)
+        .eq('sender_role', 'admin')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -66,6 +72,7 @@ export default function Communications() {
         priority: t.priority as MessagePriority,
         thread_type: t.thread_type,
         sender_type: 'company' as const,
+        sender_role: t.sender_role,
         requires_read_confirmation: t.requires_read_confirmation,
         created_at: t.sent_at || t.created_at,
         status: t.status,
@@ -79,6 +86,74 @@ export default function Communications() {
   const sentThreads = threads.filter(t => t.status === 'sent');
   const draftThreads = threads.filter(t => t.status === 'draft');
   const scheduledThreads = threads.filter(t => t.status === 'scheduled');
+
+  // Fetch received messages from employees
+  const { data: receivedThreads = [] } = useQuery({
+    queryKey: ['admin-received-threads', company?.id],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('message_threads')
+        .select(`
+          *,
+          sender_employee:employees!message_threads_created_by_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('company_id', company!.id)
+        .eq('sender_role', 'employee')
+        .eq('status', 'sent')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Error fetching received threads:', error);
+        // Fallback query without join
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('message_threads')
+          .select('*')
+          .eq('company_id', company!.id)
+          .eq('sender_role', 'employee')
+          .eq('status', 'sent')
+          .order('created_at', { ascending: false });
+        
+        if (fallbackError) throw fallbackError;
+        return (fallbackData || []).map(t => ({
+          id: t.id,
+          company_id: t.company_id,
+          subject: t.subject,
+          body: '',
+          priority: t.priority as MessagePriority,
+          thread_type: t.thread_type,
+          sender_type: 'employee' as const,
+          sender_role: t.sender_role,
+          requires_read_confirmation: false,
+          created_at: t.sent_at || t.created_at,
+          status: t.status,
+          audience_type: t.audience_type,
+          recipient_count: 0,
+          sender_employee: null,
+        })) as Message[];
+      }
+      
+      return (data || []).map(t => ({
+        id: t.id,
+        company_id: t.company_id,
+        subject: t.subject,
+        body: '',
+        priority: t.priority as MessagePriority,
+        thread_type: t.thread_type,
+        sender_type: 'employee' as const,
+        sender_role: t.sender_role,
+        requires_read_confirmation: false,
+        created_at: t.sent_at || t.created_at,
+        status: t.status,
+        audience_type: t.audience_type,
+        recipient_count: 0,
+        sender_employee: Array.isArray(t.sender_employee) ? t.sender_employee[0] : t.sender_employee,
+      })) as Message[];
+    },
+  });
 
   // Fetch employees for recipient selection
   const { data: employees = [] } = useQuery({
@@ -345,7 +420,16 @@ export default function Communications() {
             <Card className="h-[calc(100vh-220px)]">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="received" className="gap-1 text-xs">
+                      <Inbox className="h-3 w-3" />
+                      Recibidos
+                      {receivedThreads.length > 0 && (
+                        <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+                          {receivedThreads.length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
                     <TabsTrigger value="sent" className="gap-1 text-xs">
                       <Send className="h-3 w-3" />
                       Enviados
@@ -358,24 +442,22 @@ export default function Communications() {
                     <TabsTrigger value="drafts" className="gap-1 text-xs">
                       <FileText className="h-3 w-3" />
                       Borradores
-                      {draftThreads.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                          {draftThreads.length}
-                        </Badge>
-                      )}
                     </TabsTrigger>
                     <TabsTrigger value="scheduled" className="gap-1 text-xs">
                       <Clock className="h-3 w-3" />
                       Programados
-                      {scheduledThreads.length > 0 && (
-                        <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                          {scheduledThreads.length}
-                        </Badge>
-                      )}
                     </TabsTrigger>
                   </TabsList>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-auto">
+                  <TabsContent value="received" className="mt-0 h-full">
+                    <MessageList
+                      messages={receivedThreads}
+                      selectedId={selectedMessage?.id}
+                      onSelect={handleSelectMessage}
+                      viewType="admin-received"
+                    />
+                  </TabsContent>
                   <TabsContent value="sent" className="mt-0 h-full">
                     <MessageList
                       messages={sentThreads}

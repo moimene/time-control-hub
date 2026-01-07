@@ -126,6 +126,9 @@ verify_jwt = false
 [functions.message-scheduler]
 verify_jwt = false
 
+[functions.employee-message-send]
+verify_jwt = false
+
 [functions.company-create]
 verify_jwt = false
 
