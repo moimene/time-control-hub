@@ -10,11 +10,15 @@ import { toast } from "sonner";
 const TestCredentials = () => {
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedItem(label);
-    toast.success(`${label} copiado`);
-    setTimeout(() => setCopiedItem(null), 2000);
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedItem(label);
+      toast.success(`${label} copiado`);
+      setTimeout(() => setCopiedItem(null), 2000);
+    } catch {
+      toast.error("No se pudo copiar al portapapeles");
+    }
   };
 
   const renderCopyButton = (text: string, label: string) => (
