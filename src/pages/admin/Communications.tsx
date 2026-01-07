@@ -5,14 +5,14 @@ import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MessageList } from '@/components/communications/MessageList';
-import { MessageComposer, type MessageFormData } from '@/components/communications/MessageComposer';
-import { MessageThread } from '@/components/communications/MessageThread';
+import { AdvancedMessageComposer, type AdvancedMessageFormData } from '@/components/communications/AdvancedMessageComposer';
+import { MessageTrackingPanel } from '@/components/communications/MessageTrackingPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Inbox, Send, Users, Loader2 } from 'lucide-react';
+import { Plus, Send, FileText, Clock, Users, Loader2, Shield } from 'lucide-react';
 
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
@@ -31,25 +31,7 @@ interface Message {
   recipient_count: number;
   read_at?: string | null;
   acknowledged_at?: string | null;
-  sender_employee?: {
-    first_name: string;
-    last_name: string;
-  } | null;
 }
-
-// Map old priority to new
-const mapPriority = (p: string): MessagePriority => {
-  const map: Record<string, MessagePriority> = {
-    low: 'baja',
-    normal: 'normal', 
-    high: 'alta',
-    urgent: 'urgente',
-    baja: 'baja',
-    alta: 'alta',
-    urgente: 'urgente'
-  };
-  return map[p] || 'normal';
-};
 
 export default function Communications() {
   const { company } = useCompany();
@@ -57,7 +39,7 @@ export default function Communications() {
   const queryClient = useQueryClient();
   const [showComposer, setShowComposer] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [replyTo, setReplyTo] = useState<{ id: string; subject: string; sender_name: string } | null>(null);
+  const [activeTab, setActiveTab] = useState('sent');
 
   // Fetch all message threads
   const { data: threads = [], isLoading } = useQuery({
@@ -68,7 +50,6 @@ export default function Communications() {
         .from('message_threads')
         .select('*')
         .eq('company_id', company!.id)
-        .in('status', ['sent', 'closed'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -77,7 +58,7 @@ export default function Communications() {
         id: t.id,
         company_id: t.company_id,
         subject: t.subject,
-        body: '', // Will be fetched from content
+        body: '',
         priority: t.priority as MessagePriority,
         thread_type: t.thread_type,
         sender_type: 'company' as const,
@@ -90,41 +71,10 @@ export default function Communications() {
     },
   });
 
-  // Fetch content for selected thread
-  const { data: threadContent } = useQuery({
-    queryKey: ['thread-content', selectedMessage?.id],
-    enabled: !!selectedMessage?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('message_contents')
-        .select('*')
-        .eq('thread_id', selectedMessage!.id)
-        .eq('is_current', true)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    },
-  });
-
-  // Fetch recipients for selected thread
-  const { data: recipients = [] } = useQuery({
-    queryKey: ['thread-recipients', selectedMessage?.id],
-    enabled: !!selectedMessage?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('message_recipients')
-        .select(`
-          *,
-          employee:employees(first_name, last_name)
-        `)
-        .eq('thread_id', selectedMessage!.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Filter threads by status
+  const sentThreads = threads.filter(t => t.status === 'sent');
+  const draftThreads = threads.filter(t => t.status === 'draft');
+  const scheduledThreads = threads.filter(t => t.status === 'scheduled');
 
   // Fetch employees for recipient selection
   const { data: employees = [] } = useQuery({
@@ -143,38 +93,33 @@ export default function Communications() {
     },
   });
 
+  // Fetch templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ['message-templates', company?.id],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('message_templates')
+        .select('id, name, subject_template, body_template')
+        .eq('company_id', company!.id)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Get unique departments
   const departments = [...new Set(employees.map(e => e.department).filter(Boolean))] as string[];
 
-  // Compute SHA-256 hash from content
-  const computeHash = async (content: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(content);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  // Send message mutation with QTSP certification
+  // Send message mutation
   const sendMessage = useMutation({
-    mutationFn: async (data: MessageFormData) => {
-      // Compute hash of message content
-      const contentToHash = JSON.stringify({
-        subject: data.subject,
-        body: data.body,
-        timestamp: new Date().toISOString(),
-      });
-      const contentHash = await computeHash(contentToHash);
-
+    mutationFn: async (data: AdvancedMessageFormData) => {
       // Create thread
-      const audienceType = data.recipient_type === 'all_employees' ? 'all' : 
-                          data.recipient_type === 'department' ? 'department' :
-                          'individual';
-      
-      const audienceFilter = data.recipient_type === 'department' 
-        ? { department: data.recipient_department }
-        : data.recipient_type === 'employee' && data.recipient_employee_id
-        ? { employee_ids: [data.recipient_employee_id] }
+      const audienceFilter = data.audience_type === 'department' 
+        ? { department: data.audience_department }
+        : data.audience_type === 'individual' && data.audience_employee_ids?.length
+        ? { employee_ids: data.audience_employee_ids }
         : null;
 
       const { data: thread, error: threadError } = await supabase
@@ -182,17 +127,20 @@ export default function Communications() {
         .insert({
           company_id: company!.id,
           subject: data.subject,
-          thread_type: 'notificacion',
-          priority: mapPriority(data.priority),
-          requires_read_confirmation: data.requires_acknowledgment,
-          status: 'sent',
-          sent_at: new Date().toISOString(),
+          thread_type: data.thread_type,
+          priority: data.priority,
+          requires_read_confirmation: data.requires_read_confirmation,
+          requires_response: data.requires_response,
+          requires_signature: data.requires_signature,
+          response_deadline: data.response_deadline?.toISOString(),
+          status: data.send_now ? 'sent' : 'scheduled',
+          sent_at: data.send_now ? new Date().toISOString() : null,
+          scheduled_at: !data.send_now ? data.scheduled_at?.toISOString() : null,
           created_by: user!.id,
           sender_role: 'admin',
-          audience_type: audienceType,
+          audience_type: data.audience_type,
           audience_filter: audienceFilter,
-          certification_level: 'complete',
-          content_hash: contentHash,
+          certification_level: data.certification_level,
         })
         .select('id')
         .single();
@@ -210,28 +158,24 @@ export default function Communications() {
 
       if (contentError) throw contentError;
 
-      // Call QTSP to timestamp the message (async, non-blocking)
-      supabase.functions.invoke('qtsp-notarize', {
-        body: {
-          action: 'timestamp_message',
-          company_id: company!.id,
-          thread_id: thread.id,
-          content_hash: contentHash,
-        },
-      }).then(({ error: qtspError }) => {
-        if (qtspError) {
-          console.error('QTSP timestamp failed (non-blocking):', qtspError);
-        } else {
-          console.log('Message timestamped via QTSP');
+      // If sending now, invoke the edge function
+      if (data.send_now) {
+        const { error: sendError } = await supabase.functions.invoke('message-send', {
+          body: { thread_id: thread.id, send_now: true }
+        });
+
+        if (sendError) {
+          console.error('Error invoking message-send:', sendError);
+          // Don't throw - the message was created, just the edge function failed
+          toast.warning('Mensaje creado pero hubo un problema con la certificación');
         }
-      });
+      }
 
       return thread;
     },
-    onSuccess: () => {
-      toast.success('Mensaje enviado correctamente');
+    onSuccess: (_, variables) => {
+      toast.success(variables.send_now ? 'Mensaje enviado correctamente' : 'Mensaje programado correctamente');
       setShowComposer(false);
-      setReplyTo(null);
       queryClient.invalidateQueries({ queryKey: ['admin-message-threads'] });
     },
     onError: (error) => {
@@ -240,32 +184,77 @@ export default function Communications() {
     },
   });
 
-  // Stats
-  const totalRecipients = threads.reduce((sum, t) => sum + (t.recipient_count || 0), 0);
-  const readCount = recipients.filter(r => r.first_read_at).length;
+  // Save draft mutation
+  const saveDraft = useMutation({
+    mutationFn: async (data: AdvancedMessageFormData) => {
+      const audienceFilter = data.audience_type === 'department' 
+        ? { department: data.audience_department }
+        : data.audience_type === 'individual' && data.audience_employee_ids?.length
+        ? { employee_ids: data.audience_employee_ids }
+        : null;
+
+      const { data: thread, error: threadError } = await supabase
+        .from('message_threads')
+        .insert({
+          company_id: company!.id,
+          subject: data.subject || 'Sin asunto',
+          thread_type: data.thread_type,
+          priority: data.priority,
+          requires_read_confirmation: data.requires_read_confirmation,
+          requires_response: data.requires_response,
+          requires_signature: data.requires_signature,
+          status: 'draft',
+          created_by: user!.id,
+          sender_role: 'admin',
+          audience_type: data.audience_type,
+          audience_filter: audienceFilter,
+          certification_level: data.certification_level,
+        })
+        .select('id')
+        .single();
+
+      if (threadError) throw threadError;
+
+      if (data.body) {
+        await supabase.from('message_contents').insert({
+          thread_id: thread.id,
+          body_text: data.body,
+          body_markdown: data.body,
+        });
+      }
+
+      return thread;
+    },
+    onSuccess: () => {
+      toast.success('Borrador guardado');
+      setShowComposer(false);
+      queryClient.invalidateQueries({ queryKey: ['admin-message-threads'] });
+    },
+    onError: (error) => {
+      toast.error('Error al guardar el borrador');
+      console.error(error);
+    },
+  });
+
+  // Send reminder
+  const sendReminder = async () => {
+    if (!selectedMessage) return;
+    
+    const { error } = await supabase.functions.invoke('message-reminder', {
+      body: { thread_id: selectedMessage.id }
+    });
+
+    if (error) {
+      toast.error('Error al enviar recordatorios');
+    } else {
+      toast.success('Recordatorios enviados');
+      queryClient.invalidateQueries({ queryKey: ['thread-recipients-tracking'] });
+    }
+  };
 
   const handleSelectMessage = (message: Message) => {
     setSelectedMessage(message);
     setShowComposer(false);
-    setReplyTo(null);
-  };
-
-  const handleReply = () => {
-    // Reply functionality - would create a new thread
-    toast.info('Función de respuesta disponible próximamente');
-  };
-
-  const handleSendMessage = async (data: MessageFormData) => {
-    await sendMessage.mutateAsync(data);
-  };
-
-  // Combine thread with content for display
-  const getMessageWithContent = (): Message | null => {
-    if (!selectedMessage) return null;
-    return {
-      ...selectedMessage,
-      body: threadContent?.body_text || threadContent?.body_markdown || '',
-    };
   };
 
   if (isLoading) {
@@ -283,12 +272,18 @@ export default function Communications() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Comunicaciones Certificadas</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">Comunicaciones Certificadas</h1>
+              <Badge variant="outline" className="gap-1">
+                <Shield className="h-3 w-3" />
+                QTSP
+              </Badge>
+            </div>
             <p className="text-muted-foreground">
-              Gestiona las comunicaciones oficiales con los empleados
+              Gestiona las comunicaciones oficiales con trazabilidad completa
             </p>
           </div>
-          <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setReplyTo(null); }}>
+          <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); }}>
             <Plus className="h-4 w-4 mr-2" />
             Nueva comunicación
           </Button>
@@ -298,15 +293,33 @@ export default function Communications() {
           {/* Messages List */}
           <div className="lg:col-span-1">
             <Card className="h-[calc(100vh-220px)]">
-              <Tabs defaultValue="sent" className="h-full flex flex-col">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <TabsList className="grid w-full grid-cols-1">
-                    <TabsTrigger value="sent" className="gap-2">
-                      <Send className="h-4 w-4" />
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="sent" className="gap-1 text-xs">
+                      <Send className="h-3 w-3" />
                       Enviados
-                      {threads.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">
-                          {threads.length}
+                      {sentThreads.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                          {sentThreads.length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="drafts" className="gap-1 text-xs">
+                      <FileText className="h-3 w-3" />
+                      Borradores
+                      {draftThreads.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                          {draftThreads.length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="scheduled" className="gap-1 text-xs">
+                      <Clock className="h-3 w-3" />
+                      Programados
+                      {scheduledThreads.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                          {scheduledThreads.length}
                         </Badge>
                       )}
                     </TabsTrigger>
@@ -315,7 +328,23 @@ export default function Communications() {
                 <CardContent className="flex-1 overflow-auto">
                   <TabsContent value="sent" className="mt-0 h-full">
                     <MessageList
-                      messages={threads}
+                      messages={sentThreads}
+                      selectedId={selectedMessage?.id}
+                      onSelect={handleSelectMessage}
+                      viewType="admin"
+                    />
+                  </TabsContent>
+                  <TabsContent value="drafts" className="mt-0 h-full">
+                    <MessageList
+                      messages={draftThreads}
+                      selectedId={selectedMessage?.id}
+                      onSelect={handleSelectMessage}
+                      viewType="admin"
+                    />
+                  </TabsContent>
+                  <TabsContent value="scheduled" className="mt-0 h-full">
+                    <MessageList
+                      messages={scheduledThreads}
                       selectedId={selectedMessage?.id}
                       onSelect={handleSelectMessage}
                       viewType="admin"
@@ -329,60 +358,27 @@ export default function Communications() {
           {/* Message Detail / Composer */}
           <div className="lg:col-span-2">
             {showComposer ? (
-              <MessageComposer
-                mode="admin"
+              <AdvancedMessageComposer
                 employees={employees}
                 departments={departments}
-                replyTo={replyTo || undefined}
-                onSubmit={handleSendMessage}
-                onCancel={() => { setShowComposer(false); setReplyTo(null); }}
+                templates={templates}
+                onSubmit={async (data) => { await sendMessage.mutateAsync(data); }}
+                onSaveDraft={async (data) => { await saveDraft.mutateAsync(data); }}
+                onCancel={() => setShowComposer(false)}
                 isSubmitting={sendMessage.isPending}
               />
             ) : selectedMessage ? (
-              <Card className="h-[calc(100vh-220px)]">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h2 className="text-xl font-semibold">{selectedMessage.subject}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Enviado el {new Date(selectedMessage.created_at).toLocaleDateString('es-ES')} a {selectedMessage.recipient_count} destinatarios
-                      </p>
-                    </div>
-                    <Badge variant={selectedMessage.priority === 'urgente' ? 'destructive' : 'secondary'}>
-                      {selectedMessage.priority}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="prose prose-sm max-w-none">
-                    <p className="whitespace-pre-wrap">{threadContent?.body_text || threadContent?.body_markdown || 'Cargando contenido...'}</p>
-                  </div>
-                  
-                  {recipients.length > 0 && (
-                    <div className="border-t pt-4">
-                      <h3 className="font-medium mb-3">Estado de entrega ({recipients.length})</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-auto">
-                        {recipients.map((r) => (
-                          <div key={r.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                            <span className="text-sm">
-                              {r.employee?.first_name} {r.employee?.last_name}
-                            </span>
-                            <Badge variant={r.first_read_at ? 'default' : 'outline'} className="text-xs">
-                              {r.first_read_at ? 'Leído' : 'Pendiente'}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <MessageTrackingPanel
+                threadId={selectedMessage.id}
+                onSendReminder={sendReminder}
+                onExportEvidence={() => toast.info('Exportación de evidencias próximamente')}
+              />
             ) : (
               <Card className="h-[calc(100vh-220px)] flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Selecciona un mensaje para ver los detalles</p>
-                  <p className="text-sm mt-2">o crea una nueva comunicación para los empleados</p>
+                  <p>Selecciona un mensaje para ver el seguimiento</p>
+                  <p className="text-sm mt-2">o crea una nueva comunicación certificada</p>
                 </div>
               </Card>
             )}
