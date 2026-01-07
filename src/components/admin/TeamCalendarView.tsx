@@ -193,16 +193,43 @@ export function TeamCalendarView() {
     return map;
   }, [blackouts]);
 
-  // Get absences for a specific employee and day
+  // Create a map for O(1) absence lookup
+  // Key format: `${employeeId}_${dateStr}`
+  const absencesMap = useMemo(() => {
+    const map = new Map<string, AbsenceRequest>();
+    if (!absences) return map;
+
+    absences.forEach(absence => {
+      // Parse dates once per absence
+      const start = parseISO(absence.start_date);
+      const end = parseISO(absence.end_date);
+
+      // Get all days in the range
+      // We rely on the fact that absences are filtered by the query to overlap with the current month,
+      // so even if an absence is long, it is relevant. Clamping might hide padding days.
+      try {
+        const days = eachDayOfInterval({ start, end });
+        days.forEach(day => {
+          const key = `${absence.employee_id}_${format(day, 'yyyy-MM-dd')}`;
+          // If multiple absences on same day, this logic matches the previous .find() behavior (first match wins if we don't overwrite)
+          // But since .find() found the first one in the array, and we iterate the array in order here,
+          // simply setting it will make the LAST one win.
+          // To preserve behavior of "first match in the list", we only set if not exists.
+          if (!map.has(key)) {
+             map.set(key, absence);
+          }
+        });
+      } catch (e) {
+        console.error('Invalid absence date range', absence, e);
+      }
+    });
+    return map;
+  }, [absences]);
+
+  // Get absences for a specific employee and day using the optimized map
   const getAbsenceForDay = (employeeId: string, day: Date) => {
-    if (!absences) return null;
-    return absences.find(a => 
-      a.employee_id === employeeId &&
-      isWithinInterval(day, {
-        start: parseISO(a.start_date),
-        end: parseISO(a.end_date)
-      })
-    );
+    const key = `${employeeId}_${format(day, 'yyyy-MM-dd')}`;
+    return absencesMap.get(key) || null;
   };
 
   // Count absences per day for conflict detection
