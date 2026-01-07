@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Building2, Plus, Search, Users, Clock, Edit, Trash2, Loader2 } from "lucide-react";
+import { Building2, Plus, Search, Users, Clock, Edit, Loader2, UserPlus, Key, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function SuperAdminCompanies() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [provisionDialogOpen, setProvisionDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -27,6 +28,16 @@ export default function SuperAdminCompanies() {
     postal_code: "",
     timezone: "Europe/Madrid",
   });
+  const [provisionData, setProvisionData] = useState({
+    companyName: "",
+    cif: "",
+    adminEmail: "",
+    adminFirstName: "",
+    adminLastName: "",
+  });
+  const [generatedCredentials, setGeneratedCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ['super-admin-all-companies'],
@@ -78,6 +89,47 @@ export default function SuperAdminCompanies() {
     },
   });
 
+  // Get admins for each company
+  const { data: companyAdmins } = useQuery({
+    queryKey: ['super-admin-company-admins'],
+    queryFn: async () => {
+      const { data: userCompanies, error: ucError } = await supabase
+        .from('user_company')
+        .select('user_id, company_id');
+      if (ucError) throw ucError;
+
+      const { data: userRoles, error: urError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'admin');
+      if (urError) throw urError;
+
+      const { data: employees, error: empError } = await supabase
+        .from('employees')
+        .select('user_id, email, first_name, last_name');
+      if (empError) throw empError;
+
+      const adminUserIds = new Set(userRoles.map(ur => ur.user_id));
+      const employeeMap: Record<string, any> = {};
+      employees.forEach(emp => {
+        if (emp.user_id) employeeMap[emp.user_id] = emp;
+      });
+
+      const result: Record<string, any[]> = {};
+      userCompanies.forEach(uc => {
+        if (adminUserIds.has(uc.user_id)) {
+          if (!result[uc.company_id]) result[uc.company_id] = [];
+          result[uc.company_id].push({
+            userId: uc.user_id,
+            ...employeeMap[uc.user_id]
+          });
+        }
+      });
+
+      return result;
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const { data: newCompany, error } = await supabase
@@ -118,6 +170,39 @@ export default function SuperAdminCompanies() {
     },
   });
 
+  const provisionMutation = useMutation({
+    mutationFn: async (data: typeof provisionData) => {
+      const { data: result, error } = await supabase.functions.invoke('company-provision', {
+        body: {
+          company: {
+            name: data.companyName,
+            cif: data.cif || null,
+          },
+          admin: {
+            email: data.adminEmail,
+            first_name: data.adminFirstName || 'Admin',
+            last_name: data.adminLastName || '',
+          }
+        }
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success('Empresa y administrador creados correctamente');
+      queryClient.invalidateQueries({ queryKey: ['super-admin-all-companies'] });
+      queryClient.invalidateQueries({ queryKey: ['super-admin-company-admins'] });
+      setGeneratedCredentials({
+        email: result.admin.email,
+        password: result.admin.tempPassword,
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(`Error: ${error.message}`);
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -127,6 +212,19 @@ export default function SuperAdminCompanies() {
       postal_code: "",
       timezone: "Europe/Madrid",
     });
+  };
+
+  const resetProvisionForm = () => {
+    setProvisionData({
+      companyName: "",
+      cif: "",
+      adminEmail: "",
+      adminFirstName: "",
+      adminLastName: "",
+    });
+    setGeneratedCredentials(null);
+    setShowPassword(false);
+    setCopied(false);
   };
 
   const handleEdit = (company: any) => {
@@ -149,6 +247,25 @@ export default function SuperAdminCompanies() {
     }
   };
 
+  const handleProvision = () => {
+    if (!provisionData.companyName || !provisionData.adminEmail) {
+      toast.error('Nombre de empresa y email de admin son requeridos');
+      return;
+    }
+    provisionMutation.mutate(provisionData);
+  };
+
+  const copyCredentials = () => {
+    if (generatedCredentials) {
+      navigator.clipboard.writeText(
+        `Email: ${generatedCredentials.email}\nContraseña: ${generatedCredentials.password}`
+      );
+      setCopied(true);
+      toast.success('Credenciales copiadas al portapapeles');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const filteredCompanies = companies?.filter((company) => 
     company.name.toLowerCase().includes(search.toLowerCase()) ||
     company.cif?.toLowerCase().includes(search.toLowerCase()) ||
@@ -165,35 +282,161 @@ export default function SuperAdminCompanies() {
               Gestión de Empresas
             </h1>
             <p className="text-muted-foreground">
-              Administra todas las empresas de la plataforma
+              Administra todas las empresas y sus administradores
             </p>
           </div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setEditingCompany(null); }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nueva Empresa
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Crear Nueva Empresa</DialogTitle>
-                <DialogDescription>
-                  Añade una nueva empresa a la plataforma
-                </DialogDescription>
-              </DialogHeader>
-              <CompanyForm formData={formData} setFormData={setFormData} />
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancelar
+          <div className="flex gap-2">
+            <Dialog open={provisionDialogOpen} onOpenChange={(open) => {
+              setProvisionDialogOpen(open);
+              if (!open) resetProvisionForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="default">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Provisionar Empresa + Admin
                 </Button>
-                <Button onClick={handleSubmit} disabled={createMutation.isPending || !formData.name}>
-                  {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Crear
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Provisionar Nueva Empresa</DialogTitle>
+                  <DialogDescription>
+                    Crea una empresa con su administrador. Se generará una contraseña temporal.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {generatedCredentials ? (
+                  <div className="space-y-4 py-4">
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+                      <h4 className="font-semibold text-green-800 dark:text-green-200 mb-3">
+                        ✓ Empresa y admin creados
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <Label className="text-muted-foreground">Email</Label>
+                          <p className="font-mono">{generatedCredentials.email}</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground">Contraseña temporal</Label>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono">
+                              {showPassword ? generatedCredentials.password : '••••••••••••'}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      ⚠️ Guarda estas credenciales ahora. No se mostrarán de nuevo.
+                    </p>
+                    <Button onClick={copyCredentials} className="w-full" variant="outline">
+                      {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                      {copied ? 'Copiadas' : 'Copiar credenciales'}
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Nombre de empresa *</Label>
+                        <Input
+                          value={provisionData.companyName}
+                          onChange={(e) => setProvisionData({ ...provisionData, companyName: e.target.value })}
+                          placeholder="Mi Empresa S.L."
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>CIF</Label>
+                        <Input
+                          value={provisionData.cif}
+                          onChange={(e) => setProvisionData({ ...provisionData, cif: e.target.value })}
+                          placeholder="B12345678"
+                        />
+                      </div>
+                      <div className="border-t pt-4">
+                        <h4 className="font-medium mb-3">Datos del Administrador</h4>
+                        <div className="grid gap-3">
+                          <div className="grid gap-2">
+                            <Label>Email del admin *</Label>
+                            <Input
+                              type="email"
+                              value={provisionData.adminEmail}
+                              onChange={(e) => setProvisionData({ ...provisionData, adminEmail: e.target.value })}
+                              placeholder="admin@empresa.com"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="grid gap-2">
+                              <Label>Nombre</Label>
+                              <Input
+                                value={provisionData.adminFirstName}
+                                onChange={(e) => setProvisionData({ ...provisionData, adminFirstName: e.target.value })}
+                                placeholder="Nombre"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label>Apellidos</Label>
+                              <Input
+                                value={provisionData.adminLastName}
+                                onChange={(e) => setProvisionData({ ...provisionData, adminLastName: e.target.value })}
+                                placeholder="Apellidos"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setProvisionDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button 
+                        onClick={handleProvision} 
+                        disabled={provisionMutation.isPending || !provisionData.companyName || !provisionData.adminEmail}
+                      >
+                        {provisionMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Crear Empresa + Admin
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={() => { resetForm(); setEditingCompany(null); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Solo Empresa
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Crear Nueva Empresa</DialogTitle>
+                  <DialogDescription>
+                    Añade una nueva empresa sin administrador
+                  </DialogDescription>
+                </DialogHeader>
+                <CompanyForm formData={formData} setFormData={setFormData} />
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSubmit} disabled={createMutation.isPending || !formData.name}>
+                    {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Crear
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Search */}
@@ -225,8 +468,7 @@ export default function SuperAdminCompanies() {
                   <TableRow>
                     <TableHead>Empresa</TableHead>
                     <TableHead>CIF</TableHead>
-                    <TableHead>Ciudad</TableHead>
-                    <TableHead>Timezone</TableHead>
+                    <TableHead>Admin(s)</TableHead>
                     <TableHead>Empleados</TableHead>
                     <TableHead>Fichajes</TableHead>
                     <TableHead>Creada</TableHead>
@@ -238,9 +480,20 @@ export default function SuperAdminCompanies() {
                     <TableRow key={company.id}>
                       <TableCell className="font-medium">{company.name}</TableCell>
                       <TableCell>{company.cif || '-'}</TableCell>
-                      <TableCell>{company.city || '-'}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{company.timezone}</Badge>
+                        {companyAdmins?.[company.id]?.length ? (
+                          <div className="space-y-1">
+                            {companyAdmins[company.id].map((admin: any) => (
+                              <div key={admin.userId} className="text-sm">
+                                <span className="font-medium">{admin.first_name} {admin.last_name}</span>
+                                <br />
+                                <span className="text-muted-foreground">{admin.email}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="text-amber-600">Sin admin</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">

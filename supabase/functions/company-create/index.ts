@@ -26,8 +26,12 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    // Create admin client that bypasses RLS
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
+    // Also create a client with the user's token just to verify identity
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "No authorization header" }), {
@@ -37,14 +41,17 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
+      console.error("[company-create] auth error:", authError);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[company-create] User ${user.id} (${user.email}) requesting company creation`);
 
     const body: CompanyCreateBody = await req.json();
     if (!body?.name?.trim()) {
@@ -55,7 +62,7 @@ serve(async (req) => {
     }
 
     // Prevent creating a second company for regular users
-    const { data: existingCompanyId, error: existingError } = await supabase
+    const { data: existingCompanyId, error: existingError } = await supabaseAdmin
       .rpc("get_user_company_id", { _user_id: user.id });
 
     if (existingError) {
@@ -66,7 +73,7 @@ serve(async (req) => {
       });
     }
 
-    const { data: isSuperAdmin } = await supabase.rpc("is_super_admin", { _user_id: user.id });
+    const { data: isSuperAdmin } = await supabaseAdmin.rpc("is_super_admin", { _user_id: user.id });
 
     if (existingCompanyId && !isSuperAdmin) {
       return new Response(JSON.stringify({ error: "El usuario ya tiene una empresa asociada" }), {
@@ -75,8 +82,9 @@ serve(async (req) => {
       });
     }
 
-    // Create company
-    const { data: company, error: companyError } = await supabase
+    // Create company using admin client (bypasses RLS)
+    console.log(`[company-create] Creating company: ${body.name}`);
+    const { data: company, error: companyError } = await supabaseAdmin
       .from("company")
       .insert({
         name: body.name.trim(),
@@ -97,8 +105,10 @@ serve(async (req) => {
       });
     }
 
+    console.log(`[company-create] Company created: ${company.id}`);
+
     // Link user to company (idempotent)
-    const { error: linkError } = await supabase
+    const { error: linkError } = await supabaseAdmin
       .from("user_company")
       .upsert({ user_id: user.id, company_id: company.id }, { onConflict: "user_id" });
 
@@ -111,7 +121,7 @@ serve(async (req) => {
     }
 
     // Assign admin role (idempotent)
-    const { error: roleError } = await supabase
+    const { error: roleError } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: user.id, role: "admin" }, { onConflict: "user_id,role" });
 
@@ -122,6 +132,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[company-create] Success: company=${company.id}, user=${user.id}`);
 
     return new Response(JSON.stringify({ company }), {
       status: 200,

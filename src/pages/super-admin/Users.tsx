@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, Shield, Building2, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { Users, Search, Shield, Building2, Edit, Trash2, Loader2, Key, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -24,6 +24,10 @@ export default function SuperAdminUsers() {
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [editingRole, setEditingRole] = useState<{ userId: string; currentRole: AppRole } | null>(null);
   const [newRole, setNewRole] = useState<AppRole>('employee');
+  const [resetPasswordUser, setResetPasswordUser] = useState<{ userId: string; email: string } | null>(null);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Get all user roles with user_company for company association
   const { data: userRoles, isLoading } = useQuery({
@@ -122,6 +126,24 @@ export default function SuperAdminUsers() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-password-reset', {
+        body: { user_id: userId }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      setGeneratedPassword(data.tempPassword);
+      toast.success('Contraseña reseteada correctamente');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error al resetear contraseña: ${error.message}`);
+    },
+  });
+
   const getRoleBadge = (role: AppRole) => {
     switch (role) {
       case 'super_admin':
@@ -164,6 +186,25 @@ export default function SuperAdminUsers() {
     return '-';
   };
 
+  const handleResetPasswordClick = (userId: string) => {
+    const email = getUserEmail(userId);
+    setResetPasswordUser({ userId, email });
+    setGeneratedPassword(null);
+    setShowPassword(false);
+    setCopied(false);
+  };
+
+  const copyCredentials = () => {
+    if (generatedPassword && resetPasswordUser) {
+      navigator.clipboard.writeText(
+        `Email: ${resetPasswordUser.email}\nContraseña: ${generatedPassword}`
+      );
+      setCopied(true);
+      toast.success('Credenciales copiadas al portapapeles');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const filteredUsers = userRoles?.filter((ur) => {
     // Role filter
     if (roleFilter !== 'all' && ur.role !== roleFilter) return false;
@@ -194,7 +235,7 @@ export default function SuperAdminUsers() {
             Gestión de Usuarios
           </h1>
           <p className="text-muted-foreground">
-            Administra usuarios y roles de todas las empresas
+            Administra usuarios, roles y contraseñas de todas las empresas
           </p>
         </div>
 
@@ -279,7 +320,18 @@ export default function SuperAdminUsers() {
                         {format(new Date(ur.created_at), 'dd/MM/yyyy', { locale: es })}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
+                          {/* Reset Password Button */}
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            title="Resetear contraseña"
+                            onClick={() => handleResetPasswordClick(ur.user_id)}
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+
+                          {/* Edit Role Button */}
                           <Dialog 
                             open={editingRole?.userId === ur.user_id} 
                             onOpenChange={(open) => !open && setEditingRole(null)}
@@ -355,6 +407,82 @@ export default function SuperAdminUsers() {
             )}
           </CardContent>
         </Card>
+
+        {/* Reset Password Dialog */}
+        <Dialog 
+          open={!!resetPasswordUser} 
+          onOpenChange={(open) => !open && setResetPasswordUser(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Resetear Contraseña</DialogTitle>
+              <DialogDescription>
+                {resetPasswordUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {generatedPassword ? (
+              <div className="space-y-4 py-4">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
+                  <h4 className="font-semibold text-green-800 dark:text-green-200 mb-3">
+                    ✓ Contraseña reseteada
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <Label className="text-muted-foreground">Email</Label>
+                      <p className="font-mono">{resetPasswordUser?.email}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Nueva contraseña</Label>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono">
+                          {showPassword ? generatedPassword : '••••••••••••'}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  ⚠️ Guarda estas credenciales ahora. No se mostrarán de nuevo.
+                </p>
+                <Button onClick={copyCredentials} className="w-full" variant="outline">
+                  {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                  {copied ? 'Copiadas' : 'Copiar credenciales'}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Se generará una nueva contraseña temporal para este usuario.
+                    El usuario deberá cambiarla cuando inicie sesión.
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setResetPasswordUser(null)}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={() => resetPasswordMutation.mutate(resetPasswordUser!.userId)}
+                    disabled={resetPasswordMutation.isPending}
+                    variant="destructive"
+                  >
+                    {resetPasswordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Resetear Contraseña
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </SuperAdminLayout>
   );
