@@ -28,7 +28,8 @@ import {
   RotateCcw,
   TrendingUp,
   FileDown,
-  Users
+  Users,
+  FlaskConical
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -42,6 +43,7 @@ import { QTSPTrendsChart } from "@/components/admin/QTSPTrendsChart";
 import { SLAMetricsDashboard } from "@/components/admin/SLAMetricsDashboard";
 import { QTSPPDFExport } from "@/components/admin/QTSPPDFExport";
 import { EscalationManager } from "@/components/admin/EscalationManager";
+import { QTSPIntegrationTests } from "@/components/admin/QTSPIntegrationTests";
 import { useQTSPRealtimeAlerts } from "@/hooks/useQTSPRealtimeAlerts";
 
 interface LatencyDataPoint {
@@ -756,7 +758,7 @@ export default function QTSPMonitor() {
 
         {/* Tabs for Additional Features */}
         <Tabs defaultValue="trends" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="trends" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Tendencias
@@ -764,6 +766,10 @@ export default function QTSPMonitor() {
             <TabsTrigger value="sla" className="gap-2">
               <Activity className="h-4 w-4" />
               Métricas SLA
+            </TabsTrigger>
+            <TabsTrigger value="tests" className="gap-2">
+              <FlaskConical className="h-4 w-4" />
+              Tests
             </TabsTrigger>
             <TabsTrigger value="escalation" className="gap-2">
               <Users className="h-4 w-4" />
@@ -781,6 +787,10 @@ export default function QTSPMonitor() {
           
           <TabsContent value="sla" className="mt-6">
             <SLAMetricsDashboard />
+          </TabsContent>
+          
+          <TabsContent value="tests" className="mt-6">
+            <QTSPIntegrationTests />
           </TabsContent>
           
           <TabsContent value="escalation" className="mt-6">
