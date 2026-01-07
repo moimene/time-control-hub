@@ -72,18 +72,19 @@ export function HelpAgentChat({
         </div>
         <div className="flex items-center gap-1">
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
+            size="sm"
             onClick={onCreateTicket}
-            className="h-8 w-8"
+            className="h-7 gap-1.5 border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-300 dark:hover:bg-orange-900"
             title="Crear ticket de soporte"
             disabled={isCreatingTicket || messages.length === 0}
           >
             {isCreatingTicket ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Ticket className="h-4 w-4" />
+              <Ticket className="h-3.5 w-3.5" />
             )}
+            <span className="text-xs font-medium">Soporte</span>
           </Button>
           <Button
             variant="ghost"
