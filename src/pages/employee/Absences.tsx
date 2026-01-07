@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
@@ -7,15 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, Loader2, Palmtree, AlertCircle, Info, Scale, FileText } from 'lucide-react';
-import { format, differenceInBusinessDays, differenceInDays, addDays, parseISO } from 'date-fns';
+import { Plus, Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, Loader2, Palmtree } from 'lucide-react';
+import { format, addDays, parseISO } from 'date-fns';
+import { AbsenceRequestForm } from '@/components/absences/AbsenceRequestForm';
 import { es } from 'date-fns/locale';
 
 const statusLabels: Record<string, string> = {

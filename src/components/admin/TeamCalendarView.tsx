@@ -6,20 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   ChevronLeft, 
   ChevronRight, 
   Loader2,
   Users,
   AlertTriangle,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Ban,
+  Star
 } from 'lucide-react';
 import { 
   format, 
   startOfMonth, 
   endOfMonth, 
   eachDayOfInterval, 
-  isSameMonth, 
   isWeekend,
   addMonths,
   subMonths,
@@ -51,6 +53,21 @@ interface Employee {
   first_name: string;
   last_name: string;
   department: string | null;
+}
+
+interface Holiday {
+  id: string;
+  holiday_date: string;
+  holiday_type: string;
+  description: string | null;
+}
+
+interface BlackoutBlock {
+  id: string;
+  block_date: string;
+  block_reason: string;
+  department: string | null;
+  min_staff_required: number | null;
 }
 
 export function TeamCalendarView() {
@@ -101,6 +118,49 @@ export function TeamCalendarView() {
     enabled: !!company?.id,
   });
 
+  // Fetch holidays
+  const { data: holidays } = useQuery({
+    queryKey: ['calendar-holidays', company?.id, format(currentMonth, 'yyyy-MM')],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      
+      const { data, error } = await supabase
+        .from('calendar_holidays')
+        .select('*')
+        .eq('company_id', company.id)
+        .gte('holiday_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('holiday_date', format(monthEnd, 'yyyy-MM-dd'))
+        .eq('is_working_day', false);
+      
+      if (error) throw error;
+      return (data || []) as Holiday[];
+    },
+    enabled: !!company?.id,
+  });
+
+  // Fetch blackout blocks
+  const { data: blackouts } = useQuery({
+    queryKey: ['blackout-blocks', company?.id, format(currentMonth, 'yyyy-MM')],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      
+      const { data, error } = await supabase
+        .from('absence_calendar_blocks')
+        .select('*')
+        .eq('company_id', company.id)
+        .gte('block_date', format(monthStart, 'yyyy-MM-dd'))
+        .lte('block_date', format(monthEnd, 'yyyy-MM-dd'));
+      
+      if (error) throw error;
+      return (data || []) as BlackoutBlock[];
+    },
+    enabled: !!company?.id,
+  });
+
   // Get unique departments
   const departments = useMemo(() => {
     if (!employees) return [];
@@ -121,6 +181,17 @@ export function TeamCalendarView() {
     const monthEnd = endOfMonth(currentMonth);
     return eachDayOfInterval({ start: monthStart, end: monthEnd });
   }, [currentMonth]);
+
+  // Create sets for quick lookup
+  const holidayDates = useMemo(() => {
+    return new Set(holidays?.map(h => h.holiday_date) || []);
+  }, [holidays]);
+
+  const blackoutDates = useMemo(() => {
+    const map = new Map<string, BlackoutBlock>();
+    blackouts?.forEach(b => map.set(b.block_date, b));
+    return map;
+  }, [blackouts]);
 
   // Get absences for a specific employee and day
   const getAbsenceForDay = (employeeId: string, day: Date) => {
@@ -162,14 +233,32 @@ export function TeamCalendarView() {
 
   const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
+  const getDayClass = (day: Date) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    const dayOfWeek = getDay(day);
+    const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+    const isHoliday = holidayDates.has(dateStr);
+    const isBlackout = blackoutDates.has(dateStr);
+    const isConflict = conflictDays.has(dateStr);
+    
+    let classes = 'border-b p-1 text-center min-w-[32px]';
+    
+    if (isBlackout) classes += ' bg-red-500/20';
+    else if (isHoliday) classes += ' bg-blue-500/20';
+    else if (isWeekendDay) classes += ' bg-muted/50';
+    else if (isConflict) classes += ' bg-yellow-500/20';
+    
+    return classes;
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <CardTitle>Calendario del Equipo</CardTitle>
             <CardDescription>
-              Vista mensual de ausencias aprobadas y pendientes
+              Vista mensual de ausencias, festivos y bloqueos
             </CardDescription>
           </div>
           <div className="flex items-center gap-4">
@@ -219,15 +308,27 @@ export function TeamCalendarView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            {/* Conflict Warning */}
-            {conflictDays.size > 0 && (
-              <div className="mb-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                <span className="text-sm text-yellow-700">
-                  {conflictDays.size} día(s) con posible falta de cobertura (≥50% del equipo ausente)
-                </span>
-              </div>
-            )}
+            {/* Warnings */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {conflictDays.size > 0 && (
+                <Badge className="bg-yellow-500/10 text-yellow-700 border-yellow-500/20 gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {conflictDays.size} día(s) con posible falta de cobertura
+                </Badge>
+              )}
+              {blackouts && blackouts.length > 0 && (
+                <Badge variant="destructive" className="gap-1">
+                  <Ban className="h-3 w-3" />
+                  {blackouts.length} día(s) bloqueados
+                </Badge>
+              )}
+              {holidays && holidays.length > 0 && (
+                <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1">
+                  <Star className="h-3 w-3" />
+                  {holidays.length} festivo(s)
+                </Badge>
+              )}
+            </div>
 
             <table className="w-full text-sm">
               <thead>
@@ -238,23 +339,36 @@ export function TeamCalendarView() {
                   {calendarDays.map(day => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const isConflict = conflictDays.has(dateStr);
+                    const isHoliday = holidayDates.has(dateStr);
+                    const blackout = blackoutDates.get(dateStr);
                     const dayOfWeek = getDay(day);
-                    const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
+                    const holiday = holidays?.find(h => h.holiday_date === dateStr);
                     
                     return (
-                      <th
-                        key={dateStr}
-                        className={`border-b p-1 text-center min-w-[32px] ${
-                          isWeekendDay ? 'bg-muted/50' : ''
-                        } ${isConflict ? 'bg-yellow-500/20' : ''}`}
-                      >
-                        <div className="text-xs text-muted-foreground">
-                          {dayNames[(dayOfWeek + 6) % 7]}
-                        </div>
-                        <div className={`font-medium ${isConflict ? 'text-yellow-700' : ''}`}>
-                          {format(day, 'd')}
-                        </div>
-                      </th>
+                      <TooltipProvider key={dateStr}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <th className={getDayClass(day)}>
+                              <div className="text-xs text-muted-foreground">
+                                {dayNames[(dayOfWeek + 6) % 7]}
+                              </div>
+                              <div className={`font-medium ${isConflict ? 'text-yellow-700' : ''} ${isHoliday ? 'text-blue-600' : ''} ${blackout ? 'text-red-600' : ''}`}>
+                                {format(day, 'd')}
+                              </div>
+                              {blackout && <Ban className="h-3 w-3 text-red-500 mx-auto" />}
+                              {isHoliday && !blackout && <Star className="h-3 w-3 text-blue-500 mx-auto" />}
+                            </th>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-sm">
+                              {format(day, "EEEE, d 'de' MMMM", { locale: es })}
+                              {holiday && <p className="text-blue-500">🎉 {holiday.description || 'Festivo'}</p>}
+                              {blackout && <p className="text-red-500">🚫 {blackout.block_reason}</p>}
+                              {isConflict && <p className="text-yellow-600">⚠️ Posible falta de cobertura</p>}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     );
                   })}
                 </tr>
@@ -274,30 +388,44 @@ export function TeamCalendarView() {
                     </td>
                     {calendarDays.map(day => {
                       const absence = getAbsenceForDay(employee.id, day);
+                      const dateStr = format(day, 'yyyy-MM-dd');
                       const dayOfWeek = getDay(day);
                       const isWeekendDay = dayOfWeek === 0 || dayOfWeek === 6;
-                      const dateStr = format(day, 'yyyy-MM-dd');
+                      const isHoliday = holidayDates.has(dateStr);
+                      const isBlackout = blackoutDates.has(dateStr);
                       const isConflict = conflictDays.has(dateStr);
                       
+                      let cellClass = 'border-b p-0.5 text-center';
+                      if (isBlackout) cellClass += ' bg-red-500/10';
+                      else if (isHoliday) cellClass += ' bg-blue-500/10';
+                      else if (isWeekendDay) cellClass += ' bg-muted/50';
+                      else if (isConflict && !absence) cellClass += ' bg-yellow-500/10';
+                      
                       return (
-                        <td
-                          key={dateStr}
-                          className={`border-b p-0.5 text-center ${
-                            isWeekendDay ? 'bg-muted/50' : ''
-                          } ${isConflict && !absence ? 'bg-yellow-500/10' : ''}`}
-                        >
+                        <td key={dateStr} className={cellClass}>
                           {absence && (
-                            <div
-                              className={`w-full h-6 rounded-sm flex items-center justify-center ${
-                                absence.status === 'pending' ? 'opacity-50 border border-dashed' : ''
-                              }`}
-                              style={{ backgroundColor: absence.absence_types?.color || '#6b7280' }}
-                              title={`${absence.absence_types?.name} (${absence.status === 'pending' ? 'Pendiente' : 'Aprobada'})`}
-                            >
-                              {absence.status === 'pending' && (
-                                <span className="text-white text-xs">?</span>
-                              )}
-                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={`w-full h-6 rounded-sm flex items-center justify-center cursor-help ${
+                                      absence.status === 'pending' ? 'opacity-50 border border-dashed' : ''
+                                    }`}
+                                    style={{ backgroundColor: absence.absence_types?.color || '#6b7280' }}
+                                  >
+                                    {absence.status === 'pending' && (
+                                      <span className="text-white text-xs">?</span>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="font-medium">{absence.absence_types?.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {absence.status === 'pending' ? 'Pendiente de aprobar' : 'Aprobada'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                         </td>
                       );
@@ -308,7 +436,7 @@ export function TeamCalendarView() {
             </table>
 
             {/* Legend */}
-            <div className="mt-4 flex items-center gap-4 text-sm">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
               <span className="text-muted-foreground">Leyenda:</span>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-sm bg-green-500" />
@@ -320,7 +448,15 @@ export function TeamCalendarView() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-sm bg-yellow-500/30" />
-                <span>Posible conflicto</span>
+                <span>Conflicto cobertura</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-sm bg-blue-500/30" />
+                <span>Festivo</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-sm bg-red-500/30" />
+                <span>Bloqueado</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-sm bg-muted" />
