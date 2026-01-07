@@ -593,105 +593,6 @@ export type Database = {
         }
         Relationships: []
       }
-      company_messages: {
-        Row: {
-          attachments: Json | null
-          body: string
-          company_id: string
-          content_hash: string | null
-          created_at: string
-          id: string
-          priority: Database["public"]["Enums"]["message_priority"]
-          qtsp_evidence_id: string | null
-          recipient_department: string | null
-          recipient_employee_id: string | null
-          recipient_type: string
-          requires_acknowledgment: boolean
-          sender_employee_id: string | null
-          sender_type: Database["public"]["Enums"]["message_sender_type"]
-          sender_user_id: string | null
-          subject: string
-          thread_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          attachments?: Json | null
-          body: string
-          company_id: string
-          content_hash?: string | null
-          created_at?: string
-          id?: string
-          priority?: Database["public"]["Enums"]["message_priority"]
-          qtsp_evidence_id?: string | null
-          recipient_department?: string | null
-          recipient_employee_id?: string | null
-          recipient_type: string
-          requires_acknowledgment?: boolean
-          sender_employee_id?: string | null
-          sender_type: Database["public"]["Enums"]["message_sender_type"]
-          sender_user_id?: string | null
-          subject: string
-          thread_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          attachments?: Json | null
-          body?: string
-          company_id?: string
-          content_hash?: string | null
-          created_at?: string
-          id?: string
-          priority?: Database["public"]["Enums"]["message_priority"]
-          qtsp_evidence_id?: string | null
-          recipient_department?: string | null
-          recipient_employee_id?: string | null
-          recipient_type?: string
-          requires_acknowledgment?: boolean
-          sender_employee_id?: string | null
-          sender_type?: Database["public"]["Enums"]["message_sender_type"]
-          sender_user_id?: string | null
-          subject?: string
-          thread_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_messages_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "company"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_messages_qtsp_evidence_id_fkey"
-            columns: ["qtsp_evidence_id"]
-            isOneToOne: false
-            referencedRelation: "dt_evidences"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_messages_recipient_employee_id_fkey"
-            columns: ["recipient_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_messages_sender_employee_id_fkey"
-            columns: ["sender_employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "company_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       company_settings: {
         Row: {
           company_id: string
@@ -2104,6 +2005,72 @@ export type Database = {
           },
         ]
       }
+      kiosk_notifications: {
+        Row: {
+          actioned_at: string | null
+          company_id: string
+          created_at: string
+          dismissed_at: string | null
+          employee_id: string
+          expires_at: string | null
+          id: string
+          notification_type: string
+          preview: string | null
+          priority: string
+          reference_id: string | null
+          shown_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          actioned_at?: string | null
+          company_id: string
+          created_at?: string
+          dismissed_at?: string | null
+          employee_id: string
+          expires_at?: string | null
+          id?: string
+          notification_type: string
+          preview?: string | null
+          priority?: string
+          reference_id?: string | null
+          shown_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          actioned_at?: string | null
+          company_id?: string
+          created_at?: string
+          dismissed_at?: string | null
+          employee_id?: string
+          expires_at?: string | null
+          id?: string
+          notification_type?: string
+          preview?: string | null
+          priority?: string
+          reference_id?: string | null
+          shown_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_notifications_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kiosk_sessions: {
         Row: {
           activated_by: string | null
@@ -2404,38 +2371,247 @@ export type Database = {
           },
         ]
       }
-      message_recipients: {
+      message_contents: {
         Row: {
-          ack_content_hash: string | null
-          acknowledged_at: string | null
+          attachments: Json | null
+          body_html: string | null
+          body_markdown: string | null
+          body_text: string | null
           created_at: string
-          employee_id: string
+          form_schema: Json | null
           id: string
-          message_id: string
-          qtsp_evidence_id: string | null
-          read_at: string | null
+          is_current: boolean
+          thread_id: string
+          version: number
         }
         Insert: {
-          ack_content_hash?: string | null
-          acknowledged_at?: string | null
+          attachments?: Json | null
+          body_html?: string | null
+          body_markdown?: string | null
+          body_text?: string | null
           created_at?: string
-          employee_id: string
+          form_schema?: Json | null
           id?: string
-          message_id: string
-          qtsp_evidence_id?: string | null
-          read_at?: string | null
+          is_current?: boolean
+          thread_id: string
+          version?: number
         }
         Update: {
-          ack_content_hash?: string | null
-          acknowledged_at?: string | null
+          attachments?: Json | null
+          body_html?: string | null
+          body_markdown?: string | null
+          body_text?: string | null
           created_at?: string
-          employee_id?: string
+          form_schema?: Json | null
           id?: string
-          message_id?: string
-          qtsp_evidence_id?: string | null
-          read_at?: string | null
+          is_current?: boolean
+          thread_id?: string
+          version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "message_contents_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_evidence: {
+        Row: {
+          company_id: string
+          content_hash: string
+          created_at: string
+          device_info: Json | null
+          event_data: Json
+          event_timestamp: string
+          event_type: string
+          id: string
+          ip_address: unknown
+          previous_hash: string | null
+          qtsp_provider: string | null
+          qtsp_serial: string | null
+          qtsp_timestamp: string | null
+          qtsp_token: string | null
+          recipient_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          company_id: string
+          content_hash: string
+          created_at?: string
+          device_info?: Json | null
+          event_data?: Json
+          event_timestamp: string
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          qtsp_provider?: string | null
+          qtsp_serial?: string | null
+          qtsp_timestamp?: string | null
+          qtsp_token?: string | null
+          recipient_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          company_id?: string
+          content_hash?: string
+          created_at?: string
+          device_info?: Json | null
+          event_data?: Json
+          event_timestamp?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          previous_hash?: string | null
+          qtsp_provider?: string | null
+          qtsp_serial?: string | null
+          qtsp_timestamp?: string | null
+          qtsp_token?: string | null
+          recipient_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_evidence_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_evidence_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "message_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_evidence_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_recipients: {
+        Row: {
+          company_id: string
+          created_at: string
+          delivered_at: string | null
+          delivery_evidence_id: string | null
+          delivery_status: string
+          employee_id: string
+          first_read_at: string | null
+          id: string
+          last_read_at: string | null
+          last_reminder_at: string | null
+          next_reminder_at: string | null
+          notified_email_at: string | null
+          notified_kiosk_at: string | null
+          notified_push_at: string | null
+          read_count: number
+          read_device_id: string | null
+          read_device_type: string | null
+          read_evidence_id: string | null
+          read_ip: unknown
+          read_user_agent: string | null
+          reminder_count: number
+          responded_at: string | null
+          response_attachments: Json | null
+          response_evidence_id: string | null
+          response_form_data: Json | null
+          response_text: string | null
+          signature_data: Json | null
+          signature_evidence_id: string | null
+          signed_at: string | null
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_evidence_id?: string | null
+          delivery_status?: string
+          employee_id: string
+          first_read_at?: string | null
+          id?: string
+          last_read_at?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          notified_email_at?: string | null
+          notified_kiosk_at?: string | null
+          notified_push_at?: string | null
+          read_count?: number
+          read_device_id?: string | null
+          read_device_type?: string | null
+          read_evidence_id?: string | null
+          read_ip?: unknown
+          read_user_agent?: string | null
+          reminder_count?: number
+          responded_at?: string | null
+          response_attachments?: Json | null
+          response_evidence_id?: string | null
+          response_form_data?: Json | null
+          response_text?: string | null
+          signature_data?: Json | null
+          signature_evidence_id?: string | null
+          signed_at?: string | null
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_evidence_id?: string | null
+          delivery_status?: string
+          employee_id?: string
+          first_read_at?: string | null
+          id?: string
+          last_read_at?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          notified_email_at?: string | null
+          notified_kiosk_at?: string | null
+          notified_push_at?: string | null
+          read_count?: number
+          read_device_id?: string | null
+          read_device_type?: string | null
+          read_evidence_id?: string | null
+          read_ip?: unknown
+          read_user_agent?: string | null
+          reminder_count?: number
+          responded_at?: string | null
+          response_attachments?: Json | null
+          response_evidence_id?: string | null
+          response_form_data?: Json | null
+          response_text?: string | null
+          signature_data?: Json | null
+          signature_evidence_id?: string | null
+          signed_at?: string | null
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_recipients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_recipients_delivery_evidence_id_fkey"
+            columns: ["delivery_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "message_recipients_employee_id_fkey"
             columns: ["employee_id"]
@@ -2444,17 +2620,203 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "message_recipients_message_id_fkey"
-            columns: ["message_id"]
+            foreignKeyName: "message_recipients_read_evidence_id_fkey"
+            columns: ["read_evidence_id"]
             isOneToOne: false
-            referencedRelation: "company_messages"
+            referencedRelation: "dt_evidences"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "message_recipients_qtsp_evidence_id_fkey"
-            columns: ["qtsp_evidence_id"]
+            foreignKeyName: "message_recipients_response_evidence_id_fkey"
+            columns: ["response_evidence_id"]
             isOneToOne: false
             referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_recipients_signature_evidence_id_fkey"
+            columns: ["signature_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "dt_evidences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_recipients_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          available_variables: Json | null
+          body_template: string
+          category: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          default_certification_level: string | null
+          default_priority: string | null
+          default_requires_read: boolean | null
+          default_requires_response: boolean | null
+          default_requires_signature: boolean | null
+          default_response_days: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          subject_template: string
+          thread_type: string
+          updated_at: string
+        }
+        Insert: {
+          available_variables?: Json | null
+          body_template: string
+          category?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          default_certification_level?: string | null
+          default_priority?: string | null
+          default_requires_read?: boolean | null
+          default_requires_response?: boolean | null
+          default_requires_signature?: boolean | null
+          default_response_days?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          subject_template: string
+          thread_type: string
+          updated_at?: string
+        }
+        Update: {
+          available_variables?: Json | null
+          body_template?: string
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          default_certification_level?: string | null
+          default_priority?: string | null
+          default_requires_read?: boolean | null
+          default_requires_response?: boolean | null
+          default_requires_signature?: boolean | null
+          default_response_days?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          subject_template?: string
+          thread_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_threads: {
+        Row: {
+          allow_reply: boolean
+          audience_filter: Json | null
+          audience_type: string
+          category: string | null
+          certification_level: string
+          closed_at: string | null
+          company_id: string
+          content_hash: string | null
+          created_at: string
+          created_by: string
+          id: string
+          on_behalf_of: string | null
+          priority: string
+          recipient_count: number | null
+          requires_read_confirmation: boolean
+          requires_response: boolean
+          requires_signature: boolean
+          response_deadline: string | null
+          scheduled_at: string | null
+          sender_role: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          tags: Json | null
+          thread_type: string
+          updated_at: string
+        }
+        Insert: {
+          allow_reply?: boolean
+          audience_filter?: Json | null
+          audience_type: string
+          category?: string | null
+          certification_level?: string
+          closed_at?: string | null
+          company_id: string
+          content_hash?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          on_behalf_of?: string | null
+          priority?: string
+          recipient_count?: number | null
+          requires_read_confirmation?: boolean
+          requires_response?: boolean
+          requires_signature?: boolean
+          response_deadline?: string | null
+          scheduled_at?: string | null
+          sender_role?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          tags?: Json | null
+          thread_type: string
+          updated_at?: string
+        }
+        Update: {
+          allow_reply?: boolean
+          audience_filter?: Json | null
+          audience_type?: string
+          category?: string | null
+          certification_level?: string
+          closed_at?: string | null
+          company_id?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          on_behalf_of?: string | null
+          priority?: string
+          recipient_count?: number | null
+          requires_read_confirmation?: boolean
+          requires_response?: boolean
+          requires_signature?: boolean
+          response_deadline?: string | null
+          scheduled_at?: string | null
+          sender_role?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          tags?: Json | null
+          thread_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company"
             referencedColumns: ["id"]
           },
         ]
