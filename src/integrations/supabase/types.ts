@@ -22,6 +22,7 @@ export type Database = {
           id: string
           notes: string | null
           request_id: string
+          step: number | null
         }
         Insert: {
           action: string
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           notes?: string | null
           request_id: string
+          step?: number | null
         }
         Update: {
           action?: string
@@ -38,6 +40,7 @@ export type Database = {
           id?: string
           notes?: string | null
           request_id?: string
+          step?: number | null
         }
         Relationships: [
           {
@@ -113,14 +116,19 @@ export type Database = {
           justification_meta: Json | null
           justification_path: string | null
           justification_required: boolean
+          origin: string | null
           reason: string | null
           requested_at: string
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
           start_date: string
           start_half_day: boolean | null
           status: string
           total_days: number
           total_hours: number | null
           travel_km: number | null
+          tz: string | null
           updated_at: string
         }
         Insert: {
@@ -139,14 +147,19 @@ export type Database = {
           justification_meta?: Json | null
           justification_path?: string | null
           justification_required?: boolean
+          origin?: string | null
           reason?: string | null
           requested_at?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
           start_date: string
           start_half_day?: boolean | null
           status?: string
           total_days: number
           total_hours?: number | null
           travel_km?: number | null
+          tz?: string | null
           updated_at?: string
         }
         Update: {
@@ -165,14 +178,19 @@ export type Database = {
           justification_meta?: Json | null
           justification_path?: string | null
           justification_required?: boolean
+          origin?: string | null
           reason?: string | null
           requested_at?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
           start_date?: string
           start_half_day?: boolean | null
           status?: string
           total_days?: number
           total_hours?: number | null
           travel_km?: number | null
+          tz?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3066,6 +3084,7 @@ export type Database = {
     }
     Functions: {
       get_employee_id: { Args: { _user_id: string }; Returns: string }
+      get_employee_id_for_user: { Args: { user_uuid: string }; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -3086,6 +3105,10 @@ export type Database = {
       }
       user_belongs_to_company: {
         Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_company_admin: {
+        Args: { comp_id: string; user_uuid: string }
         Returns: boolean
       }
     }
