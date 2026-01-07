@@ -14,9 +14,13 @@ interface Message {
   priority: MessagePriority;
   sender_type: 'company' | 'employee';
   requires_read_confirmation?: boolean;
+  requires_response?: boolean;
+  requires_signature?: boolean;
   created_at: string;
   read_at?: string | null;
   acknowledged_at?: string | null;
+  responded_at?: string | null;
+  signed_at?: string | null;
   recipient_count?: number;
   audience_type?: string;
   sender_employee?: {
@@ -124,16 +128,24 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                       {priority.label}
                     </Badge>
                   )}
-                  {message.requires_read_confirmation && viewType === 'employee' && (
+                  {viewType === 'employee' && (message.requires_read_confirmation || message.requires_response || message.requires_signature) && (
                     <Badge 
-                      variant={isAcknowledged ? 'default' : 'outline'} 
+                      variant={isAcknowledged || message.responded_at || message.signed_at ? 'default' : 'outline'} 
                       className={cn(
                         'text-xs',
-                        isAcknowledged && 'bg-green-500/10 text-green-600 border-green-500/20'
+                        (isAcknowledged || message.responded_at || message.signed_at) && 'bg-green-500/10 text-green-600 border-green-500/20'
                       )}
                     >
-                      {isAcknowledged ? (
+                      {message.signed_at ? (
+                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Firmado</>
+                      ) : message.responded_at ? (
+                        <><CheckCircle2 className="h-3 w-3 mr-1" /> Respondido</>
+                      ) : isAcknowledged ? (
                         <><CheckCircle2 className="h-3 w-3 mr-1" /> Confirmado</>
+                      ) : message.requires_signature ? (
+                        'Requiere firma'
+                      ) : message.requires_response ? (
+                        'Requiere respuesta'
                       ) : (
                         'Requiere confirmación'
                       )}
