@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.assistant-chat]
 verify_jwt = false
+
+[functions.create-support-ticket]
+verify_jwt = false

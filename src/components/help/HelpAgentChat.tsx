@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState } from 'react';
-import { X, Send, Trash2, Bot, User, Loader2 } from 'lucide-react';
+import { X, Send, Trash2, Bot, User, Loader2, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { MarkdownMessage } from './MarkdownMessage';
 import type { ChatMessage } from '@/hooks/useHelpAgent';
 
 interface HelpAgentChatProps {
@@ -13,6 +14,8 @@ interface HelpAgentChatProps {
   isLoading: boolean;
   onSendMessage: (message: string) => void;
   onClearMessages: () => void;
+  onCreateTicket: () => void;
+  isCreatingTicket: boolean;
 }
 
 export function HelpAgentChat({
@@ -22,6 +25,8 @@ export function HelpAgentChat({
   isLoading,
   onSendMessage,
   onClearMessages,
+  onCreateTicket,
+  isCreatingTicket,
 }: HelpAgentChatProps) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,6 +71,20 @@ export function HelpAgentChat({
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCreateTicket}
+            className="h-8 w-8"
+            title="Crear ticket de soporte"
+            disabled={isCreatingTicket || messages.length === 0}
+          >
+            {isCreatingTicket ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Ticket className="h-4 w-4" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -128,7 +147,11 @@ export function HelpAgentChat({
                       : "bg-muted"
                   )}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <MarkdownMessage content={message.content} />
+                  )}
                 </div>
               </div>
             ))}

@@ -8,11 +8,13 @@ export function HelpAgent() {
   const {
     messages,
     isLoading,
+    isCreatingTicket,
     isOpen,
     sendMessage,
     clearMessages,
     toggleOpen,
     setIsOpen,
+    createTicket,
   } = useHelpAgent();
 
   // Don't render if user is not authenticated
@@ -28,6 +30,8 @@ export function HelpAgent() {
         isLoading={isLoading}
         onSendMessage={sendMessage}
         onClearMessages={clearMessages}
+        onCreateTicket={createTicket}
+        isCreatingTicket={isCreatingTicket}
       />
     </>
   );
