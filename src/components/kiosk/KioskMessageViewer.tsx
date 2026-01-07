@@ -19,6 +19,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/security';
 
 interface KioskMessageViewerProps {
   threadId: string;
@@ -214,7 +215,7 @@ export function KioskMessageViewer({
         <ScrollArea className="flex-1 p-4">
           <div className="prose prose-sm max-w-none dark:prose-invert">
             {content?.body_html ? (
-              <div dangerouslySetInnerHTML={{ __html: content.body_html }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.body_html) }} />
             ) : (
               <p className="whitespace-pre-wrap">
                 {content?.body_text || content?.body_markdown || 'Sin contenido'}
