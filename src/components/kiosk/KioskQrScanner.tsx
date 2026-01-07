@@ -95,6 +95,7 @@ export function KioskQrScanner({ onScan, onCancel, isLoading }: KioskQrScannerPr
             size="icon"
             className="absolute left-4 top-4"
             onClick={onCancel}
+            aria-label="Cancelar y volver"
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
