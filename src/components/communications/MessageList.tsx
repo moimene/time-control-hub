@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Mail, MailOpen, CheckCircle2, AlertTriangle, AlertCircle, Users } from 'lucide-react';
+import { Mail, MailOpen, CheckCircle2, AlertTriangle, AlertCircle, Users, Send } from 'lucide-react';
 
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
@@ -37,7 +37,7 @@ interface MessageListProps {
   messages: Message[];
   selectedId?: string;
   onSelect: (message: Message) => void;
-  viewType: 'admin' | 'employee';
+  viewType: 'admin' | 'employee' | 'employee-sent' | 'admin-received';
 }
 
 const priorityConfig: Record<MessagePriority, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof AlertTriangle | null }> = {
@@ -78,7 +78,7 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
             className={cn(
               'cursor-pointer transition-colors hover:bg-accent/50',
               selectedId === message.id && 'border-primary bg-accent/30',
-              !isRead && viewType === 'employee' && 'border-l-4 border-l-primary'
+              !isRead && (viewType === 'employee' || viewType === 'admin-received') && 'border-l-4 border-l-primary'
             )}
             onClick={() => onSelect(message)}
           >
@@ -91,6 +91,8 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                     ) : (
                       <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     )
+                  ) : viewType === 'employee-sent' ? (
+                    <Send className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                   ) : (
                     <Users className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                   )}
@@ -114,6 +116,10 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                     <p className="text-sm text-muted-foreground truncate">
                       {viewType === 'admin' 
                         ? `Para: ${getRecipientInfo()}`
+                        : viewType === 'employee-sent'
+                        ? 'Para: Empresa'
+                        : viewType === 'admin-received' && message.sender_employee
+                        ? `De: ${message.sender_employee.first_name} ${message.sender_employee.last_name}`
                         : 'De: Empresa'
                       }
                     </p>

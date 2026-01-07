@@ -23,7 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
-type ThreadType = 'notificacion' | 'circular' | 'documento' | 'encuesta' | 'respuesta_requerida';
+type ThreadType = 'notificacion' | 'circular' | 'documento' | 'encuesta' | 'respuesta_requerida' | 'consulta' | 'solicitud' | 'incidencia' | 'sugerencia' | 'otro';
 
 interface ThreadContent {
   id: string;
@@ -73,6 +73,11 @@ const threadTypeLabels: Record<ThreadType, string> = {
   documento: 'Documento',
   encuesta: 'Encuesta',
   respuesta_requerida: 'Respuesta requerida',
+  consulta: 'Consulta',
+  solicitud: 'Solicitud',
+  incidencia: 'Incidencia',
+  sugerencia: 'Sugerencia',
+  otro: 'Otro',
 };
 
 export function EmployeeMessageReader({ 
