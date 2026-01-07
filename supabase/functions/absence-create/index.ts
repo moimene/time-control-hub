@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, idempotency-key',
 };
+
+// Helper para generar hash del payload
+async function hashPayload(payload: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(payload);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 interface AbsenceCreateRequest {
   company_id: string;
@@ -49,18 +59,44 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body: AbsenceCreateRequest = await req.json();
+  try {
+    const bodyText = await req.text();
+    const body: AbsenceCreateRequest = JSON.parse(bodyText);
     const {
       company_id, employee_id, absence_type_id, start_date, end_date,
       start_half_day, end_half_day, total_hours, reason,
       justification_files, justification_meta, travel_km,
       origin = 'employee', center_id
     } = body;
+
+    // Verificar idempotencia
+    const idempotencyKey = req.headers.get('idempotency-key');
+    if (idempotencyKey) {
+      const payloadHash = await hashPayload(bodyText);
+      
+      const { data: existingKey } = await supabase
+        .from('idempotency_keys')
+        .select('response_status, response_body')
+        .eq('idempotency_key', idempotencyKey)
+        .eq('endpoint', 'absence-create')
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (existingKey) {
+        console.log(`[absence-create] Returning cached response for idempotency key: ${idempotencyKey}`);
+        return new Response(
+          JSON.stringify(existingKey.response_body),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: existingKey.response_status || 200 
+          }
+        );
+      }
+    }
 
     console.log(`[absence-create] Creating absence for employee ${employee_id}, type ${absence_type_id}`);
 
@@ -331,7 +367,7 @@ serve(async (req) => {
       }
     });
 
-    return new Response(JSON.stringify({
+    const responseBody = {
       request_id: request.id,
       status: request.status,
       precompute: {
@@ -341,7 +377,20 @@ serve(async (req) => {
         coverage: coverageResult
       },
       warnings
-    }), {
+    };
+
+    // Guardar idempotency key si existe
+    if (idempotencyKey) {
+      await supabase.from('idempotency_keys').insert({
+        idempotency_key: idempotencyKey,
+        endpoint: 'absence-create',
+        payload_hash: await hashPayload(bodyText),
+        response_status: 201,
+        response_body: responseBody
+      });
+    }
+
+    return new Response(JSON.stringify(responseBody), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 201
     });
