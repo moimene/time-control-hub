@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -17,15 +19,16 @@ import {
   XCircle, 
   Loader2, 
   Calendar,
-  User,
-  Clock,
-  FileText,
   Search,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { SLACountdown } from '@/components/absences/SLACountdown';
+import { CoverageCheckBadge } from '@/components/absences/CoverageCheckBadge';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
@@ -51,6 +54,14 @@ interface AbsenceRequest {
   reason: string | null;
   status: string;
   created_at: string;
+  requested_at: string;
+  justification_files: any;
+  justification_required: boolean;
+  start_half_day: boolean | null;
+  end_half_day: boolean | null;
+  travel_km: number | null;
+  extra_days_applied: number;
+  center_id: string | null;
   employees: {
     first_name: string;
     last_name: string;
@@ -60,6 +71,8 @@ interface AbsenceRequest {
     name: string;
     color: string;
     absence_category: string;
+    sla_hours: number | null;
+    requires_justification: boolean;
   } | null;
 }
 
@@ -74,6 +87,9 @@ export function AbsenceApprovalPanel() {
   const [reviewNotes, setReviewNotes] = useState('');
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<'approve' | 'reject'>('approve');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [forceOverride, setForceOverride] = useState(false);
+  const [coverageResult, setCoverageResult] = useState<any>(null);
 
   // Fetch requests
   const { data: requests, isLoading } = useQuery({
@@ -86,7 +102,7 @@ export function AbsenceApprovalPanel() {
         .select(`
           *,
           employees(first_name, last_name, department),
-          absence_types(name, color, absence_category)
+          absence_types(name, color, absence_category, sla_hours, requires_justification)
         `)
         .eq('company_id', company.id)
         .order('created_at', { ascending: false });
@@ -102,55 +118,33 @@ export function AbsenceApprovalPanel() {
     enabled: !!company?.id,
   });
 
-  // Review mutation
+  // Review mutation using edge function
   const reviewMutation = useMutation({
-    mutationFn: async ({ requestId, action, notes }: { requestId: string; action: 'approve' | 'reject'; notes: string }) => {
-      const newStatus = action === 'approve' ? 'approved' : 'rejected';
-      
-      // Update request status
-      const { error: updateError } = await supabase
-        .from('absence_requests')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
-      
-      if (updateError) throw updateError;
-
-      // Create approval record
-      const { error: approvalError } = await supabase
-        .from('absence_approvals')
-        .insert({
+    mutationFn: async ({ 
+      requestId, 
+      action, 
+      notes, 
+      override, 
+      overrideReason 
+    }: { 
+      requestId: string; 
+      action: 'approve' | 'reject'; 
+      notes: string;
+      override?: boolean;
+      overrideReason?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('absence-approve', {
+        body: {
           request_id: requestId,
-          approver_id: user?.id,
-          action: newStatus,
-          notes: notes || null
-        });
-
-      if (approvalError) throw approvalError;
-
-      // If approved and it's vacation, update balance
-      if (action === 'approve' && selectedRequest) {
-        const currentYear = new Date().getFullYear();
-        const { data: balance } = await supabase
-          .from('vacation_balances')
-          .select('*')
-          .eq('employee_id', selectedRequest.employee_id)
-          .eq('year', currentYear)
-          .maybeSingle();
-
-        if (balance) {
-          await supabase
-            .from('vacation_balances')
-            .update({
-              used_days: balance.used_days + selectedRequest.total_days,
-              pending_days: Math.max(0, balance.pending_days - selectedRequest.total_days),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', balance.id);
+          action: action === 'approve' ? 'approved' : 'rejected',
+          notes: notes || null,
+          override_coverage: override,
+          override_reason: overrideReason
         }
-      }
+      });
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast({ 
@@ -161,6 +155,9 @@ export function AbsenceApprovalPanel() {
       setIsReviewDialogOpen(false);
       setSelectedRequest(null);
       setReviewNotes('');
+      setOverrideReason('');
+      setForceOverride(false);
+      setCoverageResult(null);
     },
     onError: (error: Error) => {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -171,15 +168,46 @@ export function AbsenceApprovalPanel() {
     setSelectedRequest(request);
     setReviewAction(action);
     setReviewNotes('');
+    setOverrideReason('');
+    setForceOverride(false);
+    setCoverageResult(null);
     setIsReviewDialogOpen(true);
   };
 
   const confirmReview = () => {
     if (!selectedRequest) return;
+    
+    // Check if override is needed
+    const needsOverride = reviewAction === 'approve' && coverageResult && !coverageResult.can_approve;
+    if (needsOverride && !forceOverride) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Conflicto de cobertura', 
+        description: 'Activa el override y proporciona un motivo para aprobar' 
+      });
+      return;
+    }
+
+    // Check justification
+    const hasJustification = selectedRequest.justification_files && 
+      Array.isArray(selectedRequest.justification_files) && 
+      selectedRequest.justification_files.length > 0;
+    
+    if (reviewAction === 'approve' && selectedRequest.absence_types?.requires_justification && !hasJustification) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Justificante requerido', 
+        description: 'No se puede aprobar sin el justificante adjunto' 
+      });
+      return;
+    }
+
     reviewMutation.mutate({
       requestId: selectedRequest.id,
       action: reviewAction,
-      notes: reviewNotes
+      notes: reviewNotes,
+      override: forceOverride,
+      overrideReason: overrideReason
     });
   };
 
@@ -204,12 +232,18 @@ export function AbsenceApprovalPanel() {
     return labels[category] || category;
   };
 
+  const hasJustification = (request: AbsenceRequest) => {
+    return request.justification_files && 
+      Array.isArray(request.justification_files) && 
+      request.justification_files.length > 0;
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Solicitudes de Ausencia</CardTitle>
         <CardDescription>
-          Revisa y gestiona las solicitudes de los empleados
+          Revisa y gestiona las solicitudes de los empleados con control de SLA y cobertura
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -257,7 +291,9 @@ export function AbsenceApprovalPanel() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Fechas</TableHead>
                   <TableHead>Días</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Docs</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -279,7 +315,7 @@ export function AbsenceApprovalPanel() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div 
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full shrink-0"
                           style={{ backgroundColor: request.absence_types?.color || '#6b7280' }}
                         />
                         <div>
@@ -293,18 +329,50 @@ export function AbsenceApprovalPanel() {
                     <TableCell>
                       <div className="text-sm">
                         {format(parseISO(request.start_date), 'dd MMM', { locale: es })}
+                        {request.start_half_day && <span className="text-xs ml-1">(PM)</span>}
                         {request.start_date !== request.end_date && (
-                          <> - {format(parseISO(request.end_date), 'dd MMM', { locale: es })}</>
+                          <>
+                            {' - '}
+                            {format(parseISO(request.end_date), 'dd MMM', { locale: es })}
+                            {request.end_half_day && <span className="text-xs ml-1">(AM)</span>}
+                          </>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{request.total_days} día(s)</Badge>
+                      <Badge variant="outline">
+                        {request.total_days + request.extra_days_applied} día(s)
+                        {request.extra_days_applied > 0 && (
+                          <span className="text-green-600 ml-1">(+{request.extra_days_applied})</span>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <SLACountdown
+                        requestedAt={request.requested_at || request.created_at}
+                        slaHours={request.absence_types?.sla_hours || null}
+                        status={request.status}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge className={statusColors[request.status]}>
                         {statusLabels[request.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {hasJustification(request) ? (
+                        <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+                          <FileText className="h-3 w-3" />
+                          {(request.justification_files as any[]).length}
+                        </Badge>
+                      ) : request.absence_types?.requires_justification ? (
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Falta
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {request.status === 'pending' && (
@@ -337,7 +405,7 @@ export function AbsenceApprovalPanel() {
 
         {/* Review Dialog */}
         <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
                 {reviewAction === 'approve' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
@@ -351,7 +419,7 @@ export function AbsenceApprovalPanel() {
                     {selectedRequest.start_date !== selectedRequest.end_date && (
                       <> - {format(parseISO(selectedRequest.end_date), 'dd MMM yyyy', { locale: es })}</>
                     )}
-                    <span className="ml-2">({selectedRequest.total_days} días)</span>
+                    <span className="ml-2">({selectedRequest.total_days + selectedRequest.extra_days_applied} días)</span>
                   </>
                 )}
               </DialogDescription>
@@ -364,8 +432,87 @@ export function AbsenceApprovalPanel() {
               </div>
             )}
 
+            {/* Coverage check for approval */}
+            {reviewAction === 'approve' && selectedRequest && company && (
+              <div className="space-y-2">
+                <Label>Verificación de cobertura</Label>
+                <CoverageCheckBadge
+                  companyId={company.id}
+                  employeeId={selectedRequest.employee_id}
+                  startDate={selectedRequest.start_date}
+                  endDate={selectedRequest.end_date}
+                  centerId={selectedRequest.center_id}
+                  department={selectedRequest.employees?.department}
+                  onResult={setCoverageResult}
+                  autoCheck={true}
+                />
+              </div>
+            )}
+
+            {/* Override option when coverage fails */}
+            {reviewAction === 'approve' && coverageResult && !coverageResult.can_approve && (
+              <div className="space-y-3 p-3 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-yellow-700">Conflicto de cobertura detectado</p>
+                    <p className="text-sm text-muted-foreground">
+                      Puedes forzar la aprobación proporcionando un motivo justificado
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="forceOverride"
+                    checked={forceOverride}
+                    onCheckedChange={(checked) => setForceOverride(checked as boolean)}
+                  />
+                  <Label htmlFor="forceOverride" className="text-sm">
+                    Aprobar con override de cobertura
+                  </Label>
+                </div>
+                {forceOverride && (
+                  <Textarea
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Motivo del override (obligatorio)..."
+                    rows={2}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Justification warning */}
+            {reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && !hasJustification(selectedRequest) && (
+              <div className="flex items-start gap-2 p-3 border border-destructive/30 rounded-lg bg-destructive/5">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-destructive">Justificante requerido</p>
+                  <p className="text-sm text-muted-foreground">
+                    Este tipo de ausencia requiere justificante. No se puede aprobar sin él.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Attached files preview */}
+            {hasJustification(selectedRequest!) && (
+              <div className="space-y-2">
+                <Label>Justificantes adjuntos</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedRequest!.justification_files as any[]).map((file: any, idx: number) => (
+                    <Badge key={idx} variant="outline" className="gap-1">
+                      <FileText className="h-3 w-3" />
+                      {file.name || `Archivo ${idx + 1}`}
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notas (opcional)</label>
+              <Label>Notas {reviewAction === 'reject' ? '(motivo del rechazo)' : '(opcional)'}</Label>
               <Textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
@@ -383,7 +530,11 @@ export function AbsenceApprovalPanel() {
               <Button
                 variant={reviewAction === 'approve' ? 'default' : 'destructive'}
                 onClick={confirmReview}
-                disabled={reviewMutation.isPending}
+                disabled={
+                  reviewMutation.isPending ||
+                  (reviewAction === 'approve' && selectedRequest?.absence_types?.requires_justification && !hasJustification(selectedRequest)) ||
+                  (reviewAction === 'approve' && coverageResult && !coverageResult.can_approve && (!forceOverride || !overrideReason.trim()))
+                }
               >
                 {reviewMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
