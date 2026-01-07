@@ -12,34 +12,44 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Inbox, Send, Users } from 'lucide-react';
+import { Plus, Inbox, Send, Users, Loader2 } from 'lucide-react';
 
-type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
+type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
   id: string;
   company_id: string;
-  thread_id: string | null;
-  sender_type: 'company' | 'employee';
-  sender_user_id: string | null;
-  sender_employee_id: string | null;
-  recipient_type: string;
-  recipient_employee_id: string | null;
-  recipient_department: string | null;
   subject: string;
   body: string;
   priority: MessagePriority;
-  requires_acknowledgment: boolean;
+  thread_type: string;
+  sender_type: 'company' | 'employee';
+  requires_read_confirmation: boolean;
   created_at: string;
+  status: string;
+  audience_type: string;
+  recipient_count: number;
+  read_at?: string | null;
+  acknowledged_at?: string | null;
   sender_employee?: {
     first_name: string;
     last_name: string;
-  };
-  recipient_employee?: {
-    first_name: string;
-    last_name: string;
-  };
+  } | null;
 }
+
+// Map old priority to new
+const mapPriority = (p: string): MessagePriority => {
+  const map: Record<string, MessagePriority> = {
+    low: 'baja',
+    normal: 'normal', 
+    high: 'alta',
+    urgent: 'urgente',
+    baja: 'baja',
+    alta: 'alta',
+    urgente: 'urgente'
+  };
+  return map[p] || 'normal';
+};
 
 export default function Communications() {
   const { company } = useCompany();
@@ -49,49 +59,70 @@ export default function Communications() {
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<{ id: string; subject: string; sender_name: string } | null>(null);
 
-  // Fetch all messages
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['admin-messages', company?.id],
+  // Fetch all message threads
+  const { data: threads = [], isLoading } = useQuery({
+    queryKey: ['admin-message-threads', company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('company_messages')
-        .select(`
-          *,
-          sender_employee:employees!company_messages_sender_employee_id_fkey(first_name, last_name),
-          recipient_employee:employees!company_messages_recipient_employee_id_fkey(first_name, last_name)
-        `)
+        .from('message_threads')
+        .select('*')
         .eq('company_id', company!.id)
-        .is('thread_id', null)
+        .in('status', ['sent', 'closed'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []).map(m => ({
-        ...m,
-        priority: m.priority as MessagePriority
+      
+      return (data || []).map(t => ({
+        id: t.id,
+        company_id: t.company_id,
+        subject: t.subject,
+        body: '', // Will be fetched from content
+        priority: t.priority as MessagePriority,
+        thread_type: t.thread_type,
+        sender_type: 'company' as const,
+        requires_read_confirmation: t.requires_read_confirmation,
+        created_at: t.sent_at || t.created_at,
+        status: t.status,
+        audience_type: t.audience_type,
+        recipient_count: t.recipient_count || 0,
       })) as Message[];
     },
   });
 
-  // Fetch replies for selected message
-  const { data: replies = [] } = useQuery({
-    queryKey: ['message-replies', selectedMessage?.id],
+  // Fetch content for selected thread
+  const { data: threadContent } = useQuery({
+    queryKey: ['thread-content', selectedMessage?.id],
     enabled: !!selectedMessage?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('company_messages')
+        .from('message_contents')
+        .select('*')
+        .eq('thread_id', selectedMessage!.id)
+        .eq('is_current', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+  });
+
+  // Fetch recipients for selected thread
+  const { data: recipients = [] } = useQuery({
+    queryKey: ['thread-recipients', selectedMessage?.id],
+    enabled: !!selectedMessage?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('message_recipients')
         .select(`
           *,
-          sender_employee:employees!company_messages_sender_employee_id_fkey(first_name, last_name)
+          employee:employees(first_name, last_name)
         `)
         .eq('thread_id', selectedMessage!.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return (data || []).map(m => ({
-        ...m,
-        priority: m.priority as MessagePriority
-      })) as Message[];
+      return data || [];
     },
   });
 
@@ -126,44 +157,65 @@ export default function Communications() {
 
   // Send message mutation with QTSP certification
   const sendMessage = useMutation({
-    mutationFn: async (data: MessageFormData & { thread_id?: string }) => {
+    mutationFn: async (data: MessageFormData) => {
       // Compute hash of message content
       const contentToHash = JSON.stringify({
         subject: data.subject,
         body: data.body,
-        recipient_type: data.recipient_type,
         timestamp: new Date().toISOString(),
       });
       const contentHash = await computeHash(contentToHash);
 
-      // Insert message with hash
-      const { data: insertedMessage, error } = await supabase
-        .from('company_messages')
+      // Create thread
+      const audienceType = data.recipient_type === 'all_employees' ? 'all' : 
+                          data.recipient_type === 'department' ? 'department' :
+                          'individual';
+      
+      const audienceFilter = data.recipient_type === 'department' 
+        ? { department: data.recipient_department }
+        : data.recipient_type === 'employee' && data.recipient_employee_id
+        ? { employee_ids: [data.recipient_employee_id] }
+        : null;
+
+      const { data: thread, error: threadError } = await supabase
+        .from('message_threads')
         .insert({
           company_id: company!.id,
-          sender_type: 'company' as const,
-          sender_user_id: user!.id,
-          recipient_type: data.recipient_type,
-          recipient_employee_id: data.recipient_employee_id || null,
-          recipient_department: data.recipient_department || null,
           subject: data.subject,
-          body: data.body,
-          priority: data.priority,
-          requires_acknowledgment: data.requires_acknowledgment,
-          thread_id: data.thread_id || null,
+          thread_type: 'notificacion',
+          priority: mapPriority(data.priority),
+          requires_read_confirmation: data.requires_acknowledgment,
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          created_by: user!.id,
+          sender_role: 'admin',
+          audience_type: audienceType,
+          audience_filter: audienceFilter,
+          certification_level: 'complete',
           content_hash: contentHash,
         })
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (threadError) throw threadError;
+
+      // Create content
+      const { error: contentError } = await supabase
+        .from('message_contents')
+        .insert({
+          thread_id: thread.id,
+          body_text: data.body,
+          body_markdown: data.body,
+        });
+
+      if (contentError) throw contentError;
 
       // Call QTSP to timestamp the message (async, non-blocking)
       supabase.functions.invoke('qtsp-notarize', {
         body: {
           action: 'timestamp_message',
           company_id: company!.id,
-          message_id: insertedMessage.id,
+          thread_id: thread.id,
           content_hash: contentHash,
         },
       }).then(({ error: qtspError }) => {
@@ -174,14 +226,13 @@ export default function Communications() {
         }
       });
 
-      return insertedMessage;
+      return thread;
     },
     onSuccess: () => {
       toast.success('Mensaje enviado correctamente');
       setShowComposer(false);
       setReplyTo(null);
-      queryClient.invalidateQueries({ queryKey: ['admin-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['message-replies'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-message-threads'] });
     },
     onError: (error) => {
       toast.error('Error al enviar el mensaje');
@@ -189,9 +240,9 @@ export default function Communications() {
     },
   });
 
-  // Filter messages
-  const inboxMessages = messages.filter(m => m.sender_type === 'employee');
-  const sentMessages = messages.filter(m => m.sender_type === 'company');
+  // Stats
+  const totalRecipients = threads.reduce((sum, t) => sum + (t.recipient_count || 0), 0);
+  const readCount = recipients.filter(r => r.first_read_at).length;
 
   const handleSelectMessage = (message: Message) => {
     setSelectedMessage(message);
@@ -200,46 +251,46 @@ export default function Communications() {
   };
 
   const handleReply = () => {
-    if (selectedMessage) {
-      const senderName = selectedMessage.sender_type === 'employee' && selectedMessage.sender_employee
-        ? `${selectedMessage.sender_employee.first_name} ${selectedMessage.sender_employee.last_name}`
-        : 'Empleado';
-      setReplyTo({
-        id: selectedMessage.id,
-        subject: selectedMessage.subject,
-        sender_name: senderName,
-      });
-      setShowComposer(true);
-    }
+    // Reply functionality - would create a new thread
+    toast.info('Función de respuesta disponible próximamente');
   };
 
   const handleSendMessage = async (data: MessageFormData) => {
-    // If replying, set recipient to the original sender
-    if (replyTo && selectedMessage?.sender_employee_id) {
-      await sendMessage.mutateAsync({
-        ...data,
-        recipient_type: 'employee',
-        recipient_employee_id: selectedMessage.sender_employee_id,
-        thread_id: selectedMessage.thread_id || selectedMessage.id,
-      });
-    } else {
-      await sendMessage.mutateAsync(data);
-    }
+    await sendMessage.mutateAsync(data);
   };
+
+  // Combine thread with content for display
+  const getMessageWithContent = (): Message | null => {
+    if (!selectedMessage) return null;
+    return {
+      ...selectedMessage,
+      body: threadContent?.body_text || threadContent?.body_markdown || '',
+    };
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Comunicaciones</h1>
+            <h1 className="text-2xl font-bold">Comunicaciones Certificadas</h1>
             <p className="text-muted-foreground">
-              Gestiona las comunicaciones con los empleados
+              Gestiona las comunicaciones oficiales con los empleados
             </p>
           </div>
           <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setReplyTo(null); }}>
             <Plus className="h-4 w-4 mr-2" />
-            Nuevo mensaje
+            Nueva comunicación
           </Button>
         </div>
 
@@ -247,36 +298,24 @@ export default function Communications() {
           {/* Messages List */}
           <div className="lg:col-span-1">
             <Card className="h-[calc(100vh-220px)]">
-              <Tabs defaultValue="inbox" className="h-full flex flex-col">
+              <Tabs defaultValue="sent" className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="inbox" className="gap-2">
-                      <Inbox className="h-4 w-4" />
-                      Recibidos
-                      {inboxMessages.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">
-                          {inboxMessages.length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="sent" className="gap-2">
                       <Send className="h-4 w-4" />
                       Enviados
+                      {threads.length > 0 && (
+                        <Badge variant="secondary" className="ml-1">
+                          {threads.length}
+                        </Badge>
+                      )}
                     </TabsTrigger>
                   </TabsList>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-auto">
-                  <TabsContent value="inbox" className="mt-0 h-full">
-                    <MessageList
-                      messages={inboxMessages}
-                      selectedId={selectedMessage?.id}
-                      onSelect={handleSelectMessage}
-                      viewType="admin"
-                    />
-                  </TabsContent>
                   <TabsContent value="sent" className="mt-0 h-full">
                     <MessageList
-                      messages={sentMessages}
+                      messages={threads}
                       selectedId={selectedMessage?.id}
                       onSelect={handleSelectMessage}
                       viewType="admin"
@@ -300,18 +339,50 @@ export default function Communications() {
                 isSubmitting={sendMessage.isPending}
               />
             ) : selectedMessage ? (
-              <MessageThread
-                message={selectedMessage}
-                replies={replies}
-                viewType="admin"
-                onReply={handleReply}
-              />
+              <Card className="h-[calc(100vh-220px)]">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-xl font-semibold">{selectedMessage.subject}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Enviado el {new Date(selectedMessage.created_at).toLocaleDateString('es-ES')} a {selectedMessage.recipient_count} destinatarios
+                      </p>
+                    </div>
+                    <Badge variant={selectedMessage.priority === 'urgente' ? 'destructive' : 'secondary'}>
+                      {selectedMessage.priority}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="prose prose-sm max-w-none">
+                    <p className="whitespace-pre-wrap">{threadContent?.body_text || threadContent?.body_markdown || 'Cargando contenido...'}</p>
+                  </div>
+                  
+                  {recipients.length > 0 && (
+                    <div className="border-t pt-4">
+                      <h3 className="font-medium mb-3">Estado de entrega ({recipients.length})</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-auto">
+                        {recipients.map((r) => (
+                          <div key={r.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="text-sm">
+                              {r.employee?.first_name} {r.employee?.last_name}
+                            </span>
+                            <Badge variant={r.first_read_at ? 'default' : 'outline'} className="text-xs">
+                              {r.first_read_at ? 'Leído' : 'Pendiente'}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ) : (
               <Card className="h-[calc(100vh-220px)] flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Selecciona un mensaje para ver los detalles</p>
-                  <p className="text-sm mt-2">o crea un nuevo mensaje para comunicarte con los empleados</p>
+                  <p className="text-sm mt-2">o crea una nueva comunicación para los empleados</p>
                 </div>
               </Card>
             )}

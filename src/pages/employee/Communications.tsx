@@ -5,43 +5,39 @@ import { useAuth } from '@/hooks/useAuth';
 import { EmployeeLayout } from '@/components/layout/EmployeeLayout';
 import { MessageList } from '@/components/communications/MessageList';
 import { MessageComposer, type MessageFormData } from '@/components/communications/MessageComposer';
-import { MessageThread } from '@/components/communications/MessageThread';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Inbox, Send, MessageSquare } from 'lucide-react';
+import { Inbox, MessageSquare, Loader2, CheckCircle2, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
+type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
   id: string;
+  thread_id: string;
+  recipient_id: string;
   company_id: string;
-  thread_id: string | null;
-  sender_type: 'company' | 'employee';
-  sender_employee_id: string | null;
-  recipient_type: string;
-  recipient_employee_id: string | null;
   subject: string;
   body: string;
   priority: MessagePriority;
-  requires_acknowledgment: boolean;
+  thread_type: string;
+  sender_type: 'company' | 'employee';
+  requires_read_confirmation: boolean;
   created_at: string;
   read_at?: string | null;
   acknowledged_at?: string | null;
-  sender_employee?: {
-    first_name: string;
-    last_name: string;
-  };
+  first_read_at?: string | null;
+  responded_at?: string | null;
 }
 
 export default function EmployeeCommunications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [showComposer, setShowComposer] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [replyTo, setReplyTo] = useState<{ id: string; subject: string; sender_name: string } | null>(null);
 
   // Fetch employee info
   const { data: employee } = useQuery({
@@ -59,89 +55,88 @@ export default function EmployeeCommunications() {
     },
   });
 
-  // Fetch messages with recipient status
+  // Fetch messages for employee (via message_recipients)
   const { data: messages = [], isLoading } = useQuery({
     queryKey: ['employee-messages', employee?.id],
     enabled: !!employee?.id,
     queryFn: async () => {
-      // Get messages where employee is recipient or sender
       const { data, error } = await supabase
-        .from('company_messages')
+        .from('message_recipients')
         .select(`
-          *,
-          sender_employee:employees!company_messages_sender_employee_id_fkey(first_name, last_name),
-          message_recipients!inner(read_at, acknowledged_at)
+          id,
+          thread_id,
+          company_id,
+          delivery_status,
+          first_read_at,
+          responded_at,
+          created_at,
+          thread:message_threads(
+            id,
+            subject,
+            priority,
+            thread_type,
+            requires_read_confirmation,
+            sent_at,
+            created_by
+          )
         `)
-        .eq('message_recipients.employee_id', employee!.id)
-        .is('thread_id', null)
+        .eq('employee_id', employee!.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Merge recipient status into message
-      return (data || []).map(m => ({
-        ...m,
-        priority: m.priority as MessagePriority,
-        read_at: m.message_recipients?.[0]?.read_at,
-        acknowledged_at: m.message_recipients?.[0]?.acknowledged_at,
+      // Transform to expected format
+      return (data || []).map(r => ({
+        id: r.thread_id,
+        thread_id: r.thread_id,
+        recipient_id: r.id,
+        company_id: r.company_id,
+        subject: r.thread?.subject || 'Sin asunto',
+        body: '', // Will be fetched separately
+        priority: (r.thread?.priority || 'normal') as MessagePriority,
+        thread_type: r.thread?.thread_type || 'notificacion',
+        sender_type: 'company' as const,
+        requires_read_confirmation: r.thread?.requires_read_confirmation || false,
+        created_at: r.thread?.sent_at || r.created_at,
+        read_at: r.first_read_at,
+        first_read_at: r.first_read_at,
+        acknowledged_at: r.first_read_at, // Use first_read_at as acknowledged
+        responded_at: r.responded_at,
       })) as Message[];
     },
   });
 
-  // Fetch sent messages
-  const { data: sentMessages = [] } = useQuery({
-    queryKey: ['employee-sent-messages', employee?.id],
-    enabled: !!employee?.id,
+  // Fetch content for selected thread
+  const { data: threadContent } = useQuery({
+    queryKey: ['thread-content', selectedMessage?.thread_id],
+    enabled: !!selectedMessage?.thread_id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('company_messages')
-        .select(`
-          *,
-          sender_employee:employees!company_messages_sender_employee_id_fkey(first_name, last_name)
-        `)
-        .eq('sender_employee_id', employee!.id)
-        .is('thread_id', null)
-        .order('created_at', { ascending: false });
+        .from('message_contents')
+        .select('*')
+        .eq('thread_id', selectedMessage!.thread_id)
+        .eq('is_current', true)
+        .single();
 
-      if (error) throw error;
-      return (data || []).map(m => ({
-        ...m,
-        priority: m.priority as MessagePriority,
-      })) as Message[];
-    },
-  });
-
-  // Fetch replies for selected message
-  const { data: replies = [] } = useQuery({
-    queryKey: ['message-replies', selectedMessage?.id],
-    enabled: !!selectedMessage?.id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company_messages')
-        .select(`
-          *,
-          sender_employee:employees!company_messages_sender_employee_id_fkey(first_name, last_name)
-        `)
-        .eq('thread_id', selectedMessage!.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      return (data || []).map(m => ({
-        ...m,
-        priority: m.priority as MessagePriority,
-      })) as Message[];
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
     },
   });
 
   // Mark message as read
   const markAsRead = useMutation({
-    mutationFn: async (messageId: string) => {
+    mutationFn: async (recipientId: string) => {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('message_recipients')
-        .update({ read_at: new Date().toISOString() })
-        .eq('message_id', messageId)
-        .eq('employee_id', employee!.id)
-        .is('read_at', null);
+        .update({ 
+          first_read_at: now,
+          last_read_at: now,
+          read_count: 1,
+          delivery_status: 'read'
+        })
+        .eq('id', recipientId)
+        .is('first_read_at', null);
 
       if (error) throw error;
     },
@@ -150,14 +145,19 @@ export default function EmployeeCommunications() {
     },
   });
 
-  // Acknowledge message
-  const acknowledgeMessage = useMutation({
-    mutationFn: async (messageId: string) => {
+  // Confirm read (acknowledge)
+  const confirmRead = useMutation({
+    mutationFn: async (recipientId: string) => {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('message_recipients')
-        .update({ acknowledged_at: new Date().toISOString() })
-        .eq('message_id', messageId)
-        .eq('employee_id', employee!.id);
+        .update({ 
+          first_read_at: now,
+          last_read_at: now,
+          read_count: 1,
+          delivery_status: 'read'
+        })
+        .eq('id', recipientId);
 
       if (error) throw error;
     },
@@ -167,6 +167,8 @@ export default function EmployeeCommunications() {
       if (selectedMessage) {
         setSelectedMessage({
           ...selectedMessage,
+          read_at: new Date().toISOString(),
+          first_read_at: new Date().toISOString(),
           acknowledged_at: new Date().toISOString(),
         });
       }
@@ -176,68 +178,38 @@ export default function EmployeeCommunications() {
     },
   });
 
-  // Send message
-  const sendMessage = useMutation({
-    mutationFn: async (data: MessageFormData & { thread_id?: string }) => {
-      const { error } = await supabase.from('company_messages').insert({
-        company_id: employee!.company_id,
-        sender_type: 'employee' as const,
-        sender_employee_id: employee!.id,
-        recipient_type: 'company',
-        subject: data.subject,
-        body: data.body,
-        priority: data.priority,
-        requires_acknowledgment: false,
-        thread_id: data.thread_id || null,
-      });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Mensaje enviado correctamente');
-      setShowComposer(false);
-      setReplyTo(null);
-      queryClient.invalidateQueries({ queryKey: ['employee-sent-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['message-replies'] });
-    },
-    onError: (error) => {
-      toast.error('Error al enviar el mensaje');
-      console.error(error);
-    },
-  });
-
   // Mark as read when selecting message
   useEffect(() => {
-    if (selectedMessage && !selectedMessage.read_at && selectedMessage.sender_type === 'company') {
-      markAsRead.mutate(selectedMessage.id);
+    if (selectedMessage && !selectedMessage.read_at && selectedMessage.recipient_id) {
+      markAsRead.mutate(selectedMessage.recipient_id);
     }
   }, [selectedMessage?.id]);
 
   const handleSelectMessage = (message: Message) => {
     setSelectedMessage(message);
-    setShowComposer(false);
-    setReplyTo(null);
-  };
-
-  const handleReply = () => {
-    if (selectedMessage) {
-      setReplyTo({
-        id: selectedMessage.id,
-        subject: selectedMessage.subject,
-        sender_name: 'Empresa',
-      });
-      setShowComposer(true);
-    }
-  };
-
-  const handleSendMessage = async (data: MessageFormData) => {
-    await sendMessage.mutateAsync({
-      ...data,
-      thread_id: replyTo ? (selectedMessage?.thread_id || selectedMessage?.id) : undefined,
-    });
   };
 
   const unreadCount = messages.filter(m => !m.read_at).length;
+
+  const getPriorityBadge = (priority: MessagePriority) => {
+    const config: Record<MessagePriority, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+      baja: { label: 'Baja', variant: 'secondary' },
+      normal: { label: 'Normal', variant: 'outline' },
+      alta: { label: 'Alta', variant: 'default' },
+      urgente: { label: 'Urgente', variant: 'destructive' },
+    };
+    return config[priority] || config.normal;
+  };
+
+  if (isLoading) {
+    return (
+      <EmployeeLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </EmployeeLayout>
+    );
+  }
 
   return (
     <EmployeeLayout>
@@ -246,13 +218,14 @@ export default function EmployeeCommunications() {
           <div>
             <h1 className="text-2xl font-bold">Comunicaciones</h1>
             <p className="text-muted-foreground">
-              Mensajes con la empresa
+              Mensajes oficiales de la empresa
             </p>
           </div>
-          <Button onClick={() => { setShowComposer(true); setSelectedMessage(null); setReplyTo(null); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo mensaje
-          </Button>
+          {unreadCount > 0 && (
+            <Badge variant="destructive">
+              {unreadCount} sin leer
+            </Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -261,19 +234,15 @@ export default function EmployeeCommunications() {
             <Card className="h-[calc(100vh-220px)]">
               <Tabs defaultValue="inbox" className="h-full flex flex-col">
                 <CardHeader className="pb-2">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="inbox" className="gap-2">
                       <Inbox className="h-4 w-4" />
-                      Recibidos
+                      Buzón
                       {unreadCount > 0 && (
                         <Badge variant="destructive" className="ml-1">
                           {unreadCount}
                         </Badge>
                       )}
-                    </TabsTrigger>
-                    <TabsTrigger value="sent" className="gap-2">
-                      <Send className="h-4 w-4" />
-                      Enviados
                     </TabsTrigger>
                   </TabsList>
                 </CardHeader>
@@ -286,44 +255,81 @@ export default function EmployeeCommunications() {
                       viewType="employee"
                     />
                   </TabsContent>
-                  <TabsContent value="sent" className="mt-0 h-full">
-                    <MessageList
-                      messages={sentMessages}
-                      selectedId={selectedMessage?.id}
-                      onSelect={handleSelectMessage}
-                      viewType="employee"
-                    />
-                  </TabsContent>
                 </CardContent>
               </Tabs>
             </Card>
           </div>
 
-          {/* Message Detail / Composer */}
+          {/* Message Detail */}
           <div className="lg:col-span-2">
-            {showComposer ? (
-              <MessageComposer
-                mode="employee"
-                replyTo={replyTo || undefined}
-                onSubmit={handleSendMessage}
-                onCancel={() => { setShowComposer(false); setReplyTo(null); }}
-                isSubmitting={sendMessage.isPending}
-              />
-            ) : selectedMessage ? (
-              <MessageThread
-                message={selectedMessage}
-                replies={replies}
-                viewType="employee"
-                onReply={handleReply}
-                onAcknowledge={() => acknowledgeMessage.mutate(selectedMessage.id)}
-                isAcknowledging={acknowledgeMessage.isPending}
-              />
+            {selectedMessage ? (
+              <Card className="h-[calc(100vh-220px)] flex flex-col">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-xl font-semibold">{selectedMessage.subject}</h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Recibido el {format(new Date(selectedMessage.created_at), "d 'de' MMMM yyyy, HH:mm", { locale: es })}
+                      </p>
+                    </div>
+                    <Badge variant={getPriorityBadge(selectedMessage.priority).variant}>
+                      {getPriorityBadge(selectedMessage.priority).label}
+                    </Badge>
+                  </div>
+
+                  {selectedMessage.requires_read_confirmation && (
+                    <div className={`flex items-center gap-2 text-sm p-2 rounded-md mt-3 ${
+                      selectedMessage.acknowledged_at 
+                        ? 'bg-green-500/10 text-green-600'
+                        : 'bg-yellow-500/10 text-yellow-700'
+                    }`}>
+                      {selectedMessage.acknowledged_at ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>
+                            Confirmado el {format(new Date(selectedMessage.acknowledged_at), "d MMM yyyy, HH:mm", { locale: es })}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="h-4 w-4" />
+                          <span>Este mensaje requiere confirmación de lectura</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </CardHeader>
+
+                <CardContent className="flex-1 overflow-auto">
+                  <div className="prose prose-sm max-w-none">
+                    <p className="whitespace-pre-wrap">
+                      {threadContent?.body_text || threadContent?.body_markdown || 'Cargando contenido...'}
+                    </p>
+                  </div>
+                </CardContent>
+
+                {selectedMessage.requires_read_confirmation && !selectedMessage.acknowledged_at && (
+                  <div className="p-4 border-t">
+                    <Button 
+                      onClick={() => confirmRead.mutate(selectedMessage.recipient_id)}
+                      disabled={confirmRead.isPending}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {confirmRead.isPending ? 'Confirmando...' : 'Confirmar lectura'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      🔒 Tu confirmación quedará registrada con sello de tiempo cualificado
+                    </p>
+                  </div>
+                )}
+              </Card>
             ) : (
               <Card className="h-[calc(100vh-220px)] flex items-center justify-center">
                 <div className="text-center text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Selecciona un mensaje para ver los detalles</p>
-                  <p className="text-sm mt-2">o envía un nuevo mensaje a la empresa</p>
+                  <p className="text-sm mt-2">Las comunicaciones oficiales aparecerán aquí</p>
                 </div>
               </Card>
             )}

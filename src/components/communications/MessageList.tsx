@@ -3,28 +3,30 @@ import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Mail, MailOpen, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Mail, MailOpen, CheckCircle2, AlertTriangle, AlertCircle, Users } from 'lucide-react';
+
+type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 
 interface Message {
   id: string;
   subject: string;
-  body: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  body?: string;
+  priority: MessagePriority;
   sender_type: 'company' | 'employee';
-  sender_employee_id?: string;
-  recipient_type: string;
-  requires_acknowledgment: boolean;
+  requires_read_confirmation?: boolean;
   created_at: string;
   read_at?: string | null;
   acknowledged_at?: string | null;
+  recipient_count?: number;
+  audience_type?: string;
   sender_employee?: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
   recipient_employee?: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 interface MessageListProps {
@@ -34,11 +36,11 @@ interface MessageListProps {
   viewType: 'admin' | 'employee';
 }
 
-const priorityConfig = {
-  low: { label: 'Baja', variant: 'secondary' as const, icon: null },
-  normal: { label: 'Normal', variant: 'outline' as const, icon: null },
-  high: { label: 'Alta', variant: 'default' as const, icon: AlertTriangle },
-  urgent: { label: 'Urgente', variant: 'destructive' as const, icon: AlertCircle },
+const priorityConfig: Record<MessagePriority, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof AlertTriangle | null }> = {
+  baja: { label: 'Baja', variant: 'secondary', icon: null },
+  normal: { label: 'Normal', variant: 'outline', icon: null },
+  alta: { label: 'Alta', variant: 'default', icon: AlertTriangle },
+  urgente: { label: 'Urgente', variant: 'destructive', icon: AlertCircle },
 };
 
 export function MessageList({ messages, selectedId, onSelect, viewType }: MessageListProps) {
@@ -54,29 +56,16 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
   return (
     <div className="space-y-2">
       {messages.map((message) => {
-        const isRead = !!message.read_at;
+        const isRead = !!message.read_at || !!message.acknowledged_at;
         const isAcknowledged = !!message.acknowledged_at;
-        const priority = priorityConfig[message.priority];
+        const priority = priorityConfig[message.priority] || priorityConfig.normal;
         const PriorityIcon = priority.icon;
 
-        const getSenderName = () => {
-          if (message.sender_type === 'company') {
-            return 'Empresa';
-          }
-          if (message.sender_employee) {
-            return `${message.sender_employee.first_name} ${message.sender_employee.last_name}`;
-          }
+        const getRecipientInfo = () => {
+          if (message.audience_type === 'all') return 'Todos los empleados';
+          if (message.audience_type === 'department') return 'Departamento';
+          if (message.recipient_count) return `${message.recipient_count} destinatarios`;
           return 'Empleado';
-        };
-
-        const getRecipientName = () => {
-          if (message.recipient_type === 'all_employees') return 'Todos los empleados';
-          if (message.recipient_type === 'company') return 'Empresa';
-          if (message.recipient_type === 'department') return `Departamento`;
-          if (message.recipient_employee) {
-            return `${message.recipient_employee.first_name} ${message.recipient_employee.last_name}`;
-          }
-          return 'Destinatario';
         };
 
         return (
@@ -99,7 +88,7 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                       <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     )
                   ) : (
-                    <Mail className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Users className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -113,17 +102,15 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                       {PriorityIcon && (
                         <PriorityIcon className={cn(
                           'h-4 w-4 shrink-0',
-                          message.priority === 'urgent' && 'text-destructive',
-                          message.priority === 'high' && 'text-warning'
+                          message.priority === 'urgente' && 'text-destructive',
+                          message.priority === 'alta' && 'text-yellow-500'
                         )} />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {viewType === 'admin' 
-                        ? message.sender_type === 'employee' 
-                          ? `De: ${getSenderName()}`
-                          : `Para: ${getRecipientName()}`
-                        : `De: ${getSenderName()}`
+                        ? `Para: ${getRecipientInfo()}`
+                        : 'De: Empresa'
                       }
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -137,7 +124,7 @@ export function MessageList({ messages, selectedId, onSelect, viewType }: Messag
                       {priority.label}
                     </Badge>
                   )}
-                  {message.requires_acknowledgment && (
+                  {message.requires_read_confirmation && viewType === 'employee' && (
                     <Badge 
                       variant={isAcknowledged ? 'default' : 'outline'} 
                       className={cn(
