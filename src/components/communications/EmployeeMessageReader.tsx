@@ -21,6 +21,7 @@ import {
   Reply
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeHtml } from '@/lib/security';
 
 type MessagePriority = 'baja' | 'normal' | 'alta' | 'urgente';
 type ThreadType = 'notificacion' | 'circular' | 'documento' | 'encuesta' | 'respuesta_requerida';
@@ -229,7 +230,7 @@ export function EmployeeMessageReader({
         ) : content ? (
           <div className="prose prose-sm max-w-none dark:prose-invert">
             {content.body_html ? (
-              <div dangerouslySetInnerHTML={{ __html: content.body_html }} />
+              <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.body_html) }} />
             ) : (
               <p className="whitespace-pre-wrap">
                 {content.body_text || content.body_markdown || 'Sin contenido'}
