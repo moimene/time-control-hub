@@ -1,11 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// =============================================================================
+// QTSP CONFIGURATION - Centralized constants (can be moved to env vars later)
+// =============================================================================
+const QTSP_CONFIG = {
+  // TSP Provider for timestamping
+  TSP_PROVIDER: Deno.env.get('QTSP_TSP_PROVIDER') || 'EADTrust',
+  // Signature provider for PDF sealing
+  SIGNATURE_PROVIDER: Deno.env.get('QTSP_SIGNATURE_PROVIDER') || 'EADTRUST',
+  // Signature type for PDF sealing (PAdES-LTV for long-term validation)
+  SIGNATURE_TYPE: Deno.env.get('QTSP_SIGNATURE_TYPE') || 'PADES_LTV',
+  // Signature level (SIMPLE = simple electronic signature, not qualified)
+  SIGNATURE_LEVEL: Deno.env.get('QTSP_SIGNATURE_LEVEL') || 'SIMPLE',
+  // Authentication factor for signatures
+  AUTH_FACTOR: 1,
+  // System identifier
+  SYSTEM_ID: 'time-control-hub',
+  // Evidence group type (required by Digital Trust API)
+  EVIDENCE_GROUP_TYPE: 'VIDEO',
+  // Case file category
+  CASE_FILE_CATEGORY: 'TIME_TRACKING',
+  // Polling configuration
+  TSP_POLL_INTERVAL_MS: 2000,
+  TSP_POLL_MAX_ATTEMPTS: 10,
+  PDF_POLL_INTERVAL_MS: 3000,
+  PDF_POLL_MAX_ATTEMPTS: 30,
+  HASH_POLL_MAX_ATTEMPTS: 5,
+} as const;
+
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+// Digital Trust API Response Types
 interface DTAuthResponse {
   access_token: string;
   token_type: string;
@@ -23,22 +56,90 @@ interface DTCaseFile {
 interface DTEvidenceGroup {
   id: string;
   name: string;
+  code?: string;
 }
 
 interface DTEvidence {
   id: string;
   status: string;
   tspToken?: string;
+  signedFile?: {
+    content: string;
+    name?: string;
+  };
+  signatureInfo?: Record<string, unknown>;
+}
+
+// Internal database types
+interface DbEvidence {
+  id: string;
+  evidence_group_id: string;
+  evidence_type: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  external_id: string | null;
+  daily_root_id: string | null;
+  report_month: string | null;
+  original_pdf_path: string | null;
+  sealed_pdf_path: string | null;
+  tsp_token: string | null;
+  tsp_timestamp: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+  retry_count: number;
+  signature_data: Record<string, unknown> | null;
+}
+
+interface DbDailyRoot {
+  id: string;
+  date: string;
+  root_hash: string;
+  company_id: string;
+}
+
+interface Company {
+  id: string;
+  name: string;
+}
+
+// Request payload types
+interface QTSPRequest {
+  action: string;
+  company_id?: string;
+  daily_root_id?: string;
+  root_hash?: string;
+  date?: string;
+  pdf_base64?: string;
+  report_month?: string;
+  file_name?: string;
+  test_mode?: boolean;
+  message_id?: string;
+  content_hash?: string;
+  recipient_id?: string;
+  notification_id?: string;
+  notification_type?: string;
+  evidence_id?: string;
+}
+
+// QTSP Operation log entry
+interface QTSPLogEntry {
+  company_id: string;
+  action: string;
+  evidence_id: string | null;
+  request_payload: Record<string, unknown>;
+  response_payload: Record<string, unknown> | null;
+  status: string;
+  error_message: string | null;
+  duration_ms: number;
 }
 
 // Log QTSP operation to audit table
 async function logQTSPOperation(
-  supabase: any,
+  supabase: SupabaseClient,
   companyId: string,
   action: string,
   evidenceId: string | null,
-  requestPayload: any,
-  responsePayload: any,
+  requestPayload: Record<string, unknown>,
+  responsePayload: Record<string, unknown> | null,
   status: string,
   errorMessage: string | null,
   durationMs: number
@@ -90,7 +191,7 @@ async function authenticate(): Promise<string> {
 
 // Get or create Case File for a specific company
 async function getOrCreateCaseFile(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   companyId: string,
   companyName: string
@@ -125,10 +226,10 @@ async function getOrCreateCaseFile(
     id: caseFileId,
     title: `Registro Horario - ${normalizedName}`.substring(0, 100),
     code: `RH-${companyId.substring(0, 8).toUpperCase()}`,
-    category: 'TIME_TRACKING',
-    owner: 'time-control-hub',
+    category: QTSP_CONFIG.CASE_FILE_CATEGORY,
+    owner: QTSP_CONFIG.SYSTEM_ID,
     metadata: {
-      system: 'time-control-hub',
+      system: QTSP_CONFIG.SYSTEM_ID,
       company_id: companyId,
       company_name: normalizedName,
     },
@@ -212,7 +313,7 @@ async function getOrCreateCaseFile(
 
 // Get or create Evidence Group for a month
 async function getOrCreateEvidenceGroup(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   caseFileId: string,
   caseFileExternalId: string,
@@ -247,7 +348,7 @@ async function getOrCreateEvidenceGroup(
     body: JSON.stringify({
       id: evidenceGroupId,
       name: `Fichajes ${yearMonth}`,
-      type: 'VIDEO', // Valid type required by Digital Trust API
+      type: QTSP_CONFIG.EVIDENCE_GROUP_TYPE,
       code: `GRP-${yearMonth.replace('-', '')}`,
     }),
   });
@@ -363,7 +464,7 @@ async function getOrCreateEvidenceGroup(
 
 // Create TSP timestamp evidence for daily root - WITH IDEMPOTENCY
 async function createTSPEvidence(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   caseFileExternalId: string,
   evidenceGroupExternalId: string,
@@ -372,7 +473,7 @@ async function createTSPEvidence(
   rootHash: string,
   date: string,
   companyId: string
-): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: any }> {
+): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: DbEvidence | null }> {
   const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
   const startTime = Date.now();
 
@@ -436,18 +537,18 @@ async function createTSPEvidence(
     const requestBody = {
       evidenceId: evidenceExternalId,
       hash: rootHash,
-      createdBy: 'time-control-hub',
+      createdBy: QTSP_CONFIG.SYSTEM_ID,
       title: `Merkle Root ${date}`,
       capturedAt: new Date().toISOString(),
       custodyType: 'EXTERNAL',
       testimony: {
         TSP: {
           required: true,
-          providers: ['EADTrust']
+          providers: [QTSP_CONFIG.TSP_PROVIDER]
         }
       },
       metadata: {
-        system: 'time-control-hub',
+        system: QTSP_CONFIG.SYSTEM_ID,
         daily_root_id: dailyRootId,
         date: date,
       }
@@ -484,10 +585,10 @@ async function createTSPEvidence(
     // Poll for TSP token (may take a few seconds)
     let tspToken = null;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = QTSP_CONFIG.TSP_POLL_MAX_ATTEMPTS;
 
     while (!tspToken && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, QTSP_CONFIG.TSP_POLL_INTERVAL_MS));
 
       const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -541,7 +642,7 @@ async function createTSPEvidence(
 
 // Create generic hash evidence for messages, acknowledgments, notifications
 async function createGenericHashEvidence(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   caseFileExternalId: string,
   evidenceGroupExternalId: string,
@@ -551,8 +652,8 @@ async function createGenericHashEvidence(
   contentHash: string,
   tableName: string, // 'company_messages', 'message_recipients', etc.
   companyId: string,
-  metadata?: Record<string, any>
-): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: any }> {
+  metadata?: Record<string, unknown>
+): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: DbEvidence | null }> {
   const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
   const startTime = Date.now();
 
@@ -596,18 +697,18 @@ async function createGenericHashEvidence(
     const requestBody = {
       evidenceId: evidenceExternalId,
       hash: contentHash,
-      createdBy: 'time-control-hub',
+      createdBy: QTSP_CONFIG.SYSTEM_ID,
       title: `${evidenceType} ${new Date().toISOString().split('T')[0]}`,
       capturedAt: new Date().toISOString(),
       custodyType: 'EXTERNAL',
       testimony: {
         TSP: {
           required: true,
-          providers: ['EADTrust']
+          providers: [QTSP_CONFIG.TSP_PROVIDER]
         }
       },
       metadata: {
-        system: 'time-control-hub',
+        system: QTSP_CONFIG.SYSTEM_ID,
         evidence_type: evidenceType,
         entity_id: entityId,
         table_name: tableName,
@@ -643,10 +744,10 @@ async function createGenericHashEvidence(
     // Poll for TSP token (max 5 attempts for non-critical items)
     let tspToken = null;
     let attempts = 0;
-    const maxAttempts = 5;
+    const maxAttempts = QTSP_CONFIG.HASH_POLL_MAX_ATTEMPTS;
 
     while (!tspToken && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, QTSP_CONFIG.TSP_POLL_INTERVAL_MS));
 
       const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -673,7 +774,7 @@ async function createGenericHashEvidence(
     await supabase.from('dt_evidences').update(updateData).eq('id', evidence.id);
 
     // Update the source table with evidence reference and hash
-    const sourceUpdate: Record<string, any> = { qtsp_evidence_id: evidence.id };
+    const sourceUpdate: Record<string, string> = { qtsp_evidence_id: evidence.id };
     if (tableName === 'message_recipients') {
       sourceUpdate.ack_content_hash = contentHash;
     } else {
@@ -707,11 +808,11 @@ async function createGenericHashEvidence(
 
 // Check and update evidence status from Digital Trust
 async function checkAndUpdateEvidence(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
-  evidence: any,
+  evidence: DbEvidence,
   companyId: string
-): Promise<any> {
+): Promise<DbEvidence> {
   const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
   const startTime = Date.now();
 
@@ -729,9 +830,9 @@ async function checkAndUpdateEvidence(
       return evidence;
     }
 
-    const dtEvidence = await response.json();
+    const dtEvidence: DTEvidence = await response.json();
 
-    const updateData: any = {};
+    const updateData: Partial<DbEvidence> = {};
 
     if (evidence.evidence_type === 'daily_timestamp' && dtEvidence.tspToken && !evidence.tsp_token) {
       updateData.tsp_token = dtEvidence.tspToken;
@@ -777,7 +878,7 @@ async function checkAndUpdateEvidence(
 
 // Seal PDF with qualified signature - WITH IDEMPOTENCY
 async function sealPDF(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   evidenceGroupExternalId: string,
   evidenceGroupId: string,
@@ -861,10 +962,10 @@ async function sealPDF(
           contentType: 'application/pdf',
         },
         signature: {
-          provider: 'EADTRUST',
-          type: 'PADES_LTV',
-          level: 'SIMPLE',
-          authenticationFactor: 1,
+          provider: QTSP_CONFIG.SIGNATURE_PROVIDER,
+          type: QTSP_CONFIG.SIGNATURE_TYPE,
+          level: QTSP_CONFIG.SIGNATURE_LEVEL,
+          authenticationFactor: QTSP_CONFIG.AUTH_FACTOR,
         },
       }),
     });
@@ -880,10 +981,10 @@ async function sealPDF(
     // Poll for sealed PDF
     let sealedPdfBase64 = null;
     let attempts = 0;
-    const maxAttempts = 30; // More attempts for PDF signing
+    const maxAttempts = QTSP_CONFIG.PDF_POLL_MAX_ATTEMPTS;
 
     while (!sealedPdfBase64 && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, QTSP_CONFIG.PDF_POLL_INTERVAL_MS));
 
       const statusResponse = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidences/${dtEvidence.id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -957,7 +1058,7 @@ async function sealPDF(
 
 // Retry all failed evidences for a company
 async function retryFailedEvidences(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   companyId: string
 ): Promise<{ retried: number; succeeded: number; failed: number }> {
@@ -1018,7 +1119,7 @@ async function retryFailedEvidences(
 
 // Check all pending evidences for a company
 async function checkPendingEvidences(
-  supabase: any,
+  supabase: SupabaseClient,
   token: string,
   companyId: string
 ): Promise<{ checked: number; completed: number }> {
@@ -1190,12 +1291,12 @@ serve(async (req) => {
     } else if (action === 'seal_pdf') {
       const { pdf_base64, report_month, file_name, test_mode } = params;
 
-      // Define signature configuration
+      // Define signature configuration from centralized config
       const signatureConfig = {
-        provider: 'EADTRUST',
-        type: 'PADES_LTV',
-        level: 'SIMPLE',
-        authenticationFactor: 1,
+        provider: QTSP_CONFIG.SIGNATURE_PROVIDER,
+        type: QTSP_CONFIG.SIGNATURE_TYPE,
+        level: QTSP_CONFIG.SIGNATURE_LEVEL,
+        authenticationFactor: QTSP_CONFIG.AUTH_FACTOR,
       };
 
       // Test mode: return signature configuration without actual sealing
