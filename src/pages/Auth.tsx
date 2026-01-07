@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useKioskSession } from '@/hooks/useKioskSession';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Building2, Users, Monitor } from 'lucide-react';
+import { Clock, Building2, Users, Monitor, Mail, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -23,6 +24,9 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [kioskDeviceName, setKioskDeviceName] = useState('');
   const [kioskLoading, setKioskLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { login: kioskLogin } = useKioskSession();
   const navigate = useNavigate();
@@ -131,6 +135,89 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email requerido',
+        description: 'Introduce tu email para recuperar la contraseña',
+      });
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Email enviado',
+        description: 'Revisa tu bandeja de entrada para restablecer tu contraseña',
+      });
+      setShowForgotPassword(false);
+      setForgotEmail('');
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err.message || 'No se pudo enviar el email de recuperación',
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  // Forgot password view
+  if (showForgotPassword) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+              <Mail className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl">Recuperar Contraseña</CardTitle>
+            <CardDescription>
+              Introduce tu email y te enviaremos un enlace para restablecer tu contraseña
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">Email</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="tu@email.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                disabled={forgotLoading}
+                onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleForgotPassword}
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? 'Enviando...' : 'Enviar enlace de recuperación'}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver al inicio de sesión
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -184,6 +271,13 @@ export default function Auth() {
                 disabled={loading}
               >
                 {loading ? 'Cargando...' : 'Iniciar sesión'}
+              </Button>
+              <Button
+                variant="link"
+                className="w-full text-sm"
+                onClick={() => setShowForgotPassword(true)}
+              >
+                ¿Olvidaste tu contraseña?
               </Button>
             </TabsContent>
 

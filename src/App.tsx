@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Pages
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import CompanySetup from "./pages/CompanySetup";
 import Dashboard from "./pages/admin/Dashboard";
 import Employees from "./pages/admin/Employees";
@@ -82,6 +83,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/company-setup" element={
         user ? <CompanySetup /> : <Navigate to="/auth" replace />
       } />
