@@ -10,6 +10,8 @@ import { KioskSuccess } from '@/components/kiosk/KioskSuccess';
 import { OfflineIndicator } from '@/components/kiosk/OfflineIndicator';
 import { KioskTerminalSelector } from '@/components/kiosk/KioskTerminalSelector';
 import { KioskLogin } from '@/components/kiosk/KioskLogin';
+import { KioskNotificationBadge } from '@/components/kiosk/KioskNotificationBadge';
+import { KioskMessageViewer } from '@/components/kiosk/KioskMessageViewer';
 import { useToast } from '@/hooks/use-toast';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
@@ -42,6 +44,8 @@ export default function KioskHome() {
   const [employeeName, setEmployeeName] = useState<string>('');
   const [nextEventType, setNextEventType] = useState<'entry' | 'exit'>('entry');
   const [overrideInfo, setOverrideInfo] = useState<{ eventType: 'entry' | 'exit'; reason: string } | null>(null);
+  const [viewingMessageId, setViewingMessageId] = useState<string | null>(null);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
   const { toast } = useToast();
   
   const { isOnline } = useConnectionStatus();
@@ -240,6 +244,10 @@ export default function KioskHome() {
 
       setClockResult({ ...data, isOffline: false });
       setOverrideInfo(overrideData || null);
+      // Save employee ID for notifications
+      if (data.employee?.id) {
+        setCurrentEmployeeId(data.employee.id);
+      }
       setMode('success');
     } catch (err) {
       const eventType = overrideData?.eventType || nextEventType;
@@ -351,6 +359,10 @@ export default function KioskHome() {
 
       setClockResult({ ...data, isOffline: false });
       setOverrideInfo(null);
+      // Save employee ID for notifications
+      if (data.employee?.id) {
+        setCurrentEmployeeId(data.employee.id);
+      }
       setMode('success');
     } catch (err) {
       try {
@@ -400,7 +412,12 @@ export default function KioskHome() {
     setOverrideInfo(null);
     setEmployeeName('');
     setNextEventType('entry');
+    // Keep currentEmployeeId for notifications until logout
     setMode('home');
+  }, []);
+
+  const handleViewMessage = useCallback((threadId: string) => {
+    setViewingMessageId(threadId);
   }, []);
 
   const handlePinCancel = useCallback(() => {
@@ -422,6 +439,7 @@ export default function KioskHome() {
 
   const handleLogout = useCallback(async () => {
     await logout();
+    setCurrentEmployeeId(null);
     setMode('login');
   }, [logout]);
 
@@ -527,6 +545,25 @@ export default function KioskHome() {
         isSyncing={isSyncing}
         lastSync={lastSync}
       />
+
+      {/* Notification badge for identified employees */}
+      {currentEmployeeId && session?.companyId && (
+        <KioskNotificationBadge
+          employeeId={currentEmployeeId}
+          companyId={session.companyId}
+          onViewMessage={handleViewMessage}
+        />
+      )}
+
+      {/* Message viewer modal */}
+      {viewingMessageId && currentEmployeeId && session?.companyId && (
+        <KioskMessageViewer
+          threadId={viewingMessageId}
+          employeeId={currentEmployeeId}
+          companyId={session.companyId}
+          onClose={() => setViewingMessageId(null)}
+        />
+      )}
       
       {/* Clock Display */}
       <div className="text-center mb-12">
