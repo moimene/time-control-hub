@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.message-export-evidence]
 verify_jwt = false
+
+[functions.message-scheduler]
+verify_jwt = false
