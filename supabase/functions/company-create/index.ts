@@ -107,30 +107,47 @@ serve(async (req) => {
 
     console.log(`[company-create] Company created: ${company.id}`);
 
-    // Link user to company (idempotent)
-    const { error: linkError } = await supabaseAdmin
+    // Link user to company - first check if already linked
+    const { data: existingLink } = await supabaseAdmin
       .from("user_company")
-      .upsert({ user_id: user.id, company_id: company.id }, { onConflict: "user_id" });
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (linkError) {
-      console.error("[company-create] user_company upsert error", linkError);
-      return new Response(JSON.stringify({ error: linkError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!existingLink) {
+      const { error: linkError } = await supabaseAdmin
+        .from("user_company")
+        .insert({ user_id: user.id, company_id: company.id });
+
+      if (linkError) {
+        console.error("[company-create] user_company insert error", linkError);
+        return new Response(JSON.stringify({ error: linkError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // Assign admin role (idempotent)
-    const { error: roleError } = await supabaseAdmin
+    // Assign admin role - check if already has role
+    const { data: existingRole } = await supabaseAdmin
       .from("user_roles")
-      .upsert({ user_id: user.id, role: "admin" }, { onConflict: "user_id,role" });
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
 
-    if (roleError) {
-      console.error("[company-create] user_roles upsert error", roleError);
-      return new Response(JSON.stringify({ error: roleError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!existingRole) {
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: user.id, role: "admin" });
+
+      if (roleError) {
+        console.error("[company-create] user_roles insert error", roleError);
+        return new Response(JSON.stringify({ error: roleError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     console.log(`[company-create] Success: company=${company.id}, user=${user.id}`);
