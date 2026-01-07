@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { HelpAgent } from '@/components/help/HelpAgent';
 import { Clock, FileText, FileEdit, Settings, LogOut, Menu, X, Calendar, FileSignature, Bell, FileCheck, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -148,6 +149,9 @@ export function EmployeeLayout({ children }: EmployeeLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Help Agent */}
+      <HelpAgent />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
+import { HelpAgent } from '@/components/help/HelpAgent';
 import { 
   LayoutDashboard, 
   Users, 
@@ -162,6 +163,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Help Agent */}
+      <HelpAgent />
     </div>
   );
 }
