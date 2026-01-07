@@ -21,7 +21,7 @@
 3. [Arquitectura del Sistema](#-arquitectura-del-sistema)
 4. [Roles y Experiencia de Usuario (UX)](#-roles-y-experiencia-de-usuario-ux)
 5. [Sistema de Cumplimiento Legal](#-sistema-de-cumplimiento-legal)
-6. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider)
+6. [Integración QTSP](#-integración-qtsp-qualified-trust-service-provider) | 📄 [Documentación Técnica QTSP](docs/QTSP_INTEGRATION.md)
 7. [Generador de Paquetes ITSS](#-generador-de-paquetes-itss)
 8. [Sistema de Plantillas y Convenios](#-sistema-de-plantillas-y-convenios)
 9. [Gestión de Ausencias](#-gestión-de-ausencias)
@@ -32,11 +32,12 @@
 14. [Sistema de Comunicaciones Internas](#-sistema-de-comunicaciones-internas)
 15. [Gestión de Dispositivos de Fichaje](#-gestión-de-dispositivos-de-fichaje)
 16. [Gestión de Credenciales de Empleados](#-gestión-de-credenciales-de-empleados)
-17. [Modelo de Datos](#-modelo-de-datos)
-18. [Edge Functions](#-edge-functions)
-19. [Modo Offline (PWA)](#-modo-offline-pwa)
-20. [Seguridad](#-seguridad)
-21. [Instalación y Configuración](#-instalación-y-configuración)
+17. [Tests de Integración QTSP](#-tests-de-integración-qtsp)
+18. [Modelo de Datos](#-modelo-de-datos)
+19. [Edge Functions](#-edge-functions)
+20. [Modo Offline (PWA)](#-modo-offline-pwa)
+21. [Seguridad](#-seguridad)
+22. [Instalación y Configuración](#-instalación-y-configuración)
 
 ---
 
@@ -460,6 +461,8 @@ stateDiagram-v2
 
 ## Integración QTSP (Qualified Trust Service Provider)
 
+> 📄 **[Documentación Técnica Completa QTSP](docs/QTSP_INTEGRATION.md)** - API Reference, Flujos, Modelo de Datos, Monitorización y Tests
+
 ### Visión como QTSP
 
 Time Control Hub **opera como Prestador Cualificado de Servicios de Confianza** integrando los siguientes servicios vía API:
@@ -468,8 +471,8 @@ Time Control Hub **opera como Prestador Cualificado de Servicios de Confianza** 
 graph TB
     subgraph "Servicios QTSP Integrados"
         subgraph "Firma Electronica"
-            QES["Firma Electronica\nCualificada QES"]
-            AES["Firma Electronica\nAvanzada AES"]
+            SES["Firma Electronica\nSimple SES"]
+            PADES["PAdES-LTV\nValidacion largo plazo"]
         end
         
         subgraph "Sellos de Tiempo"
@@ -600,13 +603,15 @@ graph LR
 
 | Servicio | API Endpoint | Uso en Time Control Hub |
 |----------|--------------|-------------------------|
-| **Firma Cualificada (QES)** | `/signatures/qualified` | Cierre mensual, documentos críticos |
-| **Firma Avanzada (AES)** | `/signatures/advanced` | Aceptación documentos empleados |
-| **Sello de Tiempo (TSA)** | `/timestamps` | Hash diario, PDFs, paquetes ITSS |
+| **Firma Simple PAdES-LTV** | `/evidences` | Cierre mensual, informes, documentos |
+| **Sello de Tiempo (TSA)** | `/evidences` | Hash diario Merkle, PDFs, paquetes ITSS |
+| **Hash Evidence** | `/evidences` | Mensajes, notificaciones, acuses |
 | **Email Certificado** | `/notifications/email` | Alertas cumplimiento, incidencias |
 | **SMS Certificado** | `/notifications/sms` | Alertas críticas urgentes |
 | **Custodia Documental** | `/custody/documents` | Documentos legales, cierres firmados |
 | **Verificación** | `/verify` | Validación de firmas y sellos |
+
+> **Nota sobre niveles de firma**: Time Control Hub utiliza **firma simple (SIMPLE)** con un solo factor de autenticación y formato **PAdES-LTV** para validación a largo plazo. Esto cumple con los requisitos del RD-ley 8/2019 para registro de jornada.
 
 ### Tabla de Estados de Evidencia
 
@@ -1497,6 +1502,57 @@ graph TB
 
 ---
 
+## Tests de Integración QTSP
+
+### Panel de Tests en Vivo
+
+**Ubicación**: `/super-admin/qtsp` → Tab "Tests"
+
+El sistema incluye un panel completo para ejecutar tests de integración contra la API QTSP en tiempo real.
+
+### Tests Disponibles
+
+| Test | Descripción | Validaciones |
+|------|-------------|--------------|
+| `health_check` | Verificar conectividad | Auth OK, API OK, Latencia |
+| `timestamp_daily` | Sellado hash Merkle | Token TSP generado |
+| `timestamp_notification` | Sellado notificación | Evidence ID, test_mode |
+| `seal_pdf` | Firma PAdES-LTV | SIMPLE, factor=1, EADTRUST |
+| `check_status` | Verificar estado | Status actualizado |
+
+### Validaciones de Firma
+
+```typescript
+// Configuración de firma validada
+{
+  provider: 'EADTRUST',
+  type: 'PADES_LTV',
+  level: 'SIMPLE',        // Firma simple
+  authenticationFactor: 1  // Un solo factor de hecho
+}
+```
+
+### Ejemplo de Uso
+
+```mermaid
+sequenceDiagram
+    participant ADMIN as Super Admin
+    participant UI as Panel Tests
+    participant QTSP as qtsp-notarize
+    participant DT as Digital Trust
+
+    ADMIN->>UI: Ejecutar test seal_pdf
+    UI->>QTSP: POST { action: seal_pdf, test_mode: true }
+    QTSP->>DT: Validar conectividad
+    QTSP-->>UI: { success, signature_config }
+    UI->>UI: Validar signature_config
+    UI-->>ADMIN: ✓ Test passed con detalles
+```
+
+> 📄 Para documentación técnica completa de QTSP, ver [docs/QTSP_INTEGRATION.md](docs/QTSP_INTEGRATION.md)
+
+---
+
 ## Modo Offline (PWA)
 
 ### Flujo Offline
@@ -1652,6 +1708,20 @@ SELECT cron.schedule('closure-reminder', '0 9 3-6 * *', ...);
 ---
 
 ## Changelog
+
+### v2.2.0 (2026-01-07)
+- ✨ **Tests Integración QTSP**: Panel completo de tests en vivo para validar operaciones QTSP
+  - Tests de health check, sellado diario, sellado notificaciones, firma PDF, verificación estado
+  - Validación de configuración de firma (SIMPLE, PAdES-LTV, factor=1)
+- 🔧 **Corrección Nivel Firma**: Cambiado de QUALIFIED a SIMPLE para alinearse con implementación real
+- 📄 **Documentación QTSP**: Nueva documentación técnica completa ([docs/QTSP_INTEGRATION.md](docs/QTSP_INTEGRATION.md))
+  - API Reference completa con ejemplos curl
+  - Diagramas de flujo de todas las operaciones
+  - Modelo de datos QTSP
+  - Guía de monitorización y gestión de errores
+- ⚡ **Mejoras Edge Functions**: 
+  - Modo test en `seal_pdf` y `timestamp_notification`
+  - Retorno de configuración de firma en respuestas
 
 ### v2.1.0 (2026-01-06)
 - ✨ **Sistema de Comunicaciones**: Mensajería bidireccional empresa-empleado con trazabilidad completa
