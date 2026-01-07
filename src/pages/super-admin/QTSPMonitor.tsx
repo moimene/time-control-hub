@@ -367,6 +367,7 @@ export default function QTSPMonitor() {
           company:company_id (name)
         `)
         .not('action', 'in', '(health_check_auto,health_alert_sent,health_recovery_sent)')
+        .not('action', 'like', 'state_%')
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
