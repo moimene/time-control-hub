@@ -3083,6 +3083,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_working_days: {
+        Args: {
+          p_center_id: string
+          p_company_id: string
+          p_end_date: string
+          p_start_date: string
+          p_weekend_days?: number[]
+        }
+        Returns: number
+      }
       get_employee_id: { Args: { _user_id: string }; Returns: string }
       get_employee_id_for_user: { Args: { user_uuid: string }; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
