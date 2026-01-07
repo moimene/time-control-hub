@@ -8,13 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useCompany } from '@/hooks/useCompany';
-import { Building2, Monitor, CalendarDays, FileCheck, Database, Scale, Bell } from 'lucide-react';
+import { Building2, Monitor, CalendarDays, FileCheck, Database, Scale, Bell, Users, Calendar } from 'lucide-react';
 import { NotificationSettings } from '@/components/admin/NotificationSettings';
 import { ClockingDevicesSection } from '@/components/settings/ClockingDevicesSection';
 import { CalendarLaboralSection } from '@/components/settings/CalendarLaboralSection';
 import { LegalDocumentsSection } from '@/components/settings/LegalDocumentsSection';
 import { DataRetentionSection } from '@/components/settings/DataRetentionSection';
 import { MarcoNormativoSection } from '@/components/settings/MarcoNormativoSection';
+import { HolidayCalendarEditor } from '@/components/settings/HolidayCalendarEditor';
+import { CoverageRulesEditor } from '@/components/settings/CoverageRulesEditor';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -113,6 +115,14 @@ export default function Settings() {
               <Scale className="h-4 w-4" />
               Marco Normativo
             </TabsTrigger>
+            <TabsTrigger value="festivos" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Festivos
+            </TabsTrigger>
+            <TabsTrigger value="cobertura" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Cobertura
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="empresa">
@@ -206,6 +216,14 @@ export default function Settings() {
 
           <TabsContent value="marco-normativo">
             <MarcoNormativoSection />
+          </TabsContent>
+
+          <TabsContent value="festivos">
+            <HolidayCalendarEditor />
+          </TabsContent>
+
+          <TabsContent value="cobertura">
+            <CoverageRulesEditor />
           </TabsContent>
         </Tabs>
       </div>
