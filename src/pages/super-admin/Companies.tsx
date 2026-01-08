@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
@@ -9,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Building2, Plus, Search, Users, Clock, Edit, Loader2, UserPlus, Key, Copy, Check, Eye, EyeOff } from "lucide-react";
+import { Building2, Plus, Search, Users, Clock, Edit, Loader2, UserPlus, Key, Copy, Check, Eye, EyeOff, Settings } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 export default function SuperAdminCompanies() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -514,28 +516,38 @@ export default function SuperAdminCompanies() {
                         {format(new Date(company.created_at), 'dd/MM/yyyy', { locale: es })}
                       </TableCell>
                       <TableCell>
-                        <Dialog open={editingCompany?.id === company.id} onOpenChange={(open) => !open && setEditingCompany(null)}>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Editar Empresa</DialogTitle>
-                            </DialogHeader>
-                            <CompanyForm formData={formData} setFormData={setFormData} />
-                            <DialogFooter>
-                              <Button variant="outline" onClick={() => setEditingCompany(null)}>
-                                Cancelar
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => navigate(`/super-admin/companies/${company.id}/config`)}
+                          >
+                            <Settings className="h-4 w-4 mr-1" />
+                            Configurar
+                          </Button>
+                          <Dialog open={editingCompany?.id === company.id} onOpenChange={(open) => !open && setEditingCompany(null)}>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}>
+                                <Edit className="h-4 w-4" />
                               </Button>
-                              <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
-                                {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                Guardar
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Editar Empresa</DialogTitle>
+                              </DialogHeader>
+                              <CompanyForm formData={formData} setFormData={setFormData} />
+                              <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditingCompany(null)}>
+                                  Cancelar
+                                </Button>
+                                <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
+                                  {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                                  Guardar
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

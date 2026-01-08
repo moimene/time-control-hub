@@ -48,6 +48,7 @@ import TestCredentials from "./pages/TestCredentials";
 // Super Admin Pages
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import SuperAdminCompanies from "./pages/super-admin/Companies";
+import SuperAdminCompanyConfig from "./pages/super-admin/CompanyConfig";
 import SuperAdminUsers from "./pages/super-admin/Users";
 import SuperAdminActivity from "./pages/super-admin/Activity";
 import SuperAdminQTSPMonitor from "./pages/super-admin/QTSPMonitor";
@@ -210,6 +211,11 @@ function AppRoutes() {
       <Route path="/super-admin/companies" element={
         <ProtectedRoute requiredRoles={['super_admin']}>
           <SuperAdminCompanies />
+        </ProtectedRoute>
+      } />
+      <Route path="/super-admin/companies/:companyId/config" element={
+        <ProtectedRoute requiredRoles={['super_admin']}>
+          <SuperAdminCompanyConfig />
         </ProtectedRoute>
       } />
       <Route path="/super-admin/users" element={

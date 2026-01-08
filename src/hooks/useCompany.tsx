@@ -1,14 +1,50 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { createContext, useContext, ReactNode } from 'react';
 import type { Company } from '@/types/database';
+
+// Context for company override (used by super admin when configuring companies)
+interface CompanyOverrideContextType {
+  companyId: string | null;
+  company: Company | null;
+}
+
+const CompanyOverrideContext = createContext<CompanyOverrideContextType | null>(null);
+
+export function CompanyOverrideProvider({ 
+  companyId, 
+  company, 
+  children 
+}: { 
+  companyId: string; 
+  company: Company | null;
+  children: ReactNode;
+}) {
+  return (
+    <CompanyOverrideContext.Provider value={{ companyId, company }}>
+      {children}
+    </CompanyOverrideContext.Provider>
+  );
+}
 
 export function useCompany() {
   const { user } = useAuth();
+  const override = useContext(CompanyOverrideContext);
 
   const { data: company, isLoading, error } = useQuery({
-    queryKey: ['user-company', user?.id],
+    queryKey: ['user-company', user?.id, override?.companyId],
     queryFn: async () => {
+      // If we have an override, use that company
+      if (override?.companyId) {
+        const { data: companyData } = await supabase
+          .from('company')
+          .select('*')
+          .eq('id', override.companyId)
+          .single();
+        return companyData as Company | null;
+      }
+
       if (!user?.id) return null;
 
       // First check if user is an employee
@@ -45,14 +81,15 @@ export function useCompany() {
 
       return null;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id || !!override?.companyId,
   });
 
   return {
-    company,
-    companyId: company?.id ?? null,
-    isLoading,
+    company: override?.company ?? company ?? null,
+    companyId: override?.companyId ?? company?.id ?? null,
+    isLoading: override?.companyId ? false : isLoading,
     error,
-    hasCompany: !!company,
+    hasCompany: !!(override?.companyId || company),
+    isOverride: !!override?.companyId,
   };
 }
