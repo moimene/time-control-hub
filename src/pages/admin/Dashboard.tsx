@@ -10,6 +10,7 @@ import { es } from 'date-fns/locale';
 import { useCompany } from '@/hooks/useCompany';
 import { HoursChart } from '@/components/admin/HoursChart';
 import { DailyActivityChart } from '@/components/admin/DailyActivityChart';
+import { SetupReminderBanner } from '@/components/admin/SetupReminderBanner';
 
 type PeriodType = 'current_month' | 'previous_month' | 'year_total';
 
@@ -144,6 +145,9 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Setup reminder banner */}
+        <SetupReminderBanner />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
