@@ -948,6 +948,7 @@ async function sealPDF(
     console.log(`Creating sealed PDF in Digital Trust for ${reportMonth}`);
 
     // Create evidence with qualified signature (using nested endpoint with caseFileId)
+    // FIX: Use nested endpoint as flat /evidence-groups endpoint often returns 404
     const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
