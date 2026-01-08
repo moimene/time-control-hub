@@ -880,6 +880,7 @@ async function checkAndUpdateEvidence(
 async function sealPDF(
   supabase: SupabaseClient,
   token: string,
+  caseFileExternalId: string,
   evidenceGroupExternalId: string,
   evidenceGroupId: string,
   pdfBuffer: ArrayBuffer,
@@ -946,8 +947,8 @@ async function sealPDF(
 
     console.log(`Creating sealed PDF in Digital Trust for ${reportMonth}`);
 
-    // Create evidence with qualified signature
-    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/evidence-groups/${evidenceGroupExternalId}/evidences`, {
+    // Create evidence with qualified signature (using nested endpoint with caseFileId)
+    const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files/${caseFileExternalId}/evidence-groups/${evidenceGroupExternalId}/evidences`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1323,7 +1324,7 @@ serve(async (req) => {
       const pdfBytes = Uint8Array.from(atob(pdf_base64), c => c.charCodeAt(0));
 
       const result = await sealPDF(
-        supabase, token, evidenceGroup.externalId, evidenceGroup.id,
+        supabase, token, caseFile.externalId, evidenceGroup.externalId, evidenceGroup.id,
         pdfBytes.buffer, report_month, file_name, company.id
       );
 
