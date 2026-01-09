@@ -59,45 +59,64 @@ serve(async (req) => {
       throw new Error('Company not found');
     }
 
-    // Get company settings
-    const { data: settings } = await supabase
+    // Get legal_document_data settings (centralized company data)
+    const { data: legalDataSetting } = await supabase
       .from('company_settings')
-      .select('setting_key, setting_value')
-      .eq('company_id', company_id);
+      .select('setting_value')
+      .eq('company_id', company_id)
+      .eq('setting_key', 'legal_document_data')
+      .maybeSingle();
 
-    const settingsMap: Record<string, any> = {};
-    (settings || []).forEach((s: any) => {
-      settingsMap[s.setting_key] = s.setting_value;
-    });
+    const legalData = (legalDataSetting?.setting_value as Record<string, string>) || {};
 
-    // Build variables map
+    // Build variables map with centralized data
     const variables: Record<string, string> = {
-      // Company fields
+      // Company fields (from company table)
       EMPRESA_NOMBRE: company.name || '',
       EMPRESA_CIF: company.cif || '',
       EMPRESA_DIRECCION: company.address || '',
       EMPRESA_CIUDAD: company.city || '',
       EMPRESA_CP: company.postal_code || '',
       
-      // Date fields
+      // Date fields (auto-generated)
       FECHA_GENERACION: new Date().toLocaleDateString('es-ES'),
       FECHA_ACTUAL: new Date().toISOString().split('T')[0],
+      FECHA_ENTREGA: new Date().toLocaleDateString('es-ES'),
       
-      // System fields
+      // System fields (constants)
       PROVEEDOR_PLATAFORMA: 'Time Control Hub',
       QTSP_NOMBRE: 'EADTrust',
       
-      // Settings fields
-      CONTACTO_PRIVACIDAD: settingsMap.privacy_contact || 'Departamento de RRHH',
-      EMAIL_CONTACTO_DPD: settingsMap.dpd_email || 'privacidad@empresa.com',
-      RESPONSABLE_CUMPLIMIENTO: settingsMap.compliance_officer || 'Responsable de Cumplimiento',
-      CANAL_CORRECCIONES: settingsMap.corrections_channel || 'Portal del empleado',
-      PLAZO_CORRECCIONES_HORAS: settingsMap.correction_hours || '48',
-      RESPONSABLE_CUSTODIA: settingsMap.custody_responsible || 'Responsable de RRHH',
-      LUGAR_ARCHIVO_PARTES: settingsMap.paper_archive_location || 'Oficina central',
-      PLAZO_TRANSCRIPCION_HORAS: settingsMap.transcription_hours || '24',
+      // Data Protection fields
+      EMAIL_CONTACTO_DPD: legalData.dpd_email || 'privacidad@empresa.com',
+      CONTACTO_PRIVACIDAD: legalData.privacy_contact || 'Departamento de RRHH',
+      RESPONSABLE_CUMPLIMIENTO: legalData.compliance_officer || 'Responsable de Cumplimiento',
       
-      // Extra variables from request
+      // Clock-in Operations fields
+      CENTRO_NOMBRE: legalData.center_name || company.name || '',
+      UBICACION_TERMINAL: legalData.terminal_location || 'Entrada principal',
+      DESCRIPCION_TERMINAL: legalData.terminal_description || 'Terminal táctil en modo kiosco',
+      MODOS_FICHAJE: legalData.clock_modes || 'QR o PIN',
+      CANAL_AVISO_PERDIDA: legalData.credential_loss_channel || 'RRHH o supervisor directo',
+      
+      // Document Management fields
+      RESPONSABLE_CUSTODIA: legalData.custody_responsible || 'Responsable de RRHH',
+      LUGAR_ARCHIVO_PARTES: legalData.paper_archive_location || 'Oficina central',
+      PLAZO_TRANSCRIPCION_HORAS: legalData.transcription_hours || '24',
+      CANAL_CORRECCIONES: legalData.corrections_channel || 'Portal del empleado',
+      PLAZO_CORRECCIONES_HORAS: legalData.correction_hours || '48',
+      FORMATO_EXPORT: legalData.export_formats || 'CSV, JSON, PDF',
+      CONTACTO_ITSS: legalData.itss_contact || 'Dirección de RRHH',
+      
+      // HR & Absences fields
+      CANAL_SOLICITUD_AUSENCIAS: legalData.absence_request_channel || 'Portal del empleado',
+      SLA_APROBACION_AUSENCIAS: legalData.absence_sla_hours || '72',
+      REGLA_SOLAPAMIENTO: legalData.overlap_rule || 'Mínimo 2 empleados por turno',
+      CONTACTO_RRHH: legalData.hr_contact || 'rrhh@empresa.com',
+      CANAL_SOPORTE: legalData.support_channel || 'soporte@empresa.com',
+      CANAL_COMUNICACIONES: legalData.communications_channel || 'Portal del empleado',
+      
+      // Extra variables from request (for employee-specific data)
       ...extra_variables
     };
 
