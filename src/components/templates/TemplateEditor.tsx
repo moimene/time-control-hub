@@ -42,6 +42,23 @@ export function TemplateEditor({ ruleSet, onSimulate }: TemplateEditorProps) {
     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0];
 
+  // If no version exists, show error state
+  if (!latestVersion) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error de configuración</AlertTitle>
+          <AlertDescription>
+            Esta plantilla no tiene una versión inicial. Esto puede deberse a un error 
+            durante la creación o a permisos insuficientes. Por favor, elimina esta 
+            plantilla y créala de nuevo, o contacta al administrador del sistema.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   const initialPayload = (latestVersion?.payload_json as unknown as TemplatePayload) || DEFAULT_TEMPLATE_PAYLOAD;
   
   const [payload, setPayload] = useState<TemplatePayload>(initialPayload);
