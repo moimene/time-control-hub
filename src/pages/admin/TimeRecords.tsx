@@ -29,8 +29,10 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useCompany } from '@/hooks/useCompany';
 import { useTimeEventInconsistencies } from '@/hooks/useTimeEventInconsistencies';
+import { useDebounce } from '@/hooks/useDebounce';
 import { InconsistencyAlert } from '@/components/admin/InconsistencyAlert';
 import type { EventType, EventSource } from '@/types/database';
+import { useMemo } from 'react';
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -56,6 +58,7 @@ export default function TimeRecords() {
     to: new Date(),
   });
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [eventType, setEventType] = useState<string>('all');
   const { company } = useCompany();
 
@@ -83,15 +86,17 @@ export default function TimeRecords() {
 
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
-  const filteredRecords = records?.filter((record: any) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      record.employees?.first_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.last_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.employee_code?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredRecords = useMemo(() => {
+    return records?.filter((record: any) => {
+      if (!debouncedSearch) return true;
+      const searchLower = debouncedSearch.toLowerCase();
+      return (
+        record.employees?.first_name?.toLowerCase().includes(searchLower) ||
+        record.employees?.last_name?.toLowerCase().includes(searchLower) ||
+        record.employees?.employee_code?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [records, debouncedSearch]);
 
   const exportCSV = () => {
     if (!filteredRecords) return;
