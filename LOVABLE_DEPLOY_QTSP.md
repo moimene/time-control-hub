@@ -21,7 +21,7 @@ Configurar en: **Project Settings → Edge Functions → Secrets**
 |-------------|-------|
 | `DIGITALTRUST_LOGIN_URL` | `https://legalappfactory.okta.com/oauth2/aus653dgdgTFL2mhw417/v1/token` |
 | `DIGITALTRUST_CLIENT_ID` | `0oalc3e2oiADNIXfH417` |
-| `DIGITALTRUST_CLIENT_SECRET` | `6vH4BVhl8YWFcIBJXWdbFiPoHb8_OLVhSWtzYdSOP2Cew0endQsGvO3DIIZdW4dV` |
+| `DIGITALTRUST_CLIENT_SECRET` | `[REDACTED_SECRET]` |
 | `DIGITALTRUST_API_URL` | `https://api.pre.gcloudfactory.com` |
 
 ---
