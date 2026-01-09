@@ -2903,6 +2903,36 @@ export type Database = {
           },
         ]
       }
+      national_holidays: {
+        Row: {
+          created_at: string | null
+          holiday_date: string
+          id: string
+          name: string
+          region: string | null
+          type: string
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          holiday_date: string
+          id?: string
+          name: string
+          region?: string | null
+          type: string
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          holiday_date?: string
+          id?: string
+          name?: string
+          region?: string | null
+          type?: string
+          year?: number
+        }
+        Relationships: []
+      }
       qtsp_audit_log: {
         Row: {
           action: string

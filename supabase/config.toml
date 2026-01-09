@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.company-provision]
 verify_jwt = false
+
+[functions.company-bootstrap]
+verify_jwt = false

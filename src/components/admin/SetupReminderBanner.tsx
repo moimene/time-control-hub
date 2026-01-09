@@ -10,10 +10,11 @@ import { AlertTriangle, Settings, CheckCircle2, XCircle } from 'lucide-react';
 interface ConfigCheck {
   key: string;
   completed: boolean;
+  autoProvided?: boolean; // Indicates if this was auto-provisioned
 }
 
 async function checkConfigStatus(companyId: string): Promise<ConfigCheck[]> {
-  // Check employees
+  // Check employees (excludes the admin employee auto-created)
   const { count: employeesCount } = await supabase
     .from('employees')
     .select('id', { count: 'exact', head: true })
@@ -26,32 +27,43 @@ async function checkConfigStatus(companyId: string): Promise<ConfigCheck[]> {
     .eq('company_id', companyId)
     .eq('status', 'active');
   
-  // Check absence types
+  // Check absence types (these are now auto-seeded)
   const { count: absencesCount } = await supabase
     .from('absence_types')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
     .eq('is_active', true);
   
-  // Check calendar holidays
-  const { count: calendarCount } = await supabase
+  // Check calendar holidays - specifically local ones (nacional/autonomico are auto-propagated)
+  // calendar_holidays uses holiday_type column
+  const { count: localHolidaysCount } = await supabase
+    .from('calendar_holidays')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId)
+    .in('holiday_type', ['local', 'empresa']);
+  
+  // Check if any holidays exist (nacional + autonomico are auto-provided)
+  const { count: allHolidaysCount } = await supabase
     .from('calendar_holidays')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId);
   
-  // Check terminals
+  // Check terminals (virtual terminal is auto-created)
   const { count: terminalsCount } = await supabase
     .from('terminals')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
     .eq('status', 'active');
 
+  // Employees: need more than 1 (admin is auto-created)
+  const hasEmployees = (employeesCount || 0) > 1;
+  
   return [
-    { key: 'employees', completed: (employeesCount || 0) > 0 },
+    { key: 'employees', completed: hasEmployees },
     { key: 'templates', completed: (templatesCount || 0) > 0 },
-    { key: 'absences', completed: (absencesCount || 0) > 0 },
-    { key: 'calendar', completed: (calendarCount || 0) > 0 },
-    { key: 'terminals', completed: (terminalsCount || 0) > 0 },
+    { key: 'absences', completed: (absencesCount || 0) > 0, autoProvided: true },
+    { key: 'calendar', completed: (allHolidaysCount || 0) > 0, autoProvided: (allHolidaysCount || 0) > 0 && (localHolidaysCount || 0) === 0 },
+    { key: 'terminals', completed: (terminalsCount || 0) > 0, autoProvided: true },
   ];
 }
 
@@ -79,15 +91,37 @@ export function SetupReminderBanner() {
     return null;
   }
 
-  const configLabels: Record<string, { label: string; path: string }> = {
-    employees: { label: 'Añadir empleados', path: '/admin/employees' },
-    templates: { label: 'Configurar plantilla horaria', path: '/admin/templates' },
-    absences: { label: 'Configurar tipos de ausencia', path: '/admin/absences' },
-    calendar: { label: 'Configurar calendario laboral', path: '/admin/settings' },
-    terminals: { label: 'Configurar terminal de fichaje', path: '/admin/terminals' },
+  const configLabels: Record<string, { label: string; path: string; hint?: string }> = {
+    employees: { 
+      label: 'Añadir empleados', 
+      path: '/admin/employees',
+      hint: 'Registra a los empleados que ficharán'
+    },
+    templates: { 
+      label: 'Configurar plantilla horaria', 
+      path: '/admin/templates',
+      hint: 'Define los horarios de trabajo'
+    },
+    absences: { 
+      label: 'Tipos de ausencia', 
+      path: '/admin/absences',
+      hint: 'Configuración automática aplicada'
+    },
+    calendar: { 
+      label: 'Calendario laboral', 
+      path: '/admin/settings',
+      hint: 'Festivos nacionales cargados, añade los locales'
+    },
+    terminals: { 
+      label: 'Terminal de fichaje', 
+      path: '/admin/terminals',
+      hint: 'Terminal virtual creado automáticamente'
+    },
   };
 
   const pendingItems = configStatus.filter(c => !c.completed);
+  // Filter to show only items that need manual action
+  const manualPendingItems = configStatus.filter(c => !c.completed && !c.autoProvided);
 
   return (
     <Alert variant="default" className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
@@ -127,21 +161,26 @@ export function SetupReminderBanner() {
                 ) : (
                   <XCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
                 )}
-                <span className="truncate">{config.label}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="truncate">{config.label}</span>
+                  {item.autoProvided && item.completed && (
+                    <span className="text-xs opacity-70">Auto-configurado</span>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          {pendingItems.length > 0 && (
+          {manualPendingItems.length > 0 && (
             <Button 
               size="sm" 
-              onClick={() => navigate(configLabels[pendingItems[0].key].path)}
+              onClick={() => navigate(configLabels[manualPendingItems[0].key].path)}
               className="gap-2"
             >
               <Settings className="h-4 w-4" />
-              {configLabels[pendingItems[0].key].label}
+              {configLabels[manualPendingItems[0].key].label}
             </Button>
           )}
           <Button 

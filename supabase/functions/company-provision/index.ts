@@ -182,6 +182,21 @@ serve(async (req) => {
       },
     });
 
+    // 7. Bootstrap company with default data
+    try {
+      console.log(`[company-provision] Invoking company-bootstrap for ${company.id}`);
+      const { error: bootstrapError } = await supabase.functions.invoke("company-bootstrap", {
+        body: { company_id: company.id }
+      });
+      if (bootstrapError) {
+        console.error("[company-provision] bootstrap error (non-fatal):", bootstrapError);
+      } else {
+        console.log(`[company-provision] Bootstrap complete for ${company.id}`);
+      }
+    } catch (bootstrapErr) {
+      console.error("[company-provision] bootstrap exception (non-fatal):", bootstrapErr);
+    }
+
     console.log(`[company-provision] Complete: company=${company.id}, user=${userId}`);
 
     return new Response(JSON.stringify({

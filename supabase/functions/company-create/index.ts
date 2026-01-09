@@ -152,6 +152,21 @@ serve(async (req) => {
 
     console.log(`[company-create] Success: company=${company.id}, user=${user.id}`);
 
+    // Bootstrap company with default data (absence types, holidays, terminal)
+    try {
+      console.log(`[company-create] Invoking company-bootstrap for ${company.id}`);
+      const { error: bootstrapError } = await supabaseAdmin.functions.invoke("company-bootstrap", {
+        body: { company_id: company.id }
+      });
+      if (bootstrapError) {
+        console.error("[company-create] bootstrap error (non-fatal):", bootstrapError);
+      } else {
+        console.log(`[company-create] Bootstrap complete for ${company.id}`);
+      }
+    } catch (bootstrapErr) {
+      console.error("[company-create] bootstrap exception (non-fatal):", bootstrapErr);
+    }
+
     return new Response(JSON.stringify({ company }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
