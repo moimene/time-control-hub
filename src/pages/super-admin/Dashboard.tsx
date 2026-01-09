@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Users, Clock, Shield, AlertTriangle, CheckCircle, Activity } from "lucide-react";
 import { format, subDays, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
+import { TemplateDiagnosticPanel } from "@/components/admin/TemplateDiagnosticPanel";
 
 export default function SuperAdminDashboard() {
   // Get all companies
@@ -253,6 +254,9 @@ export default function SuperAdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Template Diagnostic Panel */}
+        <TemplateDiagnosticPanel />
 
         {/* QTSP Health */}
         {evidenceStats && evidenceStats.failed > 0 && (
