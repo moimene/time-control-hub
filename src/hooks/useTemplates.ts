@@ -71,7 +71,11 @@ export function useTemplates() {
         .select()
         .single();
 
-      if (versionError) throw versionError;
+      if (versionError) {
+        // Rollback: eliminar el rule_set huérfano si falla la versión
+        await supabase.from('rule_sets').delete().eq('id', ruleSet.id);
+        throw new Error(`Error al crear versión inicial: ${versionError.message}. Verifica los permisos de usuario.`);
+      }
 
       return { ruleSet, version };
     },
