@@ -16,9 +16,10 @@ import { StepShifts } from './steps/StepShifts';
 import { StepNotifications } from './steps/StepNotifications';
 import { StepSimulation } from './steps/StepSimulation';
 import { StepPublish } from './steps/StepPublish';
-import { ChevronLeft, ChevronRight, AlertTriangle, X, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, X, Save, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface TemplateWizardProps {
   onComplete: (payload: any) => void;
@@ -27,14 +28,36 @@ interface TemplateWizardProps {
   initialSector?: string;
 }
 
+const STEP_NAMES = [
+  'Convenio',
+  'Calendario',
+  'Jornada',
+  'Pausas',
+  'Horas Extra',
+  'Tiempo Parcial',
+  'Trabajo Nocturno',
+  'Vacaciones',
+  'Turnos',
+  'Notificaciones',
+  'Simulación',
+  'Publicación',
+];
+
 function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
-  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft, lastSavedAt } = useWizard();
+  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft, lastSavedAt, saveCurrentStep, isStepSaved } = useWizard();
   const { currentStep, validationErrors, payload } = state;
   const [showDraftDialog, setShowDraftDialog] = useState(hasDraft && currentStep > 1);
 
   const handleNext = () => {
     if (validateCurrentStep()) {
       nextStep();
+    }
+  };
+
+  const handleSaveStep = () => {
+    if (validateCurrentStep()) {
+      saveCurrentStep();
+      toast.success(`Paso "${STEP_NAMES[currentStep - 1]}" guardado correctamente`);
     }
   };
 
@@ -56,6 +79,8 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
     // Keep draft for later
     onCancel();
   };
+
+  const currentStepSaved = isStepSaved(currentStep);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -102,7 +127,7 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
         <div>
           <h2 className="text-2xl font-bold">Asistente de Configuración</h2>
           <p className="text-muted-foreground">
-            Configure su primera plantilla de cumplimiento paso a paso
+            Configure su plantilla de cumplimiento paso a paso
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -143,7 +168,7 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
       </Card>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button
           variant="outline"
           onClick={prevStep}
@@ -153,12 +178,34 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
           Anterior
         </Button>
 
-        {currentStep < 12 ? (
-          <Button onClick={handleNext}>
-            Siguiente
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {/* Save current step button */}
+          {currentStep < 12 && (
+            <Button
+              variant={currentStepSaved ? "secondary" : "outline"}
+              onClick={handleSaveStep}
+            >
+              {currentStepSaved ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Paso guardado
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar paso
+                </>
+              )}
+            </Button>
+          )}
+
+          {currentStep < 12 && (
+            <Button onClick={handleNext}>
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

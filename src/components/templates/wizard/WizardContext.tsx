@@ -33,6 +33,8 @@ interface WizardContextType {
   setSimulationResult: (result: any) => void;
   resetWizard: () => void;
   clearDraft: () => void;
+  saveCurrentStep: () => void;
+  isStepSaved: (step: number) => boolean;
   hasDraft: boolean;
   canProceed: boolean;
 }
@@ -241,6 +243,20 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     clearDraftStorage();
   }, []);
 
+  const [savedSteps, setSavedSteps] = useState<Set<number>>(new Set());
+
+  const saveCurrentStep = useCallback(() => {
+    // Mark current step as explicitly saved
+    setSavedSteps(prev => new Set([...prev, state.currentStep]));
+    // Force save to localStorage
+    saveDraft(state);
+    setLastSavedAt(new Date());
+  }, [state]);
+
+  const isStepSaved = useCallback((step: number) => {
+    return savedSteps.has(step);
+  }, [savedSteps]);
+
   const canProceed = state.validationErrors.length === 0;
 
   return (
@@ -260,6 +276,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         setSimulationResult,
         resetWizard,
         clearDraft,
+        saveCurrentStep,
+        isStepSaved,
         hasDraft,
         canProceed,
       }}

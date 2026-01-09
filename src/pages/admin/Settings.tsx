@@ -19,6 +19,7 @@ import { HolidayCalendarEditor } from '@/components/settings/HolidayCalendarEdit
 import { CoverageRulesEditor } from '@/components/settings/CoverageRulesEditor';
 import { SecuritySection } from '@/components/settings/SecuritySection';
 import { CompanyLegalDataSection } from '@/components/settings/CompanyLegalDataSection';
+import { ConfigWizardButton } from '@/components/settings/ConfigWizardButton';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -82,9 +83,12 @@ export default function Settings() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
-          <p className="text-muted-foreground">Configura todos los aspectos de tu empresa</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
+            <p className="text-muted-foreground">Configura todos los aspectos de tu empresa</p>
+          </div>
+          <ConfigWizardButton />
         </div>
 
         <Tabs defaultValue="empresa" className="space-y-6">
