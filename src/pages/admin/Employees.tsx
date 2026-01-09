@@ -35,7 +35,33 @@ import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog } from 'lucide-re
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
 import { EmployeeCredentialsDialog } from '@/components/employees/EmployeeCredentialsDialog';
-import type { Employee, EmployeeStatus } from '@/types/database';
+import { AUTONOMOUS_COMMUNITIES, getAutonomousCommunityName } from '@/lib/autonomousCommunities';
+import type { EmployeeStatus } from '@/types/database';
+
+interface EmployeeWithLocation {
+  id: string;
+  user_id: string | null;
+  employee_code: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  department: string | null;
+  position: string | null;
+  status: EmployeeStatus;
+  hire_date: string | null;
+  termination_date: string | null;
+  company_id: string | null;
+  created_at: string;
+  updated_at: string;
+  autonomous_community: string | null;
+  locality: string | null;
+  pin_hash: string | null;
+  pin_salt: string | null;
+  pin_failed_attempts: number | null;
+  pin_locked_until: string | null;
+  is_department_responsible: boolean | null;
+}
 
 const statusLabels: Record<EmployeeStatus, string> = {
   active: 'Activo',
@@ -54,12 +80,12 @@ const statusColors: Record<EmployeeStatus, string> = {
 export default function Employees() {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeWithLocation | null>(null);
+  const [qrEmployee, setQrEmployee] = useState<EmployeeWithLocation | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
-  const [pinEmployee, setPinEmployee] = useState<Employee | null>(null);
+  const [pinEmployee, setPinEmployee] = useState<EmployeeWithLocation | null>(null);
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
-  const [credentialsEmployee, setCredentialsEmployee] = useState<Employee | null>(null);
+  const [credentialsEmployee, setCredentialsEmployee] = useState<EmployeeWithLocation | null>(null);
   const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -73,7 +99,7 @@ export default function Employees() {
         .select('*')
         .order('last_name', { ascending: true });
       if (error) throw error;
-      return data as Employee[];
+      return data as EmployeeWithLocation[];
     },
   });
 
@@ -93,7 +119,7 @@ export default function Employees() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Employee> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<EmployeeWithLocation> }) => {
       const { error } = await supabase.from('employees').update(data).eq('id', id);
       if (error) throw error;
     },
@@ -132,6 +158,7 @@ export default function Employees() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const autonomousCommunity = formData.get('autonomous_community') as string;
     const data = {
       employee_code: formData.get('employee_code') as string,
       first_name: formData.get('first_name') as string,
@@ -141,6 +168,8 @@ export default function Employees() {
       department: formData.get('department') as string || null,
       position: formData.get('position') as string || null,
       status: (formData.get('status') as EmployeeStatus) || 'active',
+      autonomous_community: autonomousCommunity === '_none_' ? null : (autonomousCommunity || null),
+      locality: formData.get('locality') as string || null,
     };
 
     if (editingEmployee) {
@@ -262,6 +291,33 @@ export default function Employees() {
                       id="position"
                       name="position"
                       defaultValue={editingEmployee?.position || ''}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="autonomous_community">Comunidad Autónoma</Label>
+                    <Select name="autonomous_community" defaultValue={editingEmployee?.autonomous_community || '_none_'}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar CC.AA." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none_">Sin especificar</SelectItem>
+                        {AUTONOMOUS_COMMUNITIES.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="locality">Localidad</Label>
+                    <Input
+                      id="locality"
+                      name="locality"
+                      placeholder="Municipio"
+                      defaultValue={editingEmployee?.locality || ''}
                     />
                   </div>
                 </div>
