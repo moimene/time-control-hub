@@ -1,26 +1,30 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CalendarEditor } from '@/components/calendar/CalendarEditor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, Save, CheckCircle2, Clock, FileText } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Calendar, Save, CheckCircle2, Clock, FileText, Download, AlertTriangle, Globe, MapPin, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AUTONOMOUS_COMMUNITIES, getAutonomousCommunityName } from '@/lib/autonomousCommunities';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-interface Holiday {
-  date: string;
-  type: 'nacional' | 'autonomico' | 'local';
-  description: string;
+interface CalendarHoliday {
+  id: string;
+  holiday_date: string;
+  holiday_type: 'nacional' | 'autonomico' | 'local' | 'empresa' | 'estatal';
+  description: string | null;
+  center_id: string | null;
 }
 
 interface IntensivePeriod {
@@ -40,8 +44,18 @@ const years = [currentYear - 1, currentYear, currentYear + 1];
 
 const holidayTypeLabels: Record<string, string> = {
   nacional: 'Nacional',
+  estatal: 'Nacional',
   autonomico: 'Autonómico',
   local: 'Local',
+  empresa: 'Empresa',
+};
+
+const holidayTypeColors: Record<string, string> = {
+  estatal: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  nacional: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  autonomico: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  local: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  empresa: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
 };
 
 export function CalendarLaboralSection() {
@@ -49,15 +63,37 @@ export function CalendarLaboralSection() {
   const { isAdmin, isResponsible, isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [intensivePeriods, setIntensivePeriods] = useState<IntensivePeriod[]>([]);
-  const [shiftsSummary, setShiftsSummary] = useState<ShiftSummary[]>([]);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<string>('');
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
 
   const canEdit = isAdmin || isResponsible || isSuperAdmin;
 
-  const { data: calendar, isLoading } = useQuery({
+  // Fetch holidays from normalized table
+  const { data: holidays, isLoading: holidaysLoading } = useQuery({
+    queryKey: ['calendar-holidays-section', company?.id, selectedYear],
+    queryFn: async () => {
+      if (!company?.id) return [];
+      
+      const startDate = `${selectedYear}-01-01`;
+      const endDate = `${selectedYear}-12-31`;
+      
+      const { data, error } = await supabase
+        .from('calendar_holidays')
+        .select('*')
+        .eq('company_id', company.id)
+        .gte('holiday_date', startDate)
+        .lte('holiday_date', endDate)
+        .order('holiday_date');
+      
+      if (error) throw error;
+      return data as CalendarHoliday[];
+    },
+    enabled: !!company?.id
+  });
+
+  // Fetch labor_calendars for intensive periods and shifts only
+  const { data: calendar, isLoading: calendarLoading } = useQuery({
     queryKey: ['labor-calendar', company?.id, selectedYear],
     queryFn: async () => {
       if (!company?.id) return null;
@@ -71,100 +107,113 @@ export function CalendarLaboralSection() {
         .maybeSingle();
       
       if (error) throw error;
-      
-      if (data) {
-        const holidaysData = (data.holidays || []) as unknown as Holiday[];
-        const intensiveData = (data.intensive_periods || []) as unknown as IntensivePeriod[];
-        const shiftsData = (data.shifts_summary || []) as unknown as ShiftSummary[];
-        
-        setHolidays(holidaysData);
-        setIntensivePeriods(intensiveData);
-        setShiftsSummary(shiftsData);
-        setHasChanges(false);
-      } else {
-        setHolidays([]);
-        setIntensivePeriods([]);
-        setShiftsSummary([
-          { name: 'Jornada completa', start: '09:00', end: '18:00' }
-        ]);
-        setHasChanges(false);
-      }
-      
       return data;
     },
     enabled: !!company?.id
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!company?.id) throw new Error('No company');
-      
-      const calendarData = {
-        company_id: company.id,
-        center_id: null as string | null,
-        year: selectedYear,
-        name: `Calendario Laboral ${selectedYear}`,
-        holidays: holidays as unknown as any,
-        intensive_periods: intensivePeriods as unknown as any,
-        shifts_summary: shiftsSummary as unknown as any
-      };
-
-      if (calendar?.id) {
-        const { error } = await supabase
-          .from('labor_calendars')
-          .update(calendarData)
-          .eq('id', calendar.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('labor_calendars')
-          .insert(calendarData);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['labor-calendar'] });
-      setHasChanges(false);
-      toast.success('Calendario guardado correctamente');
-    },
-    onError: (error: any) => {
-      toast.error('Error al guardar: ' + error.message);
-    }
-  });
-
-  const publishMutation = useMutation({
-    mutationFn: async () => {
-      if (!calendar?.id) throw new Error('Guarda primero el calendario');
-      
-      const { error } = await supabase
-        .from('labor_calendars')
-        .update({ published_at: new Date().toISOString() })
-        .eq('id', calendar.id);
+  // Fetch available national holidays from global table
+  const { data: availableNationalHolidays } = useQuery({
+    queryKey: ['national-holidays', selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('national_holidays')
+        .select('*')
+        .eq('year', selectedYear)
+        .order('holiday_date');
       
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['labor-calendar'] });
-      toast.success('Calendario publicado');
-    },
-    onError: (error: any) => {
-      toast.error('Error al publicar: ' + error.message);
+      return data;
     }
   });
 
-  const handleHolidaysChange = (newHolidays: Holiday[]) => {
-    setHolidays(newHolidays);
-    setHasChanges(true);
-  };
+  const intensivePeriods = (calendar?.intensive_periods || []) as unknown as IntensivePeriod[];
+  const shiftsSummary = (calendar?.shifts_summary || []) as unknown as ShiftSummary[];
 
-  const handleIntensivePeriodsChange = (newPeriods: IntensivePeriod[]) => {
-    setIntensivePeriods(newPeriods);
-    setHasChanges(true);
-  };
+  // Split holidays by type
+  const nationalHolidays = holidays?.filter(h => 
+    h.holiday_type === 'nacional' || h.holiday_type === 'estatal' || h.holiday_type === 'autonomico'
+  ) || [];
+  const localHolidays = holidays?.filter(h => 
+    h.holiday_type === 'local' || h.holiday_type === 'empresa'
+  ) || [];
 
-  const handleShiftsSummaryChange = (newShifts: ShiftSummary[]) => {
-    setShiftsSummary(newShifts);
-    setHasChanges(true);
+  // Count available holidays
+  const availableNational = availableNationalHolidays?.filter(h => h.type === 'nacional') || [];
+  const availableAutonomic = availableNationalHolidays?.filter(h => h.type === 'autonomico') || [];
+  const uniqueRegions = [...new Set(availableAutonomic.map(h => h.region).filter(Boolean))];
+
+  // Check if holidays need to be imported
+  const needsHolidayImport = nationalHolidays.length === 0 && availableNational.length > 0;
+
+  // Import holidays mutation
+  const importHolidaysMutation = useMutation({
+    mutationFn: async ({ type, region }: { type: 'nacional' | 'autonomico'; region?: string }) => {
+      if (!company?.id) throw new Error("No company");
+      if (!availableNationalHolidays?.length) throw new Error("No hay festivos disponibles");
+
+      let holidaysToImport = availableNationalHolidays.filter(h => h.type === type);
+      if (type === 'autonomico' && region) {
+        holidaysToImport = holidaysToImport.filter(h => h.region === region);
+      }
+
+      if (holidaysToImport.length === 0) {
+        throw new Error(`No hay festivos ${type === 'nacional' ? 'nacionales' : 'autonómicos'} disponibles`);
+      }
+
+      const existingDates = new Set(holidays?.map(h => h.holiday_date) || []);
+
+      const toInsert = holidaysToImport
+        .filter(h => !existingDates.has(h.holiday_date))
+        .map(h => ({
+          company_id: company.id,
+          holiday_date: h.holiday_date,
+          holiday_type: h.type,
+          description: h.region ? `[${getAutonomousCommunityName(h.region)}] ${h.name}` : h.name,
+        }));
+
+      if (toInsert.length === 0) {
+        throw new Error("Todos los festivos ya están importados");
+      }
+
+      const { error } = await supabase.from('calendar_holidays').insert(toInsert);
+      if (error) throw error;
+      return toInsert.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-holidays-section'] });
+      toast.success(`${count} festivos importados correctamente`);
+      setIsImportDialogOpen(false);
+      setSelectedCommunity('');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  // Bootstrap company (for initial setup)
+  const handleBootstrap = async () => {
+    if (!company?.id) return;
+    
+    setIsBootstrapping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('company-bootstrap', {
+        body: { 
+          company_id: company.id,
+          autonomous_community: selectedCommunity || undefined
+        }
+      });
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['calendar-holidays-section'] });
+      queryClient.invalidateQueries({ queryKey: ['company-config-status'] });
+      toast.success('Configuración inicial completada');
+    } catch (error: any) {
+      toast.error('Error al inicializar: ' + error.message);
+    } finally {
+      setIsBootstrapping(false);
+    }
   };
 
   const exportCalendarPDF = () => {
@@ -182,14 +231,15 @@ export function CalendarLaboralSection() {
     doc.setFontSize(14);
     doc.text('Festivos', 14, 52);
     
-    if (holidays.length > 0) {
+    const allHolidays = holidays || [];
+    if (allHolidays.length > 0) {
       autoTable(doc, {
         startY: 56,
         head: [['Fecha', 'Tipo', 'Descripción']],
-        body: holidays.map(h => [
-          format(new Date(h.date), 'dd/MM/yyyy'),
-          holidayTypeLabels[h.type] || h.type,
-          h.description
+        body: allHolidays.map(h => [
+          format(parseISO(h.holiday_date), 'dd/MM/yyyy'),
+          holidayTypeLabels[h.holiday_type] || h.holiday_type,
+          h.description || '-'
         ]),
         theme: 'striped',
         headStyles: { fillColor: [59, 130, 246] },
@@ -253,6 +303,8 @@ export function CalendarLaboralSection() {
     toast.success('Calendario exportado como PDF');
   };
 
+  const isLoading = holidaysLoading || calendarLoading;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -279,13 +331,29 @@ export function CalendarLaboralSection() {
         </div>
       </div>
 
+      {/* Alert if holidays need import */}
+      {needsHolidayImport && (
+        <Alert variant="default" className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-amber-700 dark:text-amber-300">
+              No hay festivos nacionales configurados. Hay {availableNational.length} festivos disponibles para importar.
+            </span>
+            <Button size="sm" onClick={() => setIsImportDialogOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Importar festivos
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Estado del Calendario {selectedYear}</CardTitle>
             <div className="flex items-center gap-2">
               {calendar?.published_at ? (
-                <Badge className="bg-green-100 text-green-800">
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Publicado
                 </Badge>
@@ -299,10 +367,13 @@ export function CalendarLaboralSection() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex gap-4 text-sm">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex gap-4 text-sm flex-wrap">
               <span>
-                <strong>{holidays.length}</strong> festivos
+                <strong>{nationalHolidays.length}</strong> festivos nacionales/autonómicos
+              </span>
+              <span>
+                <strong>{localHolidays.length}</strong> festivos locales
               </span>
               <span>
                 <strong>{intensivePeriods.length}</strong> períodos intensivos
@@ -311,78 +382,209 @@ export function CalendarLaboralSection() {
                 <strong>{shiftsSummary.length}</strong> turnos
               </span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setIsImportDialogOpen(true)}>
+                <Download className="h-4 w-4 mr-1" />
+                Importar festivos
+              </Button>
               <Button variant="outline" size="sm" onClick={exportCalendarPDF}>
                 <FileText className="h-4 w-4 mr-1" />
                 Exportar PDF
               </Button>
-              {canEdit && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() => saveMutation.mutate()}
-                    disabled={!hasChanges || saveMutation.isPending}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
-                  </Button>
-                  {calendar && !calendar.published_at && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => publishMutation.mutate()}
-                      disabled={hasChanges || publishMutation.isPending}
-                    >
-                      Publicar
-                    </Button>
-                  )}
-                </>
-              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {hasChanges && (
-        <Alert>
-          <AlertDescription>
-            Tienes cambios sin guardar. Recuerda guardar antes de salir.
-          </AlertDescription>
-        </Alert>
-      )}
-
       {isLoading ? (
         <Card>
           <CardContent className="py-8">
             <div className="space-y-4">
-              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-32 w-full" />
               <Skeleton className="h-32 w-full" />
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Editor de Calendario</CardTitle>
-            <CardDescription>
-              {canEdit 
-                ? 'Añade festivos, configura la jornada intensiva y define los turnos'
-                : 'Vista de solo lectura. Contacta con un administrador para realizar cambios.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CalendarEditor
-              year={selectedYear}
-              holidays={holidays}
-              intensivePeriods={intensivePeriods}
-              shiftsSummary={shiftsSummary}
-              onHolidaysChange={canEdit ? handleHolidaysChange : undefined}
-              onIntensivePeriodsChange={canEdit ? handleIntensivePeriodsChange : undefined}
-              onShiftsSummaryChange={canEdit ? handleShiftsSummaryChange : undefined}
-            />
-          </CardContent>
-        </Card>
+        <>
+          {/* National/Autonomic Holidays */}
+          {nationalHolidays.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Globe className="h-4 w-4" />
+                  Festivos Nacionales y Autonómicos ({nationalHolidays.length})
+                </CardTitle>
+                <CardDescription>
+                  Festivos oficiales importados (no editables)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Descripción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {nationalHolidays.map((holiday) => (
+                      <TableRow key={holiday.id} className="bg-muted/30">
+                        <TableCell className="font-medium">
+                          {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
+                            {holidayTypeLabels[holiday.holiday_type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {holiday.description || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Local/Company Holidays */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4" />
+                Festivos Locales y de Empresa ({localHolidays.length})
+              </CardTitle>
+              <CardDescription>
+                Festivos específicos de tu localidad o empresa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {localHolidays.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Descripción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {localHolidays.map((holiday) => (
+                      <TableRow key={holiday.id}>
+                        <TableCell className="font-medium">
+                          {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
+                            {holidayTypeLabels[holiday.holiday_type]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {holiday.description || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay festivos locales configurados para {selectedYear}</p>
+                  <p className="text-sm">Usa el editor de festivos para añadir días festivos locales</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
+
+      {/* Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar Festivos</DialogTitle>
+            <DialogDescription>
+              Importa festivos nacionales y autonómicos al calendario de la empresa para {selectedYear}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* National holidays */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Globe className="h-5 w-5 text-red-600" />
+                <div>
+                  <p className="font-medium">Festivos Nacionales</p>
+                  <p className="text-sm text-muted-foreground">
+                    {availableNational.length} festivos disponibles
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => importHolidaysMutation.mutate({ type: 'nacional' })}
+                disabled={importHolidaysMutation.isPending || availableNational.length === 0}
+              >
+                {importHolidaysMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Importar'
+                )}
+              </Button>
+            </div>
+
+            {/* Autonomic holidays */}
+            <div className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center gap-3">
+                <MapPin className="h-5 w-5 text-orange-600" />
+                <div>
+                  <p className="font-medium">Festivos Autonómicos</p>
+                  <p className="text-sm text-muted-foreground">
+                    Selecciona la comunidad autónoma
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedCommunity} onValueChange={setSelectedCommunity}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Seleccionar comunidad..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AUTONOMOUS_COMMUNITIES.map((comm) => {
+                      const count = availableAutonomic.filter(h => h.region === comm.code).length;
+                      return (
+                        <SelectItem key={comm.code} value={comm.code}>
+                          {comm.name} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={() => importHolidaysMutation.mutate({ type: 'autonomico', region: selectedCommunity })}
+                  disabled={!selectedCommunity || importHolidaysMutation.isPending}
+                >
+                  {importHolidaysMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Importar'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

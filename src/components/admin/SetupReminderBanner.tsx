@@ -34,19 +34,18 @@ async function checkConfigStatus(companyId: string): Promise<ConfigCheck[]> {
     .eq('company_id', companyId)
     .eq('is_active', true);
   
-  // Check calendar holidays - specifically local ones (nacional/autonomico are auto-propagated)
-  // calendar_holidays uses holiday_type column
+  // Check calendar holidays - any holidays imported
+  const { count: allHolidaysCount } = await supabase
+    .from('calendar_holidays')
+    .select('id', { count: 'exact', head: true })
+    .eq('company_id', companyId);
+  
+  // Check if local holidays exist (user-added)
   const { count: localHolidaysCount } = await supabase
     .from('calendar_holidays')
     .select('id', { count: 'exact', head: true })
     .eq('company_id', companyId)
     .in('holiday_type', ['local', 'empresa']);
-  
-  // Check if any holidays exist (nacional + autonomico are auto-provided)
-  const { count: allHolidaysCount } = await supabase
-    .from('calendar_holidays')
-    .select('id', { count: 'exact', head: true })
-    .eq('company_id', companyId);
   
   // Check terminals (virtual terminal is auto-created)
   const { count: terminalsCount } = await supabase
