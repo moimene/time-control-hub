@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { sanitizeHtml } from "@/lib/security";
 
 export default function EmployeeLegalDocuments() {
   const { user } = useAuth();
@@ -317,10 +318,10 @@ export default function EmployeeLegalDocuments() {
               <div className="prose prose-sm max-w-none">
                 <div 
                   dangerouslySetInnerHTML={{ 
-                    __html: selectedDocument?.content_markdown
+                    __html: sanitizeHtml(selectedDocument?.content_markdown
                       ?.replace(/\n/g, '<br>')
                       .replace(/#{1,6}\s(.+)/g, '<strong>$1</strong>')
-                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'))
                       || '' 
                   }} 
                 />
