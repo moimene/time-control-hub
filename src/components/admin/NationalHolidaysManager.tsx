@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,41 +14,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Trash2, Calendar as CalendarIcon, Download, Loader2, Globe, MapPin } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Download, Loader2, Globe, MapPin, RefreshCw } from "lucide-react";
 
-interface Holiday {
+interface NationalHoliday {
   id: string;
+  year: number;
   holiday_date: string;
-  holiday_type: string;
-  description: string | null;
-  center_id: string | null;
+  name: string;
+  type: "nacional" | "autonomico";
+  region: string | null;
+  created_at: string;
 }
 
-const SPAIN_NATIONAL_HOLIDAYS: Record<number, Array<{ date: string; description: string }>> = {
+const SPAIN_NATIONAL_HOLIDAYS: Record<number, Array<{ date: string; name: string }>> = {
   2025: [
-    { date: "2025-01-01", description: "Año Nuevo" },
-    { date: "2025-01-06", description: "Epifanía del Señor" },
-    { date: "2025-04-18", description: "Viernes Santo" },
-    { date: "2025-05-01", description: "Fiesta del Trabajo" },
-    { date: "2025-08-15", description: "Asunción de la Virgen" },
-    { date: "2025-10-12", description: "Fiesta Nacional de España" },
-    { date: "2025-11-01", description: "Todos los Santos" },
-    { date: "2025-12-06", description: "Día de la Constitución" },
-    { date: "2025-12-08", description: "Inmaculada Concepción" },
-    { date: "2025-12-25", description: "Navidad" },
+    { date: "2025-01-01", name: "Año Nuevo" },
+    { date: "2025-01-06", name: "Epifanía del Señor" },
+    { date: "2025-04-18", name: "Viernes Santo" },
+    { date: "2025-05-01", name: "Fiesta del Trabajo" },
+    { date: "2025-08-15", name: "Asunción de la Virgen" },
+    { date: "2025-10-12", name: "Fiesta Nacional de España" },
+    { date: "2025-11-01", name: "Todos los Santos" },
+    { date: "2025-12-06", name: "Día de la Constitución" },
+    { date: "2025-12-08", name: "Inmaculada Concepción" },
+    { date: "2025-12-25", name: "Navidad" },
   ],
   2026: [
-    { date: "2026-01-01", description: "Año Nuevo" },
-    { date: "2026-01-06", description: "Epifanía del Señor" },
-    { date: "2026-04-03", description: "Viernes Santo" },
-    { date: "2026-05-01", description: "Fiesta del Trabajo" },
-    { date: "2026-08-15", description: "Asunción de la Virgen" },
-    { date: "2026-10-12", description: "Fiesta Nacional de España" },
-    { date: "2026-11-01", description: "Todos los Santos" },
-    { date: "2026-12-06", description: "Día de la Constitución" },
-    { date: "2026-12-07", description: "Día de la Constitución (traslado)" },
-    { date: "2026-12-08", description: "Inmaculada Concepción" },
-    { date: "2026-12-25", description: "Navidad" },
+    { date: "2026-01-01", name: "Año Nuevo" },
+    { date: "2026-01-06", name: "Epifanía del Señor" },
+    { date: "2026-04-03", name: "Viernes Santo" },
+    { date: "2026-05-01", name: "Fiesta del Trabajo" },
+    { date: "2026-08-15", name: "Asunción de la Virgen" },
+    { date: "2026-10-12", name: "Fiesta Nacional de España" },
+    { date: "2026-11-01", name: "Todos los Santos" },
+    { date: "2026-12-06", name: "Día de la Constitución" },
+    { date: "2026-12-07", name: "Día de la Constitución (traslado)" },
+    { date: "2026-12-08", name: "Inmaculada Concepción" },
+    { date: "2026-12-25", name: "Navidad" },
   ],
 };
 
@@ -76,65 +77,55 @@ const AUTONOMOUS_COMMUNITIES = [
 ];
 
 const holidayTypeColors: Record<string, string> = {
-  estatal: "bg-red-100 text-red-800",
+  nacional: "bg-red-100 text-red-800",
   autonomico: "bg-orange-100 text-orange-800",
 };
 
 export function NationalHolidaysManager() {
-  const { company } = useCompany();
   const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [activeTab, setActiveTab] = useState<"estatal" | "autonomico">("estatal");
+  const [activeTab, setActiveTab] = useState<"nacional" | "autonomico">("nacional");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState("");
   const [selectedCommunity, setSelectedCommunity] = useState("");
 
+  // Fetch from global national_holidays table
   const { data: holidays, isLoading } = useQuery({
-    queryKey: ['national-holidays', company?.id, selectedYear],
+    queryKey: ['global-national-holidays', selectedYear],
     queryFn: async () => {
-      if (!company?.id) return [];
-      const startDate = `${selectedYear}-01-01`;
-      const endDate = `${selectedYear}-12-31`;
-      
       const { data, error } = await supabase
-        .from('calendar_holidays')
+        .from('national_holidays')
         .select('*')
-        .eq('company_id', company.id)
-        .in('holiday_type', ['estatal', 'autonomico'])
-        .gte('holiday_date', startDate)
-        .lte('holiday_date', endDate)
+        .eq('year', selectedYear)
         .order('holiday_date');
       
       if (error) throw error;
-      return data as Holiday[];
-    },
-    enabled: !!company?.id
+      return data as NationalHoliday[];
+    }
   });
 
   const addHolidayMutation = useMutation({
-    mutationFn: async (holiday: { date: string; type: string; description: string }) => {
-      if (!company?.id) throw new Error("No company");
-      
+    mutationFn: async (holiday: { date: string; type: "nacional" | "autonomico"; name: string; region?: string }) => {
       const { error } = await supabase
-        .from('calendar_holidays')
+        .from('national_holidays')
         .insert({
-          company_id: company.id,
+          year: parseInt(holiday.date.substring(0, 4)),
           holiday_date: holiday.date,
-          holiday_type: holiday.type,
-          description: holiday.description || null
+          name: holiday.name,
+          type: holiday.type,
+          region: holiday.region || null
         });
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['national-holidays'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
-      toast.success("Festivo añadido correctamente");
+      queryClient.invalidateQueries({ queryKey: ['global-national-holidays'] });
+      toast.success("Festivo añadido. Se propagará a las empresas en su próximo bootstrap.");
       resetForm();
     },
     onError: (error: Error) => {
-      if (error.message.includes('duplicate')) {
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
         toast.error("Ya existe un festivo en esa fecha");
       } else {
         toast.error("Error al añadir festivo");
@@ -145,16 +136,15 @@ export function NationalHolidaysManager() {
   const deleteHolidayMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('calendar_holidays')
+        .from('national_holidays')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['national-holidays'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
-      toast.success("Festivo eliminado");
+      queryClient.invalidateQueries({ queryKey: ['global-national-holidays'] });
+      toast.success("Festivo eliminado de la tabla global");
     },
     onError: () => {
       toast.error("Error al eliminar festivo");
@@ -163,41 +153,109 @@ export function NationalHolidaysManager() {
 
   const importNationalHolidaysMutation = useMutation({
     mutationFn: async (year: number) => {
-      if (!company?.id) throw new Error("No company");
+      const holidaysData = SPAIN_NATIONAL_HOLIDAYS[year];
+      if (!holidaysData) throw new Error("No hay datos para ese año");
       
-      const holidays = SPAIN_NATIONAL_HOLIDAYS[year];
-      if (!holidays) throw new Error("No hay datos para ese año");
-      
-      const toInsert = holidays.map(h => ({
-        company_id: company.id,
+      const toInsert = holidaysData.map(h => ({
+        year,
         holiday_date: h.date,
-        holiday_type: 'estatal',
-        description: h.description
+        name: h.name,
+        type: 'nacional' as const,
+        region: null
       }));
 
-      const { error } = await supabase
-        .from('calendar_holidays')
-        .upsert(toInsert, { 
-          onConflict: 'company_id,holiday_date',
-          ignoreDuplicates: true 
-        });
-      
-      if (error) throw error;
+      // Insert with upsert-like behavior
+      for (const holiday of toInsert) {
+        const { error } = await supabase
+          .from('national_holidays')
+          .insert(holiday);
+        
+        // Ignore duplicate errors
+        if (error && !error.message.includes('duplicate') && !error.message.includes('unique')) {
+          throw error;
+        }
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['national-holidays'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
-      toast.success("Festivos nacionales importados");
+      queryClient.invalidateQueries({ queryKey: ['global-national-holidays'] });
+      toast.success("Festivos nacionales importados a la tabla global");
     },
-    onError: () => {
+    onError: (err) => {
+      console.error("Import error:", err);
       toast.error("Error al importar festivos");
+    }
+  });
+
+  const propagateToCompaniesMutation = useMutation({
+    mutationFn: async () => {
+      // Get all companies
+      const { data: companies, error: companiesError } = await supabase
+        .from('company')
+        .select('id');
+      
+      if (companiesError) throw companiesError;
+      
+      // Get all national holidays for current year
+      const { data: nationalHolidays, error: holidaysError } = await supabase
+        .from('national_holidays')
+        .select('*')
+        .eq('year', selectedYear);
+      
+      if (holidaysError) throw holidaysError;
+      if (!nationalHolidays?.length) {
+        throw new Error("No hay festivos para propagar");
+      }
+
+      let propagatedCount = 0;
+      
+      for (const company of companies || []) {
+        // Check existing holidays for this company - calendar_holidays uses holiday_type
+        const { data: existing } = await supabase
+          .from('calendar_holidays')
+          .select('holiday_date, holiday_type, description')
+          .eq('company_id', company.id)
+          .in('holiday_type', ['nacional', 'autonomico']);
+
+        const existingSet = new Set(
+          (existing || []).map((h: { holiday_date: string; holiday_type: string }) => `${h.holiday_date}-${h.holiday_type}`)
+        );
+
+        // Map national_holidays (type, name, region) to calendar_holidays (holiday_type, description)
+        const holidaysToInsert = nationalHolidays
+          .filter(h => !existingSet.has(`${h.holiday_date}-${h.type}`))
+          .map(h => ({
+            company_id: company.id,
+            holiday_date: h.holiday_date,
+            holiday_type: h.type, // nacional or autonomico
+            description: h.region ? `[${h.region}] ${h.name}` : h.name,
+          }));
+
+        if (holidaysToInsert.length > 0) {
+          const { error: insertError } = await supabase
+            .from('calendar_holidays')
+            .insert(holidaysToInsert);
+          
+          if (!insertError) {
+            propagatedCount += holidaysToInsert.length;
+          }
+        }
+      }
+      
+      return propagatedCount;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
+      toast.success(`${count} festivos propagados a las empresas`);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Error al propagar festivos");
     }
   });
 
   const resetForm = () => {
     setIsDialogOpen(false);
     setSelectedDate(undefined);
-    setDescription("");
+    setName("");
     setSelectedCommunity("");
   };
 
@@ -206,31 +264,21 @@ export function NationalHolidaysManager() {
       toast.error("Selecciona una fecha");
       return;
     }
-    
-    const desc = activeTab === 'autonomico' && selectedCommunity
-      ? `[${selectedCommunity}] ${description}`
-      : description;
+    if (!name.trim()) {
+      toast.error("Introduce un nombre para el festivo");
+      return;
+    }
     
     addHolidayMutation.mutate({
       date: format(selectedDate, 'yyyy-MM-dd'),
       type: activeTab,
-      description: desc
+      name: name.trim(),
+      region: activeTab === 'autonomico' ? selectedCommunity : undefined
     });
   };
 
-  const nationalHolidays = holidays?.filter(h => h.holiday_type === 'estatal') || [];
-  const autonomicHolidays = holidays?.filter(h => h.holiday_type === 'autonomico') || [];
-  const currentHolidays = activeTab === 'estatal' ? nationalHolidays : autonomicHolidays;
-
-  if (!company) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Cargando...</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const nationalHolidays = holidays?.filter(h => h.type === 'nacional') || [];
+  const autonomicHolidays = holidays?.filter(h => h.type === 'autonomico') || [];
 
   return (
     <Card>
@@ -239,10 +287,10 @@ export function NationalHolidaysManager() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Festivos Nacionales y Autonómicos
+              Festivos Nacionales y Autonómicos (Global)
             </CardTitle>
             <CardDescription>
-              Gestión de festivos estatales y de comunidades autónomas (solo super admin)
+              Gestión centralizada de festivos. Se propagan automáticamente a nuevas empresas.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -260,10 +308,10 @@ export function NationalHolidaysManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "estatal" | "autonomico")}>
-          <div className="flex items-center justify-between">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "nacional" | "autonomico")}>
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <TabsList>
-              <TabsTrigger value="estatal" className="gap-2">
+              <TabsTrigger value="nacional" className="gap-2">
                 <Globe className="h-4 w-4" />
                 Nacionales ({nationalHolidays.length})
               </TabsTrigger>
@@ -273,8 +321,21 @@ export function NationalHolidaysManager() {
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex gap-2">
-              {activeTab === 'estatal' && (
+            <div className="flex gap-2 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => propagateToCompaniesMutation.mutate()}
+                disabled={propagateToCompaniesMutation.isPending || !holidays?.length}
+              >
+                {propagateToCompaniesMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Propagar a empresas
+              </Button>
+              {activeTab === 'nacional' && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -286,17 +347,17 @@ export function NationalHolidaysManager() {
                   ) : (
                     <Download className="h-4 w-4 mr-2" />
                   )}
-                  Importar Nacionales {selectedYear}
+                  Importar {selectedYear}
                 </Button>
               )}
               <Button size="sm" onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Añadir {activeTab === 'estatal' ? 'Nacional' : 'Autonómico'}
+                Añadir
               </Button>
             </div>
           </div>
 
-          <TabsContent value="estatal" className="mt-4">
+          <TabsContent value="nacional" className="mt-4">
             <HolidayTable 
               holidays={nationalHolidays} 
               isLoading={isLoading}
@@ -313,6 +374,7 @@ export function NationalHolidaysManager() {
               onDelete={(id) => deleteHolidayMutation.mutate(id)}
               deleteLoading={deleteHolidayMutation.isPending}
               emptyMessage={`No hay festivos autonómicos configurados para ${selectedYear}`}
+              showRegion
             />
           </TabsContent>
         </Tabs>
@@ -321,11 +383,11 @@ export function NationalHolidaysManager() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                Añadir Festivo {activeTab === 'estatal' ? 'Nacional' : 'Autonómico'}
+                Añadir Festivo {activeTab === 'nacional' ? 'Nacional' : 'Autonómico'}
               </DialogTitle>
               <DialogDescription>
-                {activeTab === 'estatal' 
-                  ? 'Añade un festivo a nivel nacional'
+                {activeTab === 'nacional' 
+                  ? 'Añade un festivo a nivel nacional (se propaga a todas las empresas)'
                   : 'Añade un festivo de comunidad autónoma'}
               </DialogDescription>
             </DialogHeader>
@@ -359,11 +421,11 @@ export function NationalHolidaysManager() {
               )}
               
               <div className="space-y-2">
-                <Label>Descripción</Label>
+                <Label>Nombre del festivo</Label>
                 <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ej: Día de la Comunidad"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej: Día de la Constitución"
                 />
               </div>
             </div>
@@ -372,7 +434,7 @@ export function NationalHolidaysManager() {
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
               <Button 
                 onClick={handleAddHoliday}
-                disabled={!selectedDate || addHolidayMutation.isPending || (activeTab === 'autonomico' && !selectedCommunity)}
+                disabled={!selectedDate || !name.trim() || addHolidayMutation.isPending || (activeTab === 'autonomico' && !selectedCommunity)}
               >
                 {addHolidayMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Añadir
@@ -390,13 +452,15 @@ function HolidayTable({
   isLoading, 
   onDelete, 
   deleteLoading,
-  emptyMessage 
+  emptyMessage,
+  showRegion = false
 }: { 
-  holidays: Holiday[];
+  holidays: NationalHoliday[];
   isLoading: boolean;
   onDelete: (id: string) => void;
   deleteLoading: boolean;
   emptyMessage: string;
+  showRegion?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -415,13 +479,20 @@ function HolidayTable({
     );
   }
 
+  const getCommunityName = (code: string | null) => {
+    if (!code) return "-";
+    const community = AUTONOMOUS_COMMUNITIES.find(c => c.code === code);
+    return community?.name || code;
+  };
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Fecha</TableHead>
           <TableHead>Tipo</TableHead>
-          <TableHead>Descripción</TableHead>
+          {showRegion && <TableHead>Comunidad</TableHead>}
+          <TableHead>Nombre</TableHead>
           <TableHead className="w-[80px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -432,12 +503,17 @@ function HolidayTable({
               {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
             </TableCell>
             <TableCell>
-              <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
-                {holiday.holiday_type === 'estatal' ? 'Nacional' : 'Autonómico'}
+              <Badge variant="secondary" className={holidayTypeColors[holiday.type]}>
+                {holiday.type === 'nacional' ? 'Nacional' : 'Autonómico'}
               </Badge>
             </TableCell>
+            {showRegion && (
+              <TableCell className="text-muted-foreground">
+                {getCommunityName(holiday.region)}
+              </TableCell>
+            )}
             <TableCell className="text-muted-foreground">
-              {holiday.description || "-"}
+              {holiday.name}
             </TableCell>
             <TableCell>
               <Button
