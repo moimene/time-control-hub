@@ -20,6 +20,7 @@ import { MarcoNormativoSection } from "@/components/settings/MarcoNormativoSecti
 import { DataRetentionSection } from "@/components/settings/DataRetentionSection";
 import { LegalDocumentsSection } from "@/components/settings/LegalDocumentsSection";
 import { CoverageRulesEditor } from "@/components/settings/CoverageRulesEditor";
+import { NationalHolidaysManager } from "@/components/admin/NationalHolidaysManager";
 import { AbsenceTypesCatalog } from "@/components/admin/AbsenceTypesCatalog";
 
 // Company override provider
@@ -307,7 +308,8 @@ export default function SuperAdminCompanyConfig() {
             </TabsContent>
 
             {/* Calendar Tab */}
-            <TabsContent value="calendar">
+            <TabsContent value="calendar" className="space-y-6">
+              <NationalHolidaysManager />
               <CalendarLaboralSection />
             </TabsContent>
 

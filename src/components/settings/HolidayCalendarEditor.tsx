@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { format, parseISO, getYear } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Trash2, Calendar as CalendarIcon, Download, Loader2 } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Loader2, Info } from "lucide-react";
 
 interface Holiday {
   id: string;
@@ -38,33 +39,8 @@ const holidayTypeColors: Record<string, string> = {
   empresa: "bg-green-100 text-green-800"
 };
 
-// Festivos nacionales de España (fijos)
-const SPAIN_NATIONAL_HOLIDAYS_2025 = [
-  { date: "2025-01-01", description: "Año Nuevo" },
-  { date: "2025-01-06", description: "Epifanía del Señor" },
-  { date: "2025-04-18", description: "Viernes Santo" },
-  { date: "2025-05-01", description: "Fiesta del Trabajo" },
-  { date: "2025-08-15", description: "Asunción de la Virgen" },
-  { date: "2025-10-12", description: "Fiesta Nacional de España" },
-  { date: "2025-11-01", description: "Todos los Santos" },
-  { date: "2025-12-06", description: "Día de la Constitución" },
-  { date: "2025-12-08", description: "Inmaculada Concepción" },
-  { date: "2025-12-25", description: "Navidad" },
-];
-
-const SPAIN_NATIONAL_HOLIDAYS_2026 = [
-  { date: "2026-01-01", description: "Año Nuevo" },
-  { date: "2026-01-06", description: "Epifanía del Señor" },
-  { date: "2026-04-03", description: "Viernes Santo" },
-  { date: "2026-05-01", description: "Fiesta del Trabajo" },
-  { date: "2026-08-15", description: "Asunción de la Virgen" },
-  { date: "2026-10-12", description: "Fiesta Nacional de España" },
-  { date: "2026-11-01", description: "Todos los Santos" },
-  { date: "2026-12-06", description: "Día de la Constitución" },
-  { date: "2026-12-07", description: "Día de la Constitución (traslado)" },
-  { date: "2026-12-08", description: "Inmaculada Concepción" },
-  { date: "2026-12-25", description: "Navidad" },
-];
+// Solo tipos que puede gestionar el admin de empresa
+const ADMIN_HOLIDAY_TYPES = ['local', 'empresa'] as const;
 
 export function HolidayCalendarEditor() {
   const { company } = useCompany();
@@ -75,7 +51,8 @@ export function HolidayCalendarEditor() {
   const [holidayType, setHolidayType] = useState<string>("local");
   const [description, setDescription] = useState("");
 
-  const { data: holidays, isLoading } = useQuery({
+  // Fetch ALL holidays (to show national/autonomic as read-only)
+  const { data: allHolidays, isLoading } = useQuery({
     queryKey: ['calendar-holidays', company?.id, selectedYear],
     queryFn: async () => {
       if (!company?.id) return [];
@@ -96,9 +73,18 @@ export function HolidayCalendarEditor() {
     enabled: !!company?.id
   });
 
+  // Split holidays by editability
+  const nationalHolidays = allHolidays?.filter(h => h.holiday_type === 'estatal' || h.holiday_type === 'autonomico') || [];
+  const localHolidays = allHolidays?.filter(h => h.holiday_type === 'local' || h.holiday_type === 'empresa') || [];
+
   const addHolidayMutation = useMutation({
     mutationFn: async (holiday: { date: string; type: string; description: string }) => {
       if (!company?.id) throw new Error("No company");
+      
+      // Admin can only add local/empresa types
+      if (!ADMIN_HOLIDAY_TYPES.includes(holiday.type as typeof ADMIN_HOLIDAY_TYPES[number])) {
+        throw new Error("No tiene permisos para añadir este tipo de festivo");
+      }
       
       const { error } = await supabase
         .from('calendar_holidays')
@@ -120,13 +106,19 @@ export function HolidayCalendarEditor() {
       if (error.message.includes('duplicate')) {
         toast.error("Ya existe un festivo en esa fecha");
       } else {
-        toast.error("Error al añadir festivo");
+        toast.error(error.message || "Error al añadir festivo");
       }
     }
   });
 
   const deleteHolidayMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Check if holiday is local/empresa before deleting
+      const holiday = localHolidays.find(h => h.id === id);
+      if (!holiday) {
+        throw new Error("Solo puede eliminar festivos locales o de empresa");
+      }
+      
       const { error } = await supabase
         .from('calendar_holidays')
         .delete()
@@ -138,39 +130,8 @@ export function HolidayCalendarEditor() {
       queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
       toast.success("Festivo eliminado");
     },
-    onError: () => {
-      toast.error("Error al eliminar festivo");
-    }
-  });
-
-  const importNationalHolidaysMutation = useMutation({
-    mutationFn: async (year: number) => {
-      if (!company?.id) throw new Error("No company");
-      
-      const holidays = year === 2025 ? SPAIN_NATIONAL_HOLIDAYS_2025 : SPAIN_NATIONAL_HOLIDAYS_2026;
-      
-      const toInsert = holidays.map(h => ({
-        company_id: company.id,
-        holiday_date: h.date,
-        holiday_type: 'estatal',
-        description: h.description
-      }));
-
-      const { error } = await supabase
-        .from('calendar_holidays')
-        .upsert(toInsert, { 
-          onConflict: 'company_id,holiday_date',
-          ignoreDuplicates: true 
-        });
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
-      toast.success("Festivos nacionales importados");
-    },
-    onError: () => {
-      toast.error("Error al importar festivos");
+    onError: (error: Error) => {
+      toast.error(error.message || "Error al eliminar festivo");
     }
   });
 
@@ -194,7 +155,7 @@ export function HolidayCalendarEditor() {
     });
   };
 
-  const holidayDates = holidays?.map(h => parseISO(h.holiday_date)) || [];
+  const holidayDates = allHolidays?.map(h => parseISO(h.holiday_date)) || [];
 
   if (!company) {
     return (
@@ -213,10 +174,10 @@ export function HolidayCalendarEditor() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Calendario de Festivos
+              Festivos Locales y de Empresa
             </CardTitle>
             <CardDescription>
-              Gestiona los días festivos que afectan al cómputo de ausencias
+              Gestiona los días festivos locales que afectan al cómputo de ausencias
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -230,83 +191,115 @@ export function HolidayCalendarEditor() {
                 <SelectItem value="2027">2027</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => importNationalHolidaysMutation.mutate(selectedYear)}
-              disabled={importNationalHolidaysMutation.isPending || ![2025, 2026].includes(selectedYear)}
-            >
-              {importNationalHolidaysMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Importar Nacionales
-            </Button>
             <Button size="sm" onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Añadir Festivo
+              Añadir Festivo Local
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : holidays && holidays.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {holidays.map((holiday) => (
-                <TableRow key={holiday.id}>
-                  <TableCell className="font-medium">
-                    {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
-                      {holidayTypeLabels[holiday.holiday_type]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {holiday.description || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteHolidayMutation.mutate(holiday.id)}
-                      disabled={deleteHolidayMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No hay festivos configurados para {selectedYear}</p>
-            <p className="text-sm">Importa los festivos nacionales o añade festivos manualmente</p>
+      <CardContent className="space-y-6">
+        {/* Show national/autonomic holidays as read-only info */}
+        {nationalHolidays.length > 0 && (
+          <div className="space-y-2">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Los festivos nacionales y autonómicos son gestionados por el super administrador.
+                A continuación se muestran los configurados para su empresa.
+              </AlertDescription>
+            </Alert>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descripción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nationalHolidays.map((holiday) => (
+                    <TableRow key={holiday.id} className="bg-muted/30">
+                      <TableCell className="font-medium">
+                        {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
+                          {holidayTypeLabels[holiday.holiday_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {holiday.description || "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
+
+        {/* Local/Empresa holidays - editable */}
+        <div>
+          <h4 className="text-sm font-medium mb-3">Festivos Locales y de Empresa</h4>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : localHolidays.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="w-[80px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {localHolidays.map((holiday) => (
+                  <TableRow key={holiday.id}>
+                    <TableCell className="font-medium">
+                      {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={holidayTypeColors[holiday.holiday_type]}>
+                        {holidayTypeLabels[holiday.holiday_type]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {holiday.description || "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteHolidayMutation.mutate(holiday.id)}
+                        disabled={deleteHolidayMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground border rounded-md">
+              <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No hay festivos locales configurados para {selectedYear}</p>
+              <p className="text-sm">Añade festivos locales o de empresa</p>
+            </div>
+          )}
+        </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Añadir Festivo</DialogTitle>
+              <DialogTitle>Añadir Festivo Local</DialogTitle>
               <DialogDescription>
-                Añade un nuevo día festivo al calendario
+                Añade un nuevo día festivo local o de empresa al calendario
               </DialogDescription>
             </DialogHeader>
             
@@ -331,10 +324,8 @@ export function HolidayCalendarEditor() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="estatal">Nacional</SelectItem>
-                    <SelectItem value="autonomico">Autonómico</SelectItem>
-                    <SelectItem value="local">Local</SelectItem>
-                    <SelectItem value="empresa">Empresa</SelectItem>
+                    <SelectItem value="local">Local (municipio)</SelectItem>
+                    <SelectItem value="empresa">Empresa (convenio)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
