@@ -15,18 +15,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Trash2, Calendar as CalendarIcon, Loader2, Info } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Loader2, Info, Download, Globe, MapPin } from "lucide-react";
+import { AUTONOMOUS_COMMUNITIES, getAutonomousCommunityName } from "@/lib/autonomousCommunities";
 
 interface Holiday {
   id: string;
   holiday_date: string;
-  holiday_type: 'estatal' | 'autonomico' | 'local' | 'empresa';
+  holiday_type: 'estatal' | 'autonomico' | 'local' | 'empresa' | 'nacional';
   description: string | null;
   center_id: string | null;
 }
 
+interface NationalHoliday {
+  id: string;
+  year: number;
+  holiday_date: string;
+  name: string;
+  type: 'nacional' | 'autonomico';
+  region: string | null;
+}
+
 const holidayTypeLabels: Record<string, string> = {
   estatal: "Nacional",
+  nacional: "Nacional",
   autonomico: "Autonómico",
   local: "Local",
   empresa: "Empresa"
@@ -34,12 +45,13 @@ const holidayTypeLabels: Record<string, string> = {
 
 const holidayTypeColors: Record<string, string> = {
   estatal: "bg-red-100 text-red-800",
+  nacional: "bg-red-100 text-red-800",
   autonomico: "bg-orange-100 text-orange-800",
   local: "bg-blue-100 text-blue-800",
   empresa: "bg-green-100 text-green-800"
 };
 
-// Solo tipos que puede gestionar el admin de empresa
+// Solo tipos que puede gestionar el admin de empresa manualmente
 const ADMIN_HOLIDAY_TYPES = ['local', 'empresa'] as const;
 
 export function HolidayCalendarEditor() {
@@ -47,6 +59,8 @@ export function HolidayCalendarEditor() {
   const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [holidayType, setHolidayType] = useState<string>("local");
   const [description, setDescription] = useState("");
@@ -73,8 +87,25 @@ export function HolidayCalendarEditor() {
     enabled: !!company?.id
   });
 
+  // Fetch available national holidays from global table
+  const { data: availableNationalHolidays } = useQuery({
+    queryKey: ['national-holidays', selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('national_holidays')
+        .select('*')
+        .eq('year', selectedYear)
+        .order('holiday_date');
+      
+      if (error) throw error;
+      return data as NationalHoliday[];
+    }
+  });
+
   // Split holidays by editability
-  const nationalHolidays = allHolidays?.filter(h => h.holiday_type === 'estatal' || h.holiday_type === 'autonomico') || [];
+  const nationalHolidays = allHolidays?.filter(h => 
+    h.holiday_type === 'estatal' || h.holiday_type === 'autonomico' || h.holiday_type === 'nacional'
+  ) || [];
   const localHolidays = allHolidays?.filter(h => h.holiday_type === 'local' || h.holiday_type === 'empresa') || [];
 
   const addHolidayMutation = useMutation({
@@ -135,6 +166,56 @@ export function HolidayCalendarEditor() {
     }
   });
 
+  // Import national/autonomic holidays from global table
+  const importHolidaysMutation = useMutation({
+    mutationFn: async ({ type, region }: { type: 'nacional' | 'autonomico'; region?: string }) => {
+      if (!company?.id) throw new Error("No company");
+      if (!availableNationalHolidays?.length) throw new Error("No hay festivos disponibles para importar");
+
+      // Filter holidays to import
+      let holidaysToImport = availableNationalHolidays.filter(h => h.type === type);
+      if (type === 'autonomico' && region) {
+        holidaysToImport = holidaysToImport.filter(h => h.region === region);
+      }
+
+      if (holidaysToImport.length === 0) {
+        throw new Error(`No hay festivos ${type === 'nacional' ? 'nacionales' : 'autonómicos'} disponibles`);
+      }
+
+      // Get existing holidays to avoid duplicates
+      const existingDates = new Set(allHolidays?.map(h => h.holiday_date) || []);
+
+      const toInsert = holidaysToImport
+        .filter(h => !existingDates.has(h.holiday_date))
+        .map(h => ({
+          company_id: company.id,
+          holiday_date: h.holiday_date,
+          holiday_type: h.type,
+          description: h.region ? `[${getAutonomousCommunityName(h.region)}] ${h.name}` : h.name,
+        }));
+
+      if (toInsert.length === 0) {
+        throw new Error("Todos los festivos ya están importados");
+      }
+
+      const { error } = await supabase
+        .from('calendar_holidays')
+        .insert(toInsert);
+
+      if (error) throw error;
+      return toInsert.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-holidays'] });
+      toast.success(`${count} festivos importados correctamente`);
+      setIsImportDialogOpen(false);
+      setSelectedCommunity("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Error al importar festivos");
+    }
+  });
+
   const resetForm = () => {
     setIsDialogOpen(false);
     setSelectedDate(undefined);
@@ -157,6 +238,11 @@ export function HolidayCalendarEditor() {
 
   const holidayDates = allHolidays?.map(h => parseISO(h.holiday_date)) || [];
 
+  // Count available holidays
+  const availableNational = availableNationalHolidays?.filter(h => h.type === 'nacional') || [];
+  const availableAutonomic = availableNationalHolidays?.filter(h => h.type === 'autonomico') || [];
+  const uniqueRegions = [...new Set(availableAutonomic.map(h => h.region).filter(Boolean))];
+
   if (!company) {
     return (
       <Card>
@@ -170,17 +256,17 @@ export function HolidayCalendarEditor() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              Festivos Locales y de Empresa
+              Calendario de Festivos
             </CardTitle>
             <CardDescription>
-              Gestiona los días festivos locales que afectan al cómputo de ausencias
+              Gestiona los días festivos que afectan al cómputo de ausencias
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
               <SelectTrigger className="w-[100px]">
                 <SelectValue />
@@ -191,24 +277,36 @@ export function HolidayCalendarEditor() {
                 <SelectItem value="2027">2027</SelectItem>
               </SelectContent>
             </Select>
+            <Button size="sm" variant="outline" onClick={() => setIsImportDialogOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Importar festivos
+            </Button>
             <Button size="sm" onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Añadir Festivo Local
+              Añadir Local
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Show national/autonomic holidays as read-only info */}
+        {/* Import info if no national holidays */}
+        {nationalHolidays.length === 0 && availableNational.length > 0 && (
+          <Alert>
+            <Download className="h-4 w-4" />
+            <AlertDescription>
+              Hay {availableNational.length} festivos nacionales disponibles para importar. 
+              Pulsa "Importar festivos" para añadirlos al calendario.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Show national/autonomic holidays */}
         {nationalHolidays.length > 0 && (
           <div className="space-y-2">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                Los festivos nacionales y autonómicos son gestionados por el super administrador.
-                A continuación se muestran los configurados para su empresa.
-              </AlertDescription>
-            </Alert>
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Festivos Nacionales y Autonómicos ({nationalHolidays.length})
+            </h4>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -348,6 +446,109 @@ export function HolidayCalendarEditor() {
               >
                 {addHolidayMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Añadir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Import Dialog */}
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Importar Festivos</DialogTitle>
+              <DialogDescription>
+                Importa festivos nacionales y autonómicos al calendario de la empresa
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              {/* National holidays */}
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-red-600" />
+                    <div>
+                      <p className="font-medium">Festivos Nacionales</p>
+                      <p className="text-xs text-muted-foreground">
+                        {availableNational.length} festivos disponibles para {selectedYear}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => importHolidaysMutation.mutate({ type: 'nacional' })}
+                    disabled={importHolidaysMutation.isPending || availableNational.length === 0}
+                  >
+                    {importHolidaysMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Importar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Autonomic holidays */}
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  <div>
+                    <p className="font-medium">Festivos Autonómicos</p>
+                    <p className="text-xs text-muted-foreground">
+                      Selecciona la comunidad autónoma
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Select value={selectedCommunity} onValueChange={setSelectedCommunity}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Seleccionar CC.AA." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUTONOMOUS_COMMUNITIES.map(c => {
+                        const count = availableAutonomic.filter(h => h.region === c.code).length;
+                        return (
+                          <SelectItem key={c.code} value={c.code} disabled={count === 0}>
+                            {c.name} {count > 0 && `(${count})`}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={() => importHolidaysMutation.mutate({ type: 'autonomico', region: selectedCommunity })}
+                    disabled={importHolidaysMutation.isPending || !selectedCommunity}
+                  >
+                    {importHolidaysMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-2" />
+                        Importar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {availableNational.length === 0 && availableAutonomic.length === 0 && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    No hay festivos configurados para {selectedYear}. 
+                    Contacta al administrador del sistema para que cargue los festivos nacionales y autonómicos.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                Cerrar
               </Button>
             </DialogFooter>
           </DialogContent>

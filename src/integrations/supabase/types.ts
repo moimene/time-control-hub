@@ -1735,6 +1735,7 @@ export type Database = {
       }
       employees: {
         Row: {
+          autonomous_community: string | null
           company_id: string | null
           created_at: string
           department: string | null
@@ -1745,6 +1746,7 @@ export type Database = {
           id: string
           is_department_responsible: boolean | null
           last_name: string
+          locality: string | null
           phone: string | null
           pin_failed_attempts: number | null
           pin_hash: string | null
@@ -1757,6 +1759,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          autonomous_community?: string | null
           company_id?: string | null
           created_at?: string
           department?: string | null
@@ -1767,6 +1770,7 @@ export type Database = {
           id?: string
           is_department_responsible?: boolean | null
           last_name: string
+          locality?: string | null
           phone?: string | null
           pin_failed_attempts?: number | null
           pin_hash?: string | null
@@ -1779,6 +1783,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          autonomous_community?: string | null
           company_id?: string | null
           created_at?: string
           department?: string | null
@@ -1789,6 +1794,7 @@ export type Database = {
           id?: string
           is_department_responsible?: boolean | null
           last_name?: string
+          locality?: string | null
           phone?: string | null
           pin_failed_attempts?: number | null
           pin_hash?: string | null
