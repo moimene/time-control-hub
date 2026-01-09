@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface BootstrapBody {
   company_id: string;
+  autonomous_community?: string; // For autonomic holidays
   skip_absence_types?: boolean;
   skip_holidays?: boolean;
   skip_terminal?: boolean;
@@ -35,6 +36,7 @@ serve(async (req) => {
     }
 
     const companyId = body.company_id;
+    const autonomousCommunity = body.autonomous_community;
     const results: Record<string, { success: boolean; count?: number; error?: string }> = {};
     const currentYear = new Date().getFullYear();
 
@@ -51,7 +53,6 @@ serve(async (req) => {
           console.error("[company-bootstrap] absence types error:", absenceError);
           results.absence_types = { success: false, error: absenceError.message };
         } else {
-          // Count inserted types
           const { count } = await supabase
             .from("absence_types")
             .select("*", { count: "exact", head: true })
@@ -105,22 +106,40 @@ serve(async (req) => {
           // Check existing holidays to avoid duplicates
           const { data: existing } = await supabase
             .from("calendar_holidays")
-            .select("holiday_date, type, region")
+            .select("holiday_date, holiday_type")
             .eq("company_id", companyId)
-            .in("type", ["nacional", "autonomico"]);
+            .in("holiday_type", ["nacional", "autonomico", "estatal"]);
 
           const existingSet = new Set(
-            (existing || []).map(h => `${h.holiday_date}-${h.type}-${h.region || ''}`)
+            (existing || []).map(h => `${h.holiday_date}-${h.holiday_type}`)
           );
 
+          // Filter holidays: national always, autonomic only if matching region
           const holidaysToInsert = nationalHolidays
-            .filter(h => !existingSet.has(`${h.holiday_date}-${h.type}-${h.region || ''}`))
+            .filter(h => {
+              // Skip if already exists
+              const holidayType = h.type === 'nacional' ? 'nacional' : 'autonomico';
+              if (existingSet.has(`${h.holiday_date}-${holidayType}`)) {
+                return false;
+              }
+              // Include all national holidays
+              if (h.type === 'nacional') {
+                return true;
+              }
+              // Include autonomic only if region matches
+              if (h.type === 'autonomico' && autonomousCommunity) {
+                return h.region === autonomousCommunity;
+              }
+              return false;
+            })
             .map(h => ({
               company_id: companyId,
               holiday_date: h.holiday_date,
-              name: h.name,
-              type: h.type,
-              region: h.region,
+              holiday_type: h.type === 'nacional' ? 'nacional' : 'autonomico',
+              description: h.region 
+                ? `[${h.region}] ${h.name}` 
+                : h.name,
+              is_working_day: false,
             }));
 
           if (holidaysToInsert.length > 0) {
