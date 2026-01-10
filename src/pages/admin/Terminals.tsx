@@ -259,6 +259,7 @@ export default function Terminals() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
+                            aria-label="Copiar código de emparejamiento"
                             onClick={() => copyCode(terminal.pairing_code!)}
                           >
                             <Copy className="h-3 w-3" />
@@ -275,6 +276,7 @@ export default function Terminals() {
                             variant="ghost"
                             size="icon"
                             title="Regenerar código"
+                            aria-label="Regenerar código"
                             onClick={() => regenerateCodeMutation.mutate(terminal.id)}
                           >
                             <RefreshCw className="h-4 w-4" />
@@ -283,6 +285,7 @@ export default function Terminals() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Eliminar terminal"
                           onClick={() => {
                             if (confirm('¿Eliminar este terminal?')) {
                               deleteMutation.mutate(terminal.id);

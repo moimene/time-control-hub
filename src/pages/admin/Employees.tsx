@@ -388,6 +388,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Credenciales de acceso"
+                          aria-label="Credenciales de acceso"
                           onClick={() => {
                             setCredentialsEmployee(employee);
                             setCredentialsDialogOpen(true);
@@ -399,6 +400,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Ver QR"
+                          aria-label="Ver código QR"
                           onClick={() => {
                             setQrEmployee(employee);
                             setQrDialogOpen(true);
@@ -410,6 +412,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Cambiar PIN"
+                          aria-label="Cambiar PIN"
                           onClick={() => {
                             setPinEmployee(employee);
                             setPinDialogOpen(true);
@@ -420,6 +423,7 @@ export default function Employees() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Editar empleado"
                           onClick={() => {
                             setEditingEmployee(employee);
                             setIsOpen(true);
@@ -430,6 +434,7 @@ export default function Employees() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Eliminar empleado"
                           onClick={() => {
                             if (confirm('¿Eliminar este empleado?')) {
                               deleteMutation.mutate(employee.id);
