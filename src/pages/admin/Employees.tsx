@@ -334,6 +334,7 @@ export default function Employees() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              aria-label="Buscar empleado"
               placeholder="Buscar empleado..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -388,6 +389,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Credenciales de acceso"
+                          aria-label="Gestionar credenciales de acceso"
                           onClick={() => {
                             setCredentialsEmployee(employee);
                             setCredentialsDialogOpen(true);
@@ -399,6 +401,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Ver QR"
+                          aria-label="Ver código QR"
                           onClick={() => {
                             setQrEmployee(employee);
                             setQrDialogOpen(true);
@@ -410,6 +413,7 @@ export default function Employees() {
                           variant="ghost" 
                           size="icon" 
                           title="Cambiar PIN"
+                          aria-label="Cambiar PIN"
                           onClick={() => {
                             setPinEmployee(employee);
                             setPinDialogOpen(true);
@@ -420,6 +424,8 @@ export default function Employees() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Editar empleado"
+                          aria-label="Editar empleado"
                           onClick={() => {
                             setEditingEmployee(employee);
                             setIsOpen(true);
@@ -430,6 +436,8 @@ export default function Employees() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Eliminar empleado"
+                          aria-label="Eliminar empleado"
                           onClick={() => {
                             if (confirm('¿Eliminar este empleado?')) {
                               deleteMutation.mutate(employee.id);
