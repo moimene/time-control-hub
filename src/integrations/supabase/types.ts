@@ -3608,6 +3608,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_above: { Args: { _user_id: string }; Returns: boolean }
+      is_asesor_of_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       seed_default_absence_types: {
         Args: { p_company_id: string }
