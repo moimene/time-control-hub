@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.company-bootstrap]
 verify_jwt = false
+
+[functions.seed-v1-fixtures]
+verify_jwt = false
