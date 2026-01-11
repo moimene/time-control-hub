@@ -554,13 +554,13 @@ const TestCredentials = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-              <div>
+            <div>
                 <h4 className="font-semibold mb-2">Ciclo 0-1: Auth + RLS</h4>
                 <ul className="space-y-1 text-muted-foreground">
                   <li>✅ Login/logout por rol</li>
                   <li>✅ Aislamiento multi-tenant</li>
                   <li>✅ Políticas RLS estrictas</li>
-                  <li>⏳ Rol asesor (pendiente)</li>
+                  <li>✅ Rol asesor implementado</li>
                 </ul>
               </div>
               <div>
@@ -577,8 +577,8 @@ const TestCredentials = () => {
                 <ul className="space-y-1 text-muted-foreground">
                   <li>✅ Correcciones workflow</li>
                   <li>✅ Detección inconsistencias</li>
-                  <li>⏳ Motor cumplimiento dinámico</li>
-                  <li>⏳ Precedencia reglas</li>
+                  <li>✅ Motor cumplimiento dinámico</li>
+                  <li>✅ Precedencia reglas (Ley→Convenio→Contrato)</li>
                 </ul>
               </div>
               <div>

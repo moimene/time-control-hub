@@ -60,14 +60,26 @@ async function getEffectiveRules(
   companyId: string,
   date: string
 ): Promise<{ rules: Record<string, number | boolean>; source: string; ruleSetId: string | null }> {
+  // Query rule_sets joined with rule_versions to get active published rules
   const { data: ruleSets, error } = await supabase
     .from('rule_sets')
-    .select('*')
+    .select(`
+      id,
+      name,
+      sector,
+      convenio,
+      status,
+      rule_versions (
+        id,
+        version,
+        effective_from,
+        effective_to,
+        payload_json,
+        published_at
+      )
+    `)
     .eq('company_id', companyId)
     .eq('status', 'active')
-    .lte('effective_from', date)
-    .or(`effective_to.is.null,effective_to.gte.${date}`)
-    .order('origin', { ascending: true })
 
   if (error) {
     console.error('Error fetching rule_sets:', error)
@@ -79,19 +91,31 @@ async function getEffectiveRules(
     return { rules: DEFAULT_RULES, source: 'default_fallback', ruleSetId: null }
   }
 
-  // Apply precedence: start with law, then overlay with higher priority origins
-  const precedenceOrder = ['law', 'collective_agreement', 'contract']
+  // Find the most specific applicable rule version
   let mergedRules: Record<string, number | boolean> = { ...DEFAULT_RULES }
   let source = 'default_fallback'
   let ruleSetId: string | null = null
 
-  for (const origin of precedenceOrder) {
-    const ruleSet = (ruleSets as RuleSet[]).find((r: RuleSet) => r.origin === origin)
-    if (ruleSet && ruleSet.rules) {
-      mergedRules = { ...mergedRules, ...ruleSet.rules }
+  for (const ruleSet of ruleSets) {
+    // Find applicable version for the target date
+    const versions = ruleSet.rule_versions || []
+    const applicableVersion = versions.find((v: any) => {
+      const from = new Date(v.effective_from)
+      const to = v.effective_to ? new Date(v.effective_to) : new Date('2099-12-31')
+      const target = new Date(date)
+      return target >= from && target <= to
+    })
+
+    if (applicableVersion && applicableVersion.payload_json) {
+      const payload = applicableVersion.payload_json
+      // Apply precedence based on origin in payload or rule type
+      const origin = payload.origin || (ruleSet.convenio ? 'collective_agreement' : 'law')
+      
+      // Merge rules (later rules override earlier ones)
+      mergedRules = { ...mergedRules, ...payload }
       source = `${origin}:${ruleSet.name}`
       ruleSetId = ruleSet.id
-      console.log(`Applied ${origin} rules from "${ruleSet.name}"`)
+      console.log(`Applied rules from "${ruleSet.name}" (${origin})`)
     }
   }
 
