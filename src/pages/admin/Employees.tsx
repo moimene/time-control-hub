@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog } from 'lucide-react';
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
@@ -79,6 +80,7 @@ const statusColors: Record<EmployeeStatus, string> = {
 
 export default function Employees() {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [isOpen, setIsOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithLocation | null>(null);
   const [qrEmployee, setQrEmployee] = useState<EmployeeWithLocation | null>(null);
@@ -148,12 +150,16 @@ export default function Employees() {
     },
   });
 
-  const filteredEmployees = employees?.filter(
-    (e) =>
-      e.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.last_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.employee_code.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() => {
+    if (!employees) return [];
+
+    return employees.filter(
+      (e) =>
+        e.first_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        e.last_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        e.employee_code.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [employees, debouncedSearch]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
