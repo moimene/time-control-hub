@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Trash2, Calendar as CalendarIcon, Download, Loader2, Globe, MapPin, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Calendar as CalendarIcon, Download, Loader2, Globe, MapPin, RefreshCw, Upload, Building } from "lucide-react";
+import { HolidayImportDialog } from "./HolidayImportDialog";
 
 interface NationalHoliday {
   id: string;
@@ -23,6 +24,11 @@ interface NationalHoliday {
   name: string;
   type: "nacional" | "autonomico";
   region: string | null;
+  level: string | null;
+  province: string | null;
+  municipality: string | null;
+  island: string | null;
+  source: string | null;
   created_at: string;
 }
 
@@ -77,20 +83,24 @@ const AUTONOMOUS_COMMUNITIES = [
 ];
 
 const holidayTypeColors: Record<string, string> = {
-  nacional: "bg-red-100 text-red-800",
-  autonomico: "bg-orange-100 text-orange-800",
+  nacional: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  autonomico: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  local: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
 };
 
 export function NationalHolidaysManager() {
   const queryClient = useQueryClient();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [activeTab, setActiveTab] = useState<"nacional" | "autonomico">("nacional");
+  const [activeTab, setActiveTab] = useState<"nacional" | "autonomico" | "local">("nacional");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [name, setName] = useState("");
   const [selectedCommunity, setSelectedCommunity] = useState("");
+  const [provinceFilter, setProvinceFilter] = useState<string>("all");
+  const [municipalityFilter, setMunicipalityFilter] = useState<string>("all");
 
-  // Fetch from global national_holidays table
+  // Fetch from global national_holidays table with new columns
   const { data: holidays, isLoading } = useQuery({
     queryKey: ['global-national-holidays', selectedYear],
     queryFn: async () => {
@@ -105,8 +115,21 @@ export function NationalHolidaysManager() {
     }
   });
 
+  // Get unique provinces and municipalities for filters
+  const provinces = [...new Set(holidays?.filter(h => h.province).map(h => h.province) || [])].sort();
+  const municipalities = [...new Set(
+    holidays?.filter(h => h.municipality && (provinceFilter === 'all' || h.province === provinceFilter))
+      .map(h => h.municipality) || []
+  )].sort();
+
   const addHolidayMutation = useMutation({
-    mutationFn: async (holiday: { date: string; type: "nacional" | "autonomico"; name: string; region?: string }) => {
+    mutationFn: async (holiday: { 
+      date: string; 
+      type: "nacional" | "autonomico"; 
+      name: string; 
+      region?: string;
+      level?: string;
+    }) => {
       const { error } = await supabase
         .from('national_holidays')
         .insert({
@@ -114,7 +137,8 @@ export function NationalHolidaysManager() {
           holiday_date: holiday.date,
           name: holiday.name,
           type: holiday.type,
-          region: holiday.region || null
+          region: holiday.region || null,
+          level: holiday.level || (holiday.type === 'nacional' ? 'national' : 'autonomous'),
         });
       
       if (error) throw error;
@@ -161,16 +185,15 @@ export function NationalHolidaysManager() {
         holiday_date: h.date,
         name: h.name,
         type: 'nacional' as const,
-        region: null
+        region: null,
+        level: 'national',
       }));
 
-      // Insert with upsert-like behavior
       for (const holiday of toInsert) {
         const { error } = await supabase
           .from('national_holidays')
           .insert(holiday);
         
-        // Ignore duplicate errors
         if (error && !error.message.includes('duplicate') && !error.message.includes('unique')) {
           throw error;
         }
@@ -188,14 +211,12 @@ export function NationalHolidaysManager() {
 
   const propagateToCompaniesMutation = useMutation({
     mutationFn: async () => {
-      // Get all companies
       const { data: companies, error: companiesError } = await supabase
         .from('company')
-        .select('id');
+        .select('id, settings');
       
       if (companiesError) throw companiesError;
       
-      // Get all national holidays for current year
       const { data: nationalHolidays, error: holidaysError } = await supabase
         .from('national_holidays')
         .select('*')
@@ -209,25 +230,46 @@ export function NationalHolidaysManager() {
       let propagatedCount = 0;
       
       for (const company of companies || []) {
-        // Check existing holidays for this company - calendar_holidays uses holiday_type
+        // Get company's autonomous community from settings
+        const companyRegion = (company.settings as Record<string, unknown>)?.autonomous_community as string | undefined;
+        
         const { data: existing } = await supabase
           .from('calendar_holidays')
           .select('holiday_date, holiday_type, description')
           .eq('company_id', company.id)
-          .in('holiday_type', ['nacional', 'autonomico']);
+          .in('holiday_type', ['nacional', 'autonomico', 'local']);
 
         const existingSet = new Set(
           (existing || []).map((h: { holiday_date: string; holiday_type: string }) => `${h.holiday_date}-${h.holiday_type}`)
         );
 
-        // Map national_holidays (type, name, region) to calendar_holidays (holiday_type, description)
-        const holidaysToInsert = nationalHolidays
+        // Filter holidays based on company region
+        const relevantHolidays = nationalHolidays.filter(h => {
+          // National holidays apply to all
+          if (h.level === 'national' || h.type === 'nacional') return true;
+          // Autonomous holidays apply if company is in that region
+          if ((h.level === 'autonomous' || h.type === 'autonomico') && h.region) {
+            return !companyRegion || h.region === companyRegion;
+          }
+          // Local holidays need more specific matching (municipality/province)
+          if (h.level === 'local') {
+            // For now, only propagate if explicit match - TODO: match by company location
+            return false;
+          }
+          return true;
+        });
+
+        const holidaysToInsert = relevantHolidays
           .filter(h => !existingSet.has(`${h.holiday_date}-${h.type}`))
           .map(h => ({
             company_id: company.id,
             holiday_date: h.holiday_date,
-            holiday_type: h.type, // nacional or autonomico
-            description: h.region ? `[${h.region}] ${h.name}` : h.name,
+            holiday_type: h.level === 'local' ? 'local' : h.type,
+            description: h.municipality 
+              ? `[${h.municipality}] ${h.name}`
+              : h.region 
+                ? `[${h.region}] ${h.name}` 
+                : h.name,
           }));
 
         if (holidaysToInsert.length > 0) {
@@ -271,14 +313,23 @@ export function NationalHolidaysManager() {
     
     addHolidayMutation.mutate({
       date: format(selectedDate, 'yyyy-MM-dd'),
-      type: activeTab,
+      type: activeTab === 'local' ? 'autonomico' : activeTab,
       name: name.trim(),
-      region: activeTab === 'autonomico' ? selectedCommunity : undefined
+      region: activeTab !== 'nacional' ? selectedCommunity : undefined,
+      level: activeTab,
     });
   };
 
-  const nationalHolidays = holidays?.filter(h => h.type === 'nacional') || [];
-  const autonomicHolidays = holidays?.filter(h => h.type === 'autonomico') || [];
+  // Filter holidays by tab and filters
+  const nationalHolidays = holidays?.filter(h => h.level === 'national' || (h.type === 'nacional' && !h.level)) || [];
+  const autonomicHolidays = holidays?.filter(h => h.level === 'autonomous' || (h.type === 'autonomico' && !h.municipality && !h.level)) || [];
+  const localHolidays = holidays?.filter(h => {
+    const isLocal = h.level === 'local' || h.municipality;
+    if (!isLocal) return false;
+    if (provinceFilter !== 'all' && h.province !== provinceFilter) return false;
+    if (municipalityFilter !== 'all' && h.municipality !== municipalityFilter) return false;
+    return true;
+  }) || [];
 
   return (
     <Card>
@@ -287,10 +338,10 @@ export function NationalHolidaysManager() {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Festivos Nacionales y Autonómicos (Global)
+              Festivos Nacionales, Autonómicos y Municipales
             </CardTitle>
             <CardDescription>
-              Gestión centralizada de festivos. Se propagan automáticamente a nuevas empresas.
+              Gestión centralizada de festivos. Se propagan automáticamente a nuevas empresas según su ubicación.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -308,7 +359,7 @@ export function NationalHolidaysManager() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "nacional" | "autonomico")}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "nacional" | "autonomico" | "local")}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <TabsList>
               <TabsTrigger value="nacional" className="gap-2">
@@ -319,9 +370,21 @@ export function NationalHolidaysManager() {
                 <MapPin className="h-4 w-4" />
                 Autonómicos ({autonomicHolidays.length})
               </TabsTrigger>
+              <TabsTrigger value="local" className="gap-2">
+                <Building className="h-4 w-4" />
+                Municipales ({localHolidays.length})
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex gap-2 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsImportDialogOpen(true)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar CSV
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -377,18 +440,68 @@ export function NationalHolidaysManager() {
               showRegion
             />
           </TabsContent>
+
+          <TabsContent value="local" className="mt-4 space-y-4">
+            {/* Filters for local holidays */}
+            <div className="flex gap-4 flex-wrap">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Provincia</Label>
+                <Select value={provinceFilter} onValueChange={(v) => {
+                  setProvinceFilter(v);
+                  setMunicipalityFilter('all');
+                }}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las provincias</SelectItem>
+                    {provinces.map(p => (
+                      <SelectItem key={p} value={p!}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Municipio</Label>
+                <Select value={municipalityFilter} onValueChange={setMunicipalityFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los municipios</SelectItem>
+                    {municipalities.map(m => (
+                      <SelectItem key={m} value={m!}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <HolidayTable 
+              holidays={localHolidays} 
+              isLoading={isLoading}
+              onDelete={(id) => deleteHolidayMutation.mutate(id)}
+              deleteLoading={deleteHolidayMutation.isPending}
+              emptyMessage={`No hay festivos municipales configurados para ${selectedYear}`}
+              showRegion
+              showLocation
+            />
+          </TabsContent>
         </Tabs>
 
+        {/* Add Holiday Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                Añadir Festivo {activeTab === 'nacional' ? 'Nacional' : 'Autonómico'}
+                Añadir Festivo {activeTab === 'nacional' ? 'Nacional' : activeTab === 'autonomico' ? 'Autonómico' : 'Municipal'}
               </DialogTitle>
               <DialogDescription>
                 {activeTab === 'nacional' 
                   ? 'Añade un festivo a nivel nacional (se propaga a todas las empresas)'
-                  : 'Añade un festivo de comunidad autónoma'}
+                  : activeTab === 'autonomico'
+                    ? 'Añade un festivo de comunidad autónoma'
+                    : 'Añade un festivo municipal/local'}
               </DialogDescription>
             </DialogHeader>
             
@@ -402,7 +515,7 @@ export function NationalHolidaysManager() {
                 />
               </div>
               
-              {activeTab === 'autonomico' && (
+              {activeTab !== 'nacional' && (
                 <div className="space-y-2">
                   <Label>Comunidad Autónoma</Label>
                   <Select value={selectedCommunity} onValueChange={setSelectedCommunity}>
@@ -434,7 +547,7 @@ export function NationalHolidaysManager() {
               <Button variant="outline" onClick={resetForm}>Cancelar</Button>
               <Button 
                 onClick={handleAddHoliday}
-                disabled={!selectedDate || !name.trim() || addHolidayMutation.isPending || (activeTab === 'autonomico' && !selectedCommunity)}
+                disabled={!selectedDate || !name.trim() || addHolidayMutation.isPending || (activeTab !== 'nacional' && !selectedCommunity)}
               >
                 {addHolidayMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Añadir
@@ -442,6 +555,12 @@ export function NationalHolidaysManager() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Import CSV Dialog */}
+        <HolidayImportDialog 
+          open={isImportDialogOpen} 
+          onOpenChange={setIsImportDialogOpen} 
+        />
       </CardContent>
     </Card>
   );
@@ -453,7 +572,8 @@ function HolidayTable({
   onDelete, 
   deleteLoading,
   emptyMessage,
-  showRegion = false
+  showRegion = false,
+  showLocation = false,
 }: { 
   holidays: NationalHoliday[];
   isLoading: boolean;
@@ -461,6 +581,7 @@ function HolidayTable({
   deleteLoading: boolean;
   emptyMessage: string;
   showRegion?: boolean;
+  showLocation?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -479,55 +600,61 @@ function HolidayTable({
     );
   }
 
-  const getCommunityName = (code: string | null) => {
-    if (!code) return "-";
-    const community = AUTONOMOUS_COMMUNITIES.find(c => c.code === code);
-    return community?.name || code;
-  };
-
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Fecha</TableHead>
-          <TableHead>Tipo</TableHead>
-          {showRegion && <TableHead>Comunidad</TableHead>}
-          <TableHead>Nombre</TableHead>
-          <TableHead className="w-[80px]"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {holidays.map((holiday) => (
-          <TableRow key={holiday.id}>
-            <TableCell className="font-medium">
-              {format(parseISO(holiday.holiday_date), "EEEE, d 'de' MMMM", { locale: es })}
-            </TableCell>
-            <TableCell>
-              <Badge variant="secondary" className={holidayTypeColors[holiday.type]}>
-                {holiday.type === 'nacional' ? 'Nacional' : 'Autonómico'}
-              </Badge>
-            </TableCell>
-            {showRegion && (
-              <TableCell className="text-muted-foreground">
-                {getCommunityName(holiday.region)}
-              </TableCell>
-            )}
-            <TableCell className="text-muted-foreground">
-              {holiday.name}
-            </TableCell>
-            <TableCell>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(holiday.id)}
-                disabled={deleteLoading}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </TableCell>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Nombre</TableHead>
+            {showRegion && <TableHead>Comunidad</TableHead>}
+            {showLocation && <TableHead>Ubicación</TableHead>}
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {holidays.map((holiday) => {
+            const levelType = holiday.level || holiday.type;
+            return (
+              <TableRow key={holiday.id}>
+                <TableCell className="font-medium">
+                  {format(parseISO(holiday.holiday_date), "d 'de' MMMM", { locale: es })}
+                </TableCell>
+                <TableCell>
+                  <Badge className={holidayTypeColors[levelType] || holidayTypeColors.nacional}>
+                    {levelType === 'national' ? 'Nacional' : 
+                     levelType === 'autonomous' ? 'Autonómico' : 
+                     levelType === 'local' ? 'Municipal' :
+                     levelType}
+                  </Badge>
+                </TableCell>
+                <TableCell>{holiday.name}</TableCell>
+                {showRegion && (
+                  <TableCell className="text-muted-foreground">
+                    {AUTONOMOUS_COMMUNITIES.find(c => c.code === holiday.region)?.name || holiday.region || '-'}
+                  </TableCell>
+                )}
+                {showLocation && (
+                  <TableCell className="text-muted-foreground text-sm">
+                    {[holiday.municipality, holiday.province].filter(Boolean).join(', ') || '-'}
+                  </TableCell>
+                )}
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(holiday.id)}
+                    disabled={deleteLoading}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
