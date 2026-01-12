@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,11 +30,11 @@ interface KioskPinPadProps {
   employeeCodePrefix?: string;
 }
 
-export function KioskPinPad({ 
-  onSubmit, 
-  onCancel, 
+export function KioskPinPad({
+  onSubmit,
+  onCancel,
   onValidateCode,
-  isLoading, 
+  isLoading,
   isValidating = false,
   employeeName,
   nextEventType,
@@ -79,7 +79,7 @@ export function KioskPinPad({
   const handleNext = async () => {
     if (step === 'code' && employeeNumber.length >= 1) {
       const fullEmployeeCode = employeeCodePrefix + employeeNumber.padStart(3, '0');
-      
+
       if (onValidateCode) {
         const result = await onValidateCode(fullEmployeeCode);
         if (result.valid) {
@@ -126,6 +126,35 @@ export function KioskPinPad({
   const currentValue = step === 'code' ? employeeNumber : pin;
   const minLength = step === 'code' ? 1 : 4;
 
+  // Keyboard support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLoading || isValidating) return;
+
+      // Numbers
+      if (/^[0-9]$/.test(e.key)) {
+        handleNumberClick(e.key);
+      }
+      // Enter
+      else if (e.key === 'Enter') {
+        if (currentValue.length >= minLength) {
+          handleNext();
+        }
+      }
+      // Backspace
+      else if (e.key === 'Backspace') {
+        handleDelete();
+      }
+      // Escape
+      else if (e.key === 'Escape') {
+        handleBack();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoading, isValidating, currentValue, minLength, step, employeeNumber, pin, isOverriding, overrideReason, customReason]);
+
   // Render digit boxes for employee code
   const renderCodeDigits = () => {
     const digits = employeeNumber.padEnd(3, '').split('');
@@ -137,8 +166,8 @@ export function KioskPinPad({
             key={index}
             className={cn(
               "w-14 h-16 flex items-center justify-center rounded-lg border-2 text-3xl font-mono font-bold transition-all",
-              digits[index] 
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" 
+              digits[index]
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                 : "border-dashed border-muted-foreground/30 text-muted-foreground/50"
             )}
           >
@@ -151,17 +180,17 @@ export function KioskPinPad({
 
   // Theme colors based on step
   const isCodeStep = step === 'code';
-  const bgGradient = isCodeStep 
-    ? 'from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20' 
+  const bgGradient = isCodeStep
+    ? 'from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20'
     : 'from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20';
-  const iconBg = isCodeStep 
-    ? 'bg-blue-100 dark:bg-blue-900/50' 
+  const iconBg = isCodeStep
+    ? 'bg-blue-100 dark:bg-blue-900/50'
     : 'bg-green-100 dark:bg-green-900/50';
-  const iconColor = isCodeStep 
-    ? 'text-blue-600 dark:text-blue-400' 
+  const iconColor = isCodeStep
+    ? 'text-blue-600 dark:text-blue-400'
     : 'text-green-600 dark:text-green-400';
-  const buttonAccent = isCodeStep 
-    ? 'hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-900/30' 
+  const buttonAccent = isCodeStep
+    ? 'hover:border-blue-300 hover:bg-blue-50 dark:hover:border-blue-700 dark:hover:bg-blue-900/30'
     : 'hover:border-green-300 hover:bg-green-50 dark:hover:border-green-700 dark:hover:bg-green-900/30';
   const submitButtonBg = isCodeStep
     ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700'
@@ -200,15 +229,15 @@ export function KioskPinPad({
             )}
           </CardTitle>
           <p className="text-muted-foreground text-sm mt-2">
-            {isCodeStep 
-              ? 'Introduce los 3 dígitos de tu código (ej: 001)' 
+            {isCodeStep
+              ? 'Introduce los 3 dígitos de tu código (ej: 001)'
               : 'Introduce tu PIN de 4 dígitos'}
           </p>
           {!isCodeStep && currentEventType && (
             <div className="mt-4 flex flex-col items-center gap-3">
               <div className={cn(
                 "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
-                currentEventType === 'entry' 
+                currentEventType === 'entry'
                   ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
                   : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
               )}>
@@ -224,7 +253,7 @@ export function KioskPinPad({
                   </>
                 )}
               </div>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -257,7 +286,7 @@ export function KioskPinPad({
                       ))}
                     </SelectContent>
                   </Select>
-                  
+
                   {overrideReason === 'other' && (
                     <Input
                       type="text"
@@ -338,8 +367,8 @@ export function KioskPinPad({
             onClick={handleNext}
             disabled={isLoading || isValidating || currentValue.length < minLength || (isOverriding && (!overrideReason || (overrideReason === 'other' && !customReason.trim())))}
           >
-            {isLoading || isValidating 
-              ? 'Procesando...' 
+            {isLoading || isValidating
+              ? 'Procesando...'
               : isCodeStep ? 'Siguiente' : (isOverriding ? `Fichar ${currentEventType === 'entry' ? 'ENTRADA' : 'SALIDA'}` : 'Fichar')}
           </Button>
         </CardContent>

@@ -47,17 +47,17 @@ export default function KioskHome() {
   const [viewingMessageId, setViewingMessageId] = useState<string | null>(null);
   const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   const { isOnline } = useConnectionStatus();
   const { queueSize, isSyncing, lastSync, addToQueue, syncQueue } = useOfflineQueue();
-  const { 
-    session, 
-    isLoading: sessionLoading, 
+  const {
+    session,
+    isLoading: sessionLoading,
     isValidating: sessionValidating,
     error: sessionError,
-    login, 
-    logout, 
-    setTerminal 
+    login,
+    logout,
+    setTerminal
   } = useKioskSession();
   const { isFullscreen, isSupported: fullscreenSupported, enterFullscreen, exitFullscreen } = useFullscreen();
 
@@ -81,17 +81,17 @@ export default function KioskHome() {
       setMode('loading');
       return;
     }
-    
+
     if (!session) {
       setMode('login');
       return;
     }
-    
+
     if (!session.terminalId) {
       setMode('select');
       return;
     }
-    
+
     if (mode === 'loading' || mode === 'login' || mode === 'select') {
       setMode('home');
     }
@@ -167,15 +167,15 @@ export default function KioskHome() {
     } finally {
       setIsValidating(false);
     }
-  }, [isOnline, toast]);
+  }, [isOnline, toast, session]);
 
   const handlePinSubmit = useCallback(async (
-    employeeCode: string, 
-    pin: string, 
+    employeeCode: string,
+    pin: string,
     overrideData?: { eventType: 'entry' | 'exit'; reason: string }
   ) => {
     setIsLoading(true);
-    
+
     if (!isOnline) {
       try {
         const eventType = overrideData?.eventType || nextEventType;
@@ -202,7 +202,7 @@ export default function KioskHome() {
         });
         setOverrideInfo(overrideData || null);
         setMode('success');
-        
+
         toast({
           title: 'Fichaje guardado localmente',
           description: 'Se sincronizará automáticamente cuando vuelva la conexión',
@@ -279,7 +279,7 @@ export default function KioskHome() {
         });
         setOverrideInfo(overrideData || null);
         setMode('success');
-        
+
         toast({
           title: 'Conexión perdida',
           description: 'Fichaje guardado localmente, se sincronizará automáticamente',
@@ -294,12 +294,12 @@ export default function KioskHome() {
     } finally {
       setIsLoading(false);
     }
-  }, [isOnline, nextEventType, employeeName, addToQueue, toast]);
+  }, [isOnline, nextEventType, employeeName, addToQueue, toast, session]);
 
   const handleQrScan = useCallback(async (qrToken: string) => {
     setIsLoading(true);
     const [empCode] = qrToken.split(':');
-    
+
     if (!isOnline) {
       try {
         const eventType = nextEventType;
@@ -325,7 +325,7 @@ export default function KioskHome() {
         });
         setOverrideInfo(null);
         setMode('success');
-        
+
         toast({
           title: 'Fichaje guardado localmente',
           description: 'Se sincronizará automáticamente cuando vuelva la conexión',
@@ -395,7 +395,7 @@ export default function KioskHome() {
         });
         setOverrideInfo(null);
         setMode('success');
-        
+
         toast({
           title: 'Conexión perdida',
           description: 'Fichaje guardado localmente, se sincronizará automáticamente',
@@ -411,7 +411,7 @@ export default function KioskHome() {
     } finally {
       setIsLoading(false);
     }
-  }, [isOnline, nextEventType, addToQueue, toast]);
+  }, [isOnline, nextEventType, addToQueue, toast, session]);
 
   const handleSuccessClose = useCallback(() => {
     setClockResult(null);
@@ -462,7 +462,7 @@ export default function KioskHome() {
   // Login screen
   if (mode === 'login') {
     return (
-      <KioskLogin 
+      <KioskLogin
         onLogin={login}
         isLoading={sessionLoading}
         error={sessionError}
@@ -473,7 +473,7 @@ export default function KioskHome() {
   // Terminal selector (filtered by company)
   if (mode === 'select' && session) {
     return (
-      <KioskTerminalSelector 
+      <KioskTerminalSelector
         onSelect={handleTerminalSelect}
         companyId={session.companyId}
         companyName={session.companyName}
@@ -485,9 +485,9 @@ export default function KioskHome() {
   if (mode === 'pin' && session) {
     return (
       <>
-        <OfflineIndicator 
-          isOnline={isOnline} 
-          queueSize={queueSize} 
+        <OfflineIndicator
+          isOnline={isOnline}
+          queueSize={queueSize}
           isSyncing={isSyncing}
           lastSync={lastSync}
         />
@@ -508,9 +508,9 @@ export default function KioskHome() {
   if (mode === 'qr') {
     return (
       <>
-        <OfflineIndicator 
-          isOnline={isOnline} 
-          queueSize={queueSize} 
+        <OfflineIndicator
+          isOnline={isOnline}
+          queueSize={queueSize}
           isSyncing={isSyncing}
           lastSync={lastSync}
         />
@@ -526,9 +526,9 @@ export default function KioskHome() {
   if (mode === 'success' && clockResult) {
     return (
       <>
-        <OfflineIndicator 
-          isOnline={isOnline} 
-          queueSize={queueSize} 
+        <OfflineIndicator
+          isOnline={isOnline}
+          queueSize={queueSize}
           isSyncing={isSyncing}
           lastSync={lastSync}
         />
@@ -545,9 +545,9 @@ export default function KioskHome() {
   // Home screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
-      <OfflineIndicator 
-        isOnline={isOnline} 
-        queueSize={queueSize} 
+      <OfflineIndicator
+        isOnline={isOnline}
+        queueSize={queueSize}
         isSyncing={isSyncing}
         lastSync={lastSync}
       />
@@ -570,7 +570,7 @@ export default function KioskHome() {
           onClose={() => setViewingMessageId(null)}
         />
       )}
-      
+
       {/* Clock Display */}
       <div className="text-center mb-12">
         {session?.companyName && (
@@ -596,7 +596,7 @@ export default function KioskHome() {
 
       {/* Action Buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-        <Card 
+        <Card
           className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg"
           onClick={() => setMode('qr')}
         >
@@ -611,7 +611,7 @@ export default function KioskHome() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg"
           onClick={() => setMode('pin')}
         >
