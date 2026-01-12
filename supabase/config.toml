@@ -1,5 +1,8 @@
 project_id = "rsbwqgzespcltmufkhdx"
 
+[functions.import-holidays-csv]
+verify_jwt = false
+
 [functions.kiosk-clock]
 verify_jwt = false
 

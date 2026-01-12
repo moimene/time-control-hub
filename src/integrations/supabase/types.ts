@@ -2914,8 +2914,13 @@ export type Database = {
           created_at: string | null
           holiday_date: string
           id: string
+          island: string | null
+          level: string | null
+          municipality: string | null
           name: string
+          province: string | null
           region: string | null
+          source: string | null
           type: string
           year: number
         }
@@ -2923,8 +2928,13 @@ export type Database = {
           created_at?: string | null
           holiday_date: string
           id?: string
+          island?: string | null
+          level?: string | null
+          municipality?: string | null
           name: string
+          province?: string | null
           region?: string | null
+          source?: string | null
           type: string
           year: number
         }
@@ -2932,8 +2942,13 @@ export type Database = {
           created_at?: string | null
           holiday_date?: string
           id?: string
+          island?: string | null
+          level?: string | null
+          municipality?: string | null
           name?: string
+          province?: string | null
           region?: string | null
+          source?: string | null
           type?: string
           year?: number
         }
