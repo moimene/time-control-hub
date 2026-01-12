@@ -248,7 +248,7 @@ export default function AsesorDashboard() {
                                     <Button
                                         variant="outline"
                                         className="h-auto py-4 flex flex-col gap-2"
-                                        onClick={() => navigate(`/asesor/registros?company=${selectedCompanyId}`)}
+                                        onClick={() => navigate(`/asesor/time-records?company=${selectedCompanyId}`)}
                                     >
                                         <Clock className="h-5 w-5" />
                                         <span>Ver Registros</span>
@@ -256,7 +256,7 @@ export default function AsesorDashboard() {
                                     <Button
                                         variant="outline"
                                         className="h-auto py-4 flex flex-col gap-2"
-                                        onClick={() => navigate(`/asesor/informes?company=${selectedCompanyId}`)}
+                                        onClick={() => navigate(`/asesor/reports?company=${selectedCompanyId}`)}
                                     >
                                         <FileText className="h-5 w-5" />
                                         <span>Ver Informes</span>
@@ -264,7 +264,7 @@ export default function AsesorDashboard() {
                                     <Button
                                         variant="outline"
                                         className="h-auto py-4 flex flex-col gap-2"
-                                        onClick={() => navigate(`/asesor/empleados?company=${selectedCompanyId}`)}
+                                        onClick={() => navigate(`/asesor/employees?company=${selectedCompanyId}`)}
                                     >
                                         <Users className="h-5 w-5" />
                                         <span>Ver Empleados</span>
@@ -272,7 +272,7 @@ export default function AsesorDashboard() {
                                     <Button
                                         variant="outline"
                                         className="h-auto py-4 flex flex-col gap-2"
-                                        onClick={() => navigate(`/asesor/correcciones?company=${selectedCompanyId}`)}
+                                        onClick={() => navigate(`/asesor/corrections?company=${selectedCompanyId}`)}
                                     >
                                         <Eye className="h-5 w-5" />
                                         <span>Ver Correcciones</span>

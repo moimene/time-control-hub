@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
+
     const body = await req.json();
     const { action } = body;
 
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const isAdmin = roles?.some(r => r.role === 'admin' || r.role === 'super_admin');
+      const isAdmin = roles?.some(r => r.role === 'admin' || r.role === 'super_admin' || r.role === 'asesor');
       if (!isAdmin) {
         console.log(`[kiosk-auth] User ${userId} is not an admin`);
         return new Response(
@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
       // Update session with terminal
       await adminClient
         .from('kiosk_sessions')
-        .update({ 
+        .update({
           terminal_id: terminalId,
           last_seen_at: new Date().toISOString()
         })

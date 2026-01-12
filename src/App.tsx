@@ -267,7 +267,7 @@ function AppRoutes() {
           </AsesorViewWrapper>
         </ProtectedRoute>
       } />
-      <Route path="/asesor/correcciones" element={
+      <Route path="/asesor/corrections" element={
         <ProtectedRoute requiredRoles={['asesor']}>
           <AsesorViewWrapper>
             <Corrections />
