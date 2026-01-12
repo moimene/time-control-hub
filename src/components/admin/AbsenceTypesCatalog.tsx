@@ -88,7 +88,7 @@ const approvalFlowLabels: Record<string, string> = {
 };
 
 export function AbsenceTypesCatalog() {
-  const { company } = useCompany();
+  const { company, isLoading: companyLoading } = useCompany();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -189,6 +189,25 @@ export function AbsenceTypesCatalog() {
     }
   });
 
+  // Seed default types mutation
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) throw new Error('No hay empresa seleccionada');
+      const { error } = await supabase.rpc('seed_default_absence_types', {
+        p_company_id: company.id
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Catálogo inicializado', description: '22 tipos de ausencia creados según normativa española' });
+      queryClient.invalidateQueries({ queryKey: ['absence-types-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['absence-stats'] });
+    },
+    onError: (error: Error) => {
+      toast({ variant: 'destructive', title: 'Error al inicializar', description: error.message });
+    }
+  });
+
   const openCreateDialog = () => {
     setEditingType(null);
     setFormData({
@@ -241,6 +260,33 @@ export function AbsenceTypesCatalog() {
     return acc;
   }, {} as Record<string, AbsenceType[]>) || {};
 
+  // Show loading state while company is loading
+  if (companyLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state if no company
+  if (!company?.id) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            No se ha podido cargar la empresa. Por favor, recarga la página.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -261,13 +307,27 @@ export function AbsenceTypesCatalog() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : Object.keys(groupedTypes).length === 0 ? (
-          <div className="text-center py-8">
-            <Settings2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">No hay tipos de ausencia configurados</p>
-            <Button variant="outline" onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Crear primer tipo
-            </Button>
+          <div className="text-center py-8 space-y-4">
+            <Settings2 className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <p className="font-medium">No hay tipos de ausencia configurados</p>
+              <p className="text-sm text-muted-foreground">
+                Inicializa el catálogo con los 22 tipos estándar o crea tipos personalizados
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <Button 
+                onClick={() => seedMutation.mutate()}
+                disabled={seedMutation.isPending}
+              >
+                {seedMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Inicializar Catálogo Estándar
+              </Button>
+              <Button variant="outline" onClick={openCreateDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Crear tipo personalizado
+              </Button>
+            </div>
           </div>
         ) : (
           <Accordion type="multiple" defaultValue={Object.keys(groupedTypes)} className="space-y-2">

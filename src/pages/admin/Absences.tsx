@@ -1,24 +1,16 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useCompany } from '@/hooks/useCompany';
-import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { 
   Calendar, 
   ClipboardList, 
   Settings2, 
-  Loader2,
-  CheckCircle2,
-  XCircle,
   Clock,
   Users,
-  AlertTriangle,
   FileText
 } from 'lucide-react';
 import { AbsenceApprovalPanel } from '@/components/admin/AbsenceApprovalPanel';
@@ -27,8 +19,6 @@ import { TeamCalendarView } from '@/components/admin/TeamCalendarView';
 
 export default function AdminAbsences() {
   const { company } = useCompany();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Stats query
   const { data: stats } = useQuery({
@@ -65,24 +55,6 @@ export default function AdminAbsences() {
     enabled: !!company?.id,
   });
 
-  // Seed default types mutation
-  const seedTypesMutation = useMutation({
-    mutationFn: async () => {
-      if (!company?.id) throw new Error('No company');
-      const { error } = await supabase.rpc('seed_default_absence_types', {
-        p_company_id: company.id
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: 'Catálogo inicializado con tipos por defecto' });
-      queryClient.invalidateQueries({ queryKey: ['absence-types'] });
-      queryClient.invalidateQueries({ queryKey: ['absence-stats'] });
-    },
-    onError: (error: Error) => {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    }
-  });
 
   return (
     <AppLayout>
@@ -128,22 +100,12 @@ export default function AdminAbsences() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Acciones</CardTitle>
-              <Settings2 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Cobertura</CardTitle>
+              <Users className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => seedTypesMutation.mutate()}
-                disabled={seedTypesMutation.isPending || (stats?.activeTypes || 0) > 0}
-              >
-                {seedTypesMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : null}
-                Inicializar Catálogo
-              </Button>
+              <div className="text-2xl font-bold">100%</div>
+              <p className="text-xs text-muted-foreground">Equipo disponible</p>
             </CardContent>
           </Card>
         </div>
