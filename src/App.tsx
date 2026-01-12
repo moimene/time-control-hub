@@ -55,6 +55,7 @@ import SuperAdminQTSPMonitor from "./pages/super-admin/QTSPMonitor";
 
 // Asesor Pages
 import AsesorDashboard from "./pages/asesor/Dashboard";
+import { AsesorViewWrapper } from "./components/asesor/AsesorViewWrapper";
 
 const queryClient = new QueryClient();
 
@@ -243,6 +244,34 @@ function AppRoutes() {
       <Route path="/asesor" element={
         <ProtectedRoute requiredRoles={['asesor']}>
           <AsesorDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/asesor/employees" element={
+        <ProtectedRoute requiredRoles={['asesor']}>
+          <AsesorViewWrapper>
+            <Employees />
+          </AsesorViewWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/asesor/time-records" element={
+        <ProtectedRoute requiredRoles={['asesor']}>
+          <AsesorViewWrapper>
+            <TimeRecords />
+          </AsesorViewWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/asesor/reports" element={
+        <ProtectedRoute requiredRoles={['asesor']}>
+          <AsesorViewWrapper>
+            <Reports />
+          </AsesorViewWrapper>
+        </ProtectedRoute>
+      } />
+      <Route path="/asesor/correcciones" element={
+        <ProtectedRoute requiredRoles={['asesor']}>
+          <AsesorViewWrapper>
+            <Corrections />
+          </AsesorViewWrapper>
         </ProtectedRoute>
       } />
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
@@ -78,6 +79,7 @@ const statusColors: Record<EmployeeStatus, string> = {
 };
 
 export default function Employees() {
+  const { isAdmin, isAsesor } = useAuth();
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeWithLocation | null>(null);
@@ -191,142 +193,144 @@ export default function Employees() {
             <h1 className="text-3xl font-bold tracking-tight">Empleados</h1>
             <p className="text-muted-foreground">Gestiona los empleados de la empresa</p>
           </div>
-          <Dialog open={isOpen} onOpenChange={(open) => {
-            setIsOpen(open);
-            if (!open) setEditingEmployee(null);
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo Empleado
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingEmployee
-                    ? 'Modifica los datos del empleado'
-                    : 'Añade un nuevo empleado al sistema'}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="employee_code">Código *</Label>
-                    <Input
-                      id="employee_code"
-                      name="employee_code"
-                      defaultValue={editingEmployee?.employee_code}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Estado</Label>
-                    <Select name="status" defaultValue={editingEmployee?.status || 'active'}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(statusLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name">Nombre *</Label>
-                    <Input
-                      id="first_name"
-                      name="first_name"
-                      defaultValue={editingEmployee?.first_name}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name">Apellidos *</Label>
-                    <Input
-                      id="last_name"
-                      name="last_name"
-                      defaultValue={editingEmployee?.last_name}
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    defaultValue={editingEmployee?.email || ''}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    defaultValue={editingEmployee?.phone || ''}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Departamento</Label>
-                    <Input
-                      id="department"
-                      name="department"
-                      defaultValue={editingEmployee?.department || ''}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="position">Puesto</Label>
-                    <Input
-                      id="position"
-                      name="position"
-                      defaultValue={editingEmployee?.position || ''}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="autonomous_community">Comunidad Autónoma</Label>
-                    <Select name="autonomous_community" defaultValue={editingEmployee?.autonomous_community || '_none_'}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar CC.AA." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="_none_">Sin especificar</SelectItem>
-                        {AUTONOMOUS_COMMUNITIES.map((c) => (
-                          <SelectItem key={c.code} value={c.code}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="locality">Localidad</Label>
-                    <Input
-                      id="locality"
-                      name="locality"
-                      placeholder="Municipio"
-                      defaultValue={editingEmployee?.locality || ''}
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full">
-                  {editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
+          {!isAsesor && (
+            <Dialog open={isOpen} onOpenChange={(open) => {
+              setIsOpen(open);
+              if (!open) setEditingEmployee(null);
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nuevo Empleado
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingEmployee
+                      ? 'Modifica los datos del empleado'
+                      : 'Añade un nuevo empleado al sistema'}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="employee_code">Código *</Label>
+                      <Input
+                        id="employee_code"
+                        name="employee_code"
+                        defaultValue={editingEmployee?.employee_code}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Estado</Label>
+                      <Select name="status" defaultValue={editingEmployee?.status || 'active'}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(statusLabels).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="first_name">Nombre *</Label>
+                      <Input
+                        id="first_name"
+                        name="first_name"
+                        defaultValue={editingEmployee?.first_name}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="last_name">Apellidos *</Label>
+                      <Input
+                        id="last_name"
+                        name="last_name"
+                        defaultValue={editingEmployee?.last_name}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      defaultValue={editingEmployee?.email || ''}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      defaultValue={editingEmployee?.phone || ''}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Departamento</Label>
+                      <Input
+                        id="department"
+                        name="department"
+                        defaultValue={editingEmployee?.department || ''}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="position">Puesto</Label>
+                      <Input
+                        id="position"
+                        name="position"
+                        defaultValue={editingEmployee?.position || ''}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="autonomous_community">Comunidad Autónoma</Label>
+                      <Select name="autonomous_community" defaultValue={editingEmployee?.autonomous_community || '_none_'}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar CC.AA." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none_">Sin especificar</SelectItem>
+                          {AUTONOMOUS_COMMUNITIES.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="locality">Localidad</Label>
+                      <Input
+                        id="locality"
+                        name="locality"
+                        placeholder="Municipio"
+                        defaultValue={editingEmployee?.locality || ''}
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full">
+                    {editingEmployee ? 'Guardar cambios' : 'Crear empleado'}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Search */}
@@ -352,7 +356,7 @@ export default function Employees() {
                 <TableHead>Email</TableHead>
                 <TableHead>Departamento</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="text-right">{!isAsesor && 'Acciones'}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -383,62 +387,64 @@ export default function Employees() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Credenciales de acceso"
-                          onClick={() => {
-                            setCredentialsEmployee(employee);
-                            setCredentialsDialogOpen(true);
-                          }}
-                        >
-                          <UserCog className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Ver QR"
-                          onClick={() => {
-                            setQrEmployee(employee);
-                            setQrDialogOpen(true);
-                          }}
-                        >
-                          <QrCode className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Cambiar PIN"
-                          onClick={() => {
-                            setPinEmployee(employee);
-                            setPinDialogOpen(true);
-                          }}
-                        >
-                          <KeyRound className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingEmployee(employee);
-                            setIsOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (confirm('¿Eliminar este empleado?')) {
-                              deleteMutation.mutate(employee.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {!isAsesor && (
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Credenciales de acceso"
+                            onClick={() => {
+                              setCredentialsEmployee(employee);
+                              setCredentialsDialogOpen(true);
+                            }}
+                          >
+                            <UserCog className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Ver QR"
+                            onClick={() => {
+                              setQrEmployee(employee);
+                              setQrDialogOpen(true);
+                            }}
+                          >
+                            <QrCode className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Cambiar PIN"
+                            onClick={() => {
+                              setPinEmployee(employee);
+                              setPinDialogOpen(true);
+                            }}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingEmployee(employee);
+                              setIsOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (confirm('¿Eliminar este empleado?')) {
+                                deleteMutation.mutate(employee.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

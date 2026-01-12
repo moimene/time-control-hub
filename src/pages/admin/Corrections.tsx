@@ -57,7 +57,7 @@ export default function Corrections() {
   const [reviewNotes, setReviewNotes] = useState('');
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAsesor } = useAuth();
   const { company } = useCompany();
 
   const { data: requests, isLoading } = useQuery({
@@ -251,27 +251,35 @@ export default function Corrections() {
                 </div>
 
                 {selectedRequest.status === 'pending' ? (
-                  <>
-                    <Textarea
-                      placeholder="Notas de revisión (opcional)"
-                      value={reviewNotes}
-                      onChange={(e) => setReviewNotes(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1"
-                        variant="outline"
-                        onClick={() => handleReview('rejected')}
-                      >
-                        <X className="mr-2 h-4 w-4" />
-                        Rechazar
-                      </Button>
-                      <Button className="flex-1" onClick={() => handleReview('approved')}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Aprobar
-                      </Button>
+                  !isAsesor ? (
+                    <>
+                      <Textarea
+                        placeholder="Notas de revisión (opcional)"
+                        value={reviewNotes}
+                        onChange={(e) => setReviewNotes(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1"
+                          variant="outline"
+                          onClick={() => handleReview('rejected')}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Rechazar
+                        </Button>
+                        <Button className="flex-1" onClick={() => handleReview('approved')}>
+                          <Check className="mr-2 h-4 w-4" />
+                          Aprobar
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border p-4 bg-amber-50 border-amber-200">
+                      <p className="text-sm text-amber-700">
+                        VISTA DE SÓLO LECTURA: No tienes permisos para aprobar o rechazar solicitudes.
+                      </p>
                     </div>
-                  </>
+                  )
                 ) : (
                   <div className="rounded-lg border p-4">
                     <p className="text-sm text-muted-foreground">
