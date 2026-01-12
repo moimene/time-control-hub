@@ -389,8 +389,9 @@ const TestCredentials = () => {
           </Card>
         </div>
 
-        <Tabs defaultValue="superadmin" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="superadmin">Super Admin</TabsTrigger>
             <TabsTrigger value="admin">Admin</TabsTrigger>
             <TabsTrigger value="responsible">Responsable</TabsTrigger>
@@ -398,6 +399,75 @@ const TestCredentials = () => {
             <TabsTrigger value="asesor">Asesor</TabsTrigger>
             <TabsTrigger value="kiosk">Kiosk</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Todos los Usuarios de Test
+                  <Badge variant="secondary">{userRoles?.length || 0} usuarios</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Tabla consolidada de todos los usuarios del sistema ordenados por rol
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Rol</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Password</TableHead>
+                        <TableHead>Empresa</TableHead>
+                        <TableHead>Código</TableHead>
+                        <TableHead>URL</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...superAdmins, ...admins, ...asesores, ...responsables, ...employeeUsers].map((user, idx) => {
+                        const company = getCompanyForUser(user.user_id);
+                        const employee = getEmployeeForUser(user.user_id);
+                        const email = employee?.email || getEmailForUser(user.user_id) || `user-${user.user_id.slice(0, 8)}`;
+                        const password = passwordMap[email] || 'emp123';
+                        const url = user.role === 'super_admin' ? '/super-admin' : 
+                                   user.role === 'employee' ? '/employee' : '/admin';
+
+                        return (
+                          <TableRow key={`all-${user.user_id}-${idx}`}>
+                            <TableCell>{getRoleBadge(user.role as AppRole)}</TableCell>
+                            <TableCell className="font-mono text-sm">{email}</TableCell>
+                            <TableCell className="font-mono text-sm">{password}</TableCell>
+                            <TableCell>
+                              {company ? (
+                                <Badge variant="outline" className="text-xs">{company.name}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono font-bold text-xs">
+                              {employee?.employee_code || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">{url}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {renderCopyButton(`${email}`, `all-email-${user.user_id}`)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="superadmin" className="space-y-4">
             <Card>
