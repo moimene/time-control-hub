@@ -137,6 +137,8 @@ export default function KioskHome() {
         body: {
           action: 'validate',
           employee_code: employeeCode,
+          terminal_id: session?.terminalId,
+          company_id: session?.companyId,
         },
       });
 
@@ -222,6 +224,8 @@ export default function KioskHome() {
         action: 'pin',
         employee_code: employeeCode,
         pin: pin,
+        terminal_id: session?.terminalId,
+        company_id: session?.companyId,
       };
 
       if (overrideData) {
@@ -344,6 +348,8 @@ export default function KioskHome() {
         body: {
           action: 'qr',
           qr_token: qrToken,
+          terminal_id: session?.terminalId,
+          company_id: session?.companyId,
         },
       });
 
