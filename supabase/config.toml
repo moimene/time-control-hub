@@ -143,3 +143,21 @@ verify_jwt = false
 
 [functions.seed-v1-fixtures]
 verify_jwt = false
+
+[functions.absence-approve]
+verify_jwt = false
+
+[functions.absence-create]
+verify_jwt = false
+
+[functions.coverage-check]
+verify_jwt = false
+
+[functions.sla-escalation]
+verify_jwt = false
+
+[functions.sync-template-leaves]
+verify_jwt = false
+
+[functions.get-test-credentials]
+verify_jwt = false
