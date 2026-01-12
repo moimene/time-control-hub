@@ -91,8 +91,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get user's company
-      const { data: userCompany, error: companyError } = await adminClient
+      // Get user's company (handle multi-company users like asesoes by taking the first one)
+      const { data: userCompanies, error: companyError } = await adminClient
         .from('user_company')
         .select(`
           company_id,
@@ -103,7 +103,9 @@ Deno.serve(async (req) => {
           )
         `)
         .eq('user_id', userId)
-        .single();
+        .limit(1);
+
+      const userCompany = userCompanies?.[0];
 
       if (companyError || !userCompany) {
         console.error(`[kiosk-auth] Error fetching company: ${companyError?.message}`);

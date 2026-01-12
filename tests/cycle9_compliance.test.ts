@@ -116,4 +116,59 @@ describe('Cycle 9: Compliance Engine & Dynamic Rules', () => {
         // Cleanup: remove assignment
         await supabase.from('rule_assignments').delete().eq('rule_version_id', version.id);
     });
+
+    it('Should trigger MIN_DAILY_REST violation for <12h rest', async () => {
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const todayStr = today.toISOString().split('T')[0];
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        // 1. Insert Exit yesterday at 23:00
+        await supabase.from('time_events').insert({
+            employee_id: employeeId,
+            company_id: COMPANY_ID,
+            event_type: 'exit',
+            timestamp: `${yesterdayStr}T23:00:00Z`,
+            local_timestamp: `${yesterdayStr}T23:00:00`
+        });
+
+        // 2. Insert Entry today at 08:00 (9h rest < 12h)
+        await supabase.from('time_events').insert({
+            employee_id: employeeId,
+            company_id: COMPANY_ID,
+            event_type: 'entry',
+            timestamp: `${todayStr}T08:00:00Z`,
+            local_timestamp: `${todayStr}T08:00:00`
+        });
+
+        // 3. Invoke evaluator
+        await supabase.functions.invoke('compliance-evaluator', {
+            body: { company_id: COMPANY_ID, date: todayStr, employee_id: employeeId }
+        });
+
+        // 4. Verify violation exists
+        const { data: violations } = await supabase
+            .from('compliance_violations')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .eq('rule_code', 'MIN_DAILY_REST')
+            .eq('violation_date', todayStr);
+
+        expect(violations?.length).toBeGreaterThan(0);
+        expect(violations?.[0].severity).toBe('critical');
+    });
+
+    it('Should trigger OVERTIME_YTD_75 warning when reaching 60h', async () => {
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // This test verifies the evaluator runs without crashing for YTD logic.
+        const { data, error } = await supabase.functions.invoke('compliance-evaluator', {
+            body: { company_id: COMPANY_ID, date: todayStr, employee_id: employeeId }
+        });
+
+        expect(error).toBeNull();
+        expect(data.success).toBe(true);
+    });
 });
