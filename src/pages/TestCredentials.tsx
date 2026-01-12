@@ -72,57 +72,30 @@ const pinMap: Record<string, string> = {
 const TestCredentials = () => {
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
-  // Fetch all user roles with email
-  const { data: userRoles, isLoading: loadingRoles, refetch: refetchRoles } = useQuery({
-    queryKey: ['test-credentials-roles'],
+  // Fetch all data via edge function (bypasses RLS)
+  const { data: allData, isLoading, refetch: refetchRoles } = useQuery({
+    queryKey: ['test-credentials-all'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
+      const { data, error } = await supabase.functions.invoke('get-test-credentials');
       if (error) throw error;
-      return data;
+      return data as {
+        userRoles: Array<{ user_id: string; role: string; email: string | null }>;
+        userCompanies: Array<{ user_id: string; company_id: string }>;
+        companies: Array<{ id: string; name: string; cif: string | null; timezone: string; sector: string | null; employee_code_prefix?: string }>;
+        employees: Array<{ id: string; user_id: string | null; company_id: string | null; employee_code: string; first_name: string; last_name: string; email: string | null; pin_hash: string | null }>;
+        summary: { totalUsers: number; totalRoles: number; totalCompanies: number; totalEmployees: number };
+      };
     }
   });
 
-  // Fetch user companies
-  const { data: userCompanies, isLoading: loadingCompanies } = useQuery({
-    queryKey: ['test-credentials-user-companies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_company')
-        .select('user_id, company_id, company:company_id(id, name)');
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Fetch all companies
-  const { data: companies } = useQuery({
-    queryKey: ['test-credentials-companies'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('company')
-        .select('id, name, cif, timezone, sector, employee_code_prefix')
-        .order('name');
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  // Fetch employees with user_id linked
-  const { data: employees, isLoading: loadingEmployees } = useQuery({
-    queryKey: ['test-credentials-employees'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('id, user_id, company_id, employee_code, first_name, last_name, email, pin_hash')
-        .order('employee_code');
-      if (error) throw error;
-      return data;
-    }
-  });
-
-  const isLoading = loadingRoles || loadingCompanies || loadingEmployees;
+  // Destructure data from edge function response
+  const userRoles = allData?.userRoles || [];
+  const userCompanies = allData?.userCompanies?.map(uc => ({
+    ...uc,
+    company: allData?.companies?.find(c => c.id === uc.company_id) || null
+  })) || [];
+  const companies = allData?.companies || [];
+  const employees = allData?.employees || [];
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
