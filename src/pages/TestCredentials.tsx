@@ -1,101 +1,16 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Copy, Check, RefreshCw, Users, Building2, Shield, Key } from "lucide-react";
+import { Copy, Check, RefreshCw, Shield, Users, Building2, UserCircle, Monitor } from "lucide-react";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
-
-type AppRole = 'super_admin' | 'admin' | 'responsible' | 'employee' | 'asesor';
-
-interface UserWithRole {
-  user_id: string;
-  role: AppRole;
-  email: string | null;
-  company_id: string | null;
-  company_name: string | null;
-  employee_code: string | null;
-  employee_name: string | null;
-  pin: string | null;
-}
-
-const passwordMap: Record<string, string> = {
-  'admin@test.com': 'admin123',
-  'superadmin@timecontrol.com': 'super123',
-  'moises.menendez@icam.es': 'icam2024',
-  'responsable@test.com': 'resp123',
-  // Bar El Rincón
-  'admin@elrincon.com': 'bar123',
-  'responsable@elrincon.com': 'resp123',
-  'juan.martinez@elrincon.com': 'emp123',
-  'ana.lopez@elrincon.com': 'emp123',
-  'pedro.sanchez@elrincon.com': 'emp123',
-  'maria.garcia@elrincon.com': 'emp123',
-  'carlos.fernandez@elrincon.com': 'emp123',
-  // Zapatería López
-  'admin@zapateria-lopez.com': 'zap123',
-  'responsable@zapateria-lopez.com': 'resp123',
-  'lucia.moreno@zapateria-lopez.com': 'emp123',
-  'miguel.torres@zapateria-lopez.com': 'emp123',
-  'carmen.jimenez@zapateria-lopez.com': 'emp123',
-  'antonio.ruiz@zapateria-lopez.com': 'emp123',
-  // Clínica Dental Sonrisas
-  'admin@dentalsonrisas.com': 'den123',
-  'responsable@dentalsonrisas.com': 'resp123',
-  'alberto.ruiz@dentalsonrisas.com': 'emp123',
-  'elena.morales@dentalsonrisas.com': 'emp123',
-  'raul.diaz@dentalsonrisas.com': 'emp123',
-  'laura.navarro@dentalsonrisas.com': 'emp123',
-  'sergio.castro@dentalsonrisas.com': 'emp123',
-  // Fisioterapia Wellness
-  'admin@fisio-wellness.com': 'fis123',
-  'responsable@fisio-wellness.com': 'resp123',
-  'david.molina@fisio-wellness.com': 'emp123',
-  'patricia.vega@fisio-wellness.com': 'emp123',
-  'jorge.ramos@fisio-wellness.com': 'emp123',
-  'isabel.ortiz@fisio-wellness.com': 'emp123',
-};
-
-// Known PINs from seeding scripts
-const pinMap: Record<string, string> = {
-  'BAR001': '1234', 'BAR002': '2345', 'BAR003': '3456', 'BAR004': '4567', 'BAR005': '5678',
-  'ZAP001': '1111', 'ZAP002': '2222', 'ZAP003': '3333', 'ZAP004': '4444',
-  'DEN001': '1212', 'DEN002': '2323', 'DEN003': '3434', 'DEN004': '4545', 'DEN005': '5656',
-  'FIS001': '6666', 'FIS002': '7777', 'FIS003': '8888', 'FIS004': '9999',
-  'EMP001': '1234', 'EMP002': '2345', 'EMP003': '3456',
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const TestCredentials = () => {
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
-
-  // Fetch all data via edge function (bypasses RLS)
-  const { data: allData, isLoading, refetch: refetchRoles } = useQuery({
-    queryKey: ['test-credentials-all'],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-test-credentials');
-      if (error) throw error;
-      return data as {
-        userRoles: Array<{ user_id: string; role: string; email: string | null }>;
-        userCompanies: Array<{ user_id: string; company_id: string }>;
-        companies: Array<{ id: string; name: string; cif: string | null; timezone: string; sector: string | null; employee_code_prefix?: string }>;
-        employees: Array<{ id: string; user_id: string | null; company_id: string | null; employee_code: string; first_name: string; last_name: string; email: string | null; pin_hash: string | null }>;
-        summary: { totalUsers: number; totalRoles: number; totalCompanies: number; totalEmployees: number };
-      };
-    }
-  });
-
-  // Destructure data from edge function response
-  const userRoles = allData?.userRoles || [];
-  const userCompanies = allData?.userCompanies?.map(uc => ({
-    ...uc,
-    company: allData?.companies?.find(c => c.id === uc.company_id) || null
-  })) || [];
-  const companies = allData?.companies || [];
-  const employees = allData?.employees || [];
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -105,6 +20,20 @@ const TestCredentials = () => {
       setTimeout(() => setCopiedItem(null), 2000);
     } catch {
       toast.error("No se pudo copiar al portapapeles");
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seed-v1-fixtures');
+      if (error) throw error;
+      toast.success("Datos de prueba regenerados correctamente");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al regenerar datos de prueba");
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -119,342 +48,75 @@ const TestCredentials = () => {
     </Button>
   );
 
-  // Build user lookup maps
-  const getCompanyForUser = (userId: string) => {
-    const uc = userCompanies?.find(u => u.user_id === userId);
-    return uc?.company as { id: string; name: string } | null;
-  };
-
-  const getEmployeeForUser = (userId: string) => {
-    return employees?.find(e => e.user_id === userId);
-  };
-
-  const getEmailForUser = (userId: string) => {
-    const emp = employees?.find(e => e.user_id === userId);
-    return emp?.email || null;
-  };
-
-  // Filter users by role
-  const superAdmins = userRoles?.filter(u => u.role === 'super_admin') || [];
-  const admins = userRoles?.filter(u => u.role === 'admin') || [];
-  const responsables = userRoles?.filter(u => u.role === 'responsible') || [];
-  const employeeUsers = userRoles?.filter(u => u.role === 'employee') || [];
-  const asesores = userRoles?.filter(u => u.role === 'asesor') || [];
-
-  // Employees with PIN (for kiosk)
-  const employeesWithPin = employees?.filter(e => e.pin_hash) || [];
-
-  const getRoleBadge = (role: AppRole) => {
-    const variants: Record<AppRole, { variant: "default" | "destructive" | "outline" | "secondary"; label: string }> = {
-      super_admin: { variant: "destructive", label: "Super Admin" },
-      admin: { variant: "default", label: "Admin" },
-      responsible: { variant: "secondary", label: "Responsable" },
-      employee: { variant: "outline", label: "Empleado" },
-      asesor: { variant: "secondary", label: "Asesor" },
-    };
-    const config = variants[role] || { variant: "outline", label: role };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const renderUserTable = (
-    users: typeof userRoles,
-    showCompany = true,
-    showEmployeeCode = false
-  ) => {
-    if (isLoading) {
-      return (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
-      );
-    }
-
-    if (!users?.length) {
-      return <p className="text-muted-foreground text-sm">No hay usuarios de este tipo</p>;
-    }
-
-    return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Email</TableHead>
-            <TableHead>Password</TableHead>
-            {showCompany && <TableHead>Empresa</TableHead>}
-            {showEmployeeCode && <TableHead>Código</TableHead>}
-            <TableHead>URL</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user, idx) => {
-            const company = getCompanyForUser(user.user_id);
-            const employee = getEmployeeForUser(user.user_id);
-            const email = employee?.email || getEmailForUser(user.user_id) || `user-${user.user_id.slice(0, 8)}`;
-            const password = passwordMap[email] || 'emp123';
-            const url = user.role === 'super_admin' ? '/super-admin' : 
-                       user.role === 'employee' ? '/employee' : '/admin';
-
-            return (
-              <TableRow key={`${user.user_id}-${idx}`}>
-                <TableCell className="font-mono text-sm">{email}</TableCell>
-                <TableCell className="font-mono text-sm">{password}</TableCell>
-                {showCompany && (
-                  <TableCell>
-                    {company ? (
-                      <Badge variant="secondary">{company.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-                )}
-                {showEmployeeCode && (
-                  <TableCell className="font-mono font-bold">
-                    {employee?.employee_code || '-'}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Badge variant="outline">{url}</Badge>
-                </TableCell>
-                <TableCell>
-                  {renderCopyButton(email, `email-${user.user_id}`)}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-    );
-  };
-
-  const renderKioskTable = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-2">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
-      );
-    }
-
-    // Group by company
-    const byCompany = new Map<string, typeof employeesWithPin>();
-    employeesWithPin.forEach(emp => {
-      const companyName = companies?.find(c => c.id === emp.company_id)?.name || 'Sin empresa';
-      if (!byCompany.has(companyName)) {
-        byCompany.set(companyName, []);
-      }
-      byCompany.get(companyName)!.push(emp);
-    });
-
-    return (
-      <div className="space-y-6">
-        {Array.from(byCompany.entries()).map(([companyName, emps]) => (
-          <div key={companyName}>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              {companyName}
-            </h4>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>PIN</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {emps.map(emp => {
-                  const pin = pinMap[emp.employee_code] || '????';
-                  return (
-                    <TableRow key={emp.id}>
-                      <TableCell className="font-mono font-bold">{emp.employee_code}</TableCell>
-                      <TableCell className="font-mono font-bold">{pin}</TableCell>
-                      <TableCell>{emp.first_name} {emp.last_name}</TableCell>
-                      <TableCell>
-                        {renderCopyButton(`${emp.employee_code}:${pin}`, `kiosk-${emp.employee_code}`)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Shield className="h-8 w-8" />
-              Credenciales de Prueba
-            </h1>
+            <h1 className="text-3xl font-bold">Credenciales de Prueba</h1>
             <p className="text-muted-foreground mt-1">
-              Datos de acceso reales para testing del Plan de Pruebas V1
+              Datos de acceso para testing de todas las historias de usuario V1
             </p>
           </div>
-          <Button onClick={() => refetchRoles()} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
+          <Button
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+            Regenerar Datos de Prueba
           </Button>
         </div>
 
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-destructive" />
-                <div>
-                  <p className="text-2xl font-bold">{superAdmins.length}</p>
-                  <p className="text-xs text-muted-foreground">Super Admins</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-2xl font-bold">{admins.length}</p>
-                  <p className="text-xs text-muted-foreground">Admins</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-secondary-foreground" />
-                <div>
-                  <p className="text-2xl font-bold">{responsables.length}</p>
-                  <p className="text-xs text-muted-foreground">Responsables</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                <div>
-                  <p className="text-2xl font-bold">{employeeUsers.length}</p>
-                  <p className="text-xs text-muted-foreground">Empleados</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Key className="h-5 w-5 text-amber-500" />
-                <div>
-                  <p className="text-2xl font-bold">{employeesWithPin.length}</p>
-                  <p className="text-xs text-muted-foreground">PINs Kiosk</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="superadmin">Super Admin</TabsTrigger>
-            <TabsTrigger value="admin">Admin</TabsTrigger>
-            <TabsTrigger value="responsible">Responsable</TabsTrigger>
-            <TabsTrigger value="employee">Empleado</TabsTrigger>
-            <TabsTrigger value="asesor">Asesor</TabsTrigger>
-            <TabsTrigger value="kiosk">Kiosk</TabsTrigger>
+        <Tabs defaultValue="superadmin" className="w-full">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="superadmin" className="gap-2"><Shield className="h-4 w-4" /> Super Admin</TabsTrigger>
+            <TabsTrigger value="admin" className="gap-2"><Building2 className="h-4 w-4" /> Admin</TabsTrigger>
+            <TabsTrigger value="responsible" className="gap-2"><Users className="h-4 w-4" /> Responsable</TabsTrigger>
+            <TabsTrigger value="employee" className="gap-2"><UserCircle className="h-4 w-4" /> Empleado</TabsTrigger>
+            <TabsTrigger value="kiosk" className="gap-2"><Monitor className="h-4 w-4" /> Kiosk</TabsTrigger>
+            <TabsTrigger value="additional">Otros</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="all" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  Todos los Usuarios de Test
-                  <Badge variant="secondary">{userRoles?.length || 0} usuarios</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Tabla consolidada de todos los usuarios del sistema ordenados por rol
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Rol</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Password</TableHead>
-                        <TableHead>Empresa</TableHead>
-                        <TableHead>Código</TableHead>
-                        <TableHead>URL</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[...superAdmins, ...admins, ...asesores, ...responsables, ...employeeUsers].map((user, idx) => {
-                        const company = getCompanyForUser(user.user_id);
-                        const employee = getEmployeeForUser(user.user_id);
-                        const email = employee?.email || getEmailForUser(user.user_id) || `user-${user.user_id.slice(0, 8)}`;
-                        const password = passwordMap[email] || 'emp123';
-                        const url = user.role === 'super_admin' ? '/super-admin' : 
-                                   user.role === 'employee' ? '/employee' : '/admin';
-
-                        return (
-                          <TableRow key={`all-${user.user_id}-${idx}`}>
-                            <TableCell>{getRoleBadge(user.role as AppRole)}</TableCell>
-                            <TableCell className="font-mono text-sm">{email}</TableCell>
-                            <TableCell className="font-mono text-sm">{password}</TableCell>
-                            <TableCell>
-                              {company ? (
-                                <Badge variant="outline" className="text-xs">{company.name}</Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-mono font-bold text-xs">
-                              {employee?.employee_code || '-'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="text-xs">{url}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              {renderCopyButton(`${email}`, `all-email-${user.user_id}`)}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="superadmin" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Super Administrador
+                  Super Administradores
                   <Badge variant="destructive">Acceso Total</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Gestión de todas las empresas y usuarios del sistema
+                  Gestión global del sistema (Super Admin)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {renderUserTable(superAdmins, false)}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Password</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-mono">superadmin@timecontrol.com</TableCell>
+                      <TableCell className="font-mono">super123</TableCell>
+                      <TableCell>{renderCopyButton("superadmin@timecontrol.com", "sa-1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">admin@test.com</TableCell>
+                      <TableCell className="font-mono">admin123</TableCell>
+                      <TableCell>{renderCopyButton("admin@test.com", "sa-2")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">moises.menendez@icam.es</TableCell>
+                      <TableCell className="font-mono text-muted-foreground italic">Consultar manual</TableCell>
+                      <TableCell>{renderCopyButton("moises.menendez@icam.es", "sa-3")}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -467,11 +129,46 @@ const TestCredentials = () => {
                   <Badge>Gestión Completa</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Un administrador por cada empresa de prueba
+                  Acceso administrativo para cada una de las 4 empresas de prueba
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {renderUserTable(admins, true)}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Password</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
+                      <TableCell className="font-mono">admin@elrincon.com</TableCell>
+                      <TableCell className="font-mono">bar123</TableCell>
+                      <TableCell>{renderCopyButton("admin@elrincon.com", "adm-bar")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
+                      <TableCell className="font-mono">admin@zapateria-lopez.com</TableCell>
+                      <TableCell className="font-mono">zap123</TableCell>
+                      <TableCell>{renderCopyButton("admin@zapateria-lopez.com", "adm-zap")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Clínica Dental Sonrisas</Badge></TableCell>
+                      <TableCell className="font-mono">admin@dentalsonrisas.com</TableCell>
+                      <TableCell className="font-mono">den123</TableCell>
+                      <TableCell>{renderCopyButton("admin@dentalsonrisas.com", "adm-den")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Fisioterapia Wellness</Badge></TableCell>
+                      <TableCell className="font-mono">admin@fisio-wellness.com</TableCell>
+                      <TableCell className="font-mono">fis123</TableCell>
+                      <TableCell>{renderCopyButton("admin@fisio-wellness.com", "adm-fis")}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -480,15 +177,50 @@ const TestCredentials = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Responsables
-                  <Badge variant="secondary">Supervisión</Badge>
+                  Responsables (Managers)
+                  <Badge variant="outline">Supervisión</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Pueden ver fichajes y aprobar/rechazar correcciones
+                  Gestión de equipos y aprobación de fichajes
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {renderUserTable(responsables, true)}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Password</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
+                      <TableCell className="font-mono">responsable@elrincon.com</TableCell>
+                      <TableCell className="font-mono">resp123</TableCell>
+                      <TableCell>{renderCopyButton("responsable@elrincon.com", "res-bar")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
+                      <TableCell className="font-mono">responsable@zapateria-lopez.com</TableCell>
+                      <TableCell className="font-mono">resp123</TableCell>
+                      <TableCell>{renderCopyButton("responsable@zapateria-lopez.com", "res-zap")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Clínica Dental Sonrisas</Badge></TableCell>
+                      <TableCell className="font-mono">responsable@dentalsonrisas.com</TableCell>
+                      <TableCell className="font-mono">resp123</TableCell>
+                      <TableCell>{renderCopyButton("responsable@dentalsonrisas.com", "res-den")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Fisioterapia Wellness</Badge></TableCell>
+                      <TableCell className="font-mono">responsable@fisio-wellness.com</TableCell>
+                      <TableCell className="font-mono">resp123</TableCell>
+                      <TableCell>{renderCopyButton("responsable@fisio-wellness.com", "res-fis")}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -497,41 +229,83 @@ const TestCredentials = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Empleados con Portal
-                  <Badge variant="outline">Acceso Personal</Badge>
+                  Empleados (Portal Personal)
+                  <Badge variant="outline">Autogestión</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Pueden ver sus fichajes y solicitar correcciones
+                  Acceso para ver fichajes propios y solicitar correcciones
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {renderUserTable(employeeUsers, true, true)}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="asesor" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  Asesores Laborales
-                  <Badge variant="secondary">Consultoría</Badge>
-                </CardTitle>
-                <CardDescription>
-                  Acceso de solo lectura a múltiples empresas asignadas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {asesores.length > 0 ? (
-                  renderUserTable(asesores, true)
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No hay asesores configurados.</p>
-                    <p className="text-sm mt-1">
-                      Ejecutar <code className="bg-muted px-1 rounded">seed-v1-fixtures</code> para crear usuarios de prueba.
-                    </p>
-                  </div>
-                )}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Password</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
+                      <TableCell className="font-mono">juan.martinez@elrincon.com</TableCell>
+                      <TableCell className="font-mono font-bold">BAR001</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("juan.martinez@elrincon.com", "e-bar1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Bar El Rincón</Badge></TableCell>
+                      <TableCell className="font-mono">ana.lopez@elrincon.com</TableCell>
+                      <TableCell className="font-mono font-bold">BAR002</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("ana.lopez@elrincon.com", "e-bar2")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
+                      <TableCell className="font-mono">lucia.moreno@zapateria-lopez.com</TableCell>
+                      <TableCell className="font-mono font-bold">ZAP001</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("lucia.moreno@zapateria-lopez.com", "e-zap1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Zapatería López</Badge></TableCell>
+                      <TableCell className="font-mono">roberto.navarro@zapateria-lopez.com</TableCell>
+                      <TableCell className="font-mono font-bold">ZAP002</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("roberto.navarro@zapateria-lopez.com", "e-zap2")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Clínica Dental</Badge></TableCell>
+                      <TableCell className="font-mono">alberto.ruiz@dentalsonrisas.com</TableCell>
+                      <TableCell className="font-mono font-bold">DEN001</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("alberto.ruiz@dentalsonrisas.com", "e-den1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Clínica Dental</Badge></TableCell>
+                      <TableCell className="font-mono">sofia.herrera@dentalsonrisas.com</TableCell>
+                      <TableCell className="font-mono font-bold">DEN003</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("sofia.herrera@dentalsonrisas.com", "e-den3")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Fisioterapia</Badge></TableCell>
+                      <TableCell className="font-mono">david.molina@fisio-wellness.com</TableCell>
+                      <TableCell className="font-mono font-bold">FIS001</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("david.molina@fisio-wellness.com", "e-fis1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell><Badge variant="secondary">Fisioterapia</Badge></TableCell>
+                      <TableCell className="font-mono">laura.gutierrez@fisio-wellness.com</TableCell>
+                      <TableCell className="font-mono font-bold">FIS002</TableCell>
+                      <TableCell className="font-mono">emp123</TableCell>
+                      <TableCell>{renderCopyButton("laura.gutierrez@fisio-wellness.com", "e-fis2")}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -540,97 +314,140 @@ const TestCredentials = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Kiosk - Fichaje por PIN
-                  <Badge variant="outline">/kiosk</Badge>
+                  Kiosk (Terminal de Fichaje)
+                  <Badge variant="outline">Pin Access</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Códigos de empleado y PINs para fichaje en terminal
+                  Acceso mediante Código de Empleado + PIN (Sin contraseña)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {renderKioskTable()}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-bold flex items-center gap-2 mb-3"><Badge variant="secondary">Bar El Rincón</Badge></h4>
+                    <ul className="space-y-2 font-mono text-sm">
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>BAR001: <b>1234</b> (Juan)</span> {renderCopyButton("1234", "k-b1")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>BAR002: <b>2345</b> (Ana)</span> {renderCopyButton("2345", "k-b2")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>BAR003: <b>3456</b> (Pedro)</span> {renderCopyButton("3456", "k-b3")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>BAR004: <b>4567</b> (María)</span> {renderCopyButton("4567", "k-b4")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>BAR005: <b>5678</b> (Carlos)</span> {renderCopyButton("5678", "k-b5")}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold flex items-center gap-2 mb-3"><Badge variant="secondary">Zapatería López</Badge></h4>
+                    <ul className="space-y-2 font-mono text-sm">
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>ZAP001: <b>1111</b> (Lucía)</span> {renderCopyButton("1111", "k-z1")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>ZAP002: <b>2222</b> (Roberto)</span> {renderCopyButton("2222", "k-z2")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>ZAP003: <b>3333</b> (Elena)</span> {renderCopyButton("3333", "k-z3")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>ZAP004: <b>4444</b> (Miguel)</span> {renderCopyButton("4444", "k-z4")}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold flex items-center gap-2 mb-3"><Badge variant="secondary">Clínica Dental</Badge></h4>
+                    <ul className="space-y-2 font-mono text-sm">
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>DEN001: <b>1212</b> (Alberto)</span> {renderCopyButton("1212", "k-d1")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>DEN002: <b>2323</b> (Carmen)</span> {renderCopyButton("2323", "k-d2")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>DEN003: <b>3434</b> (Sofía)</span> {renderCopyButton("3434", "k-d3")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>DEN004: <b>4545</b> (Pablo)</span> {renderCopyButton("4545", "k-d4")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>DEN005: <b>5656</b> (Marta)</span> {renderCopyButton("5656", "k-d5")}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-bold flex items-center gap-2 mb-3"><Badge variant="secondary">Fisioterapia</Badge></h4>
+                    <ul className="space-y-2 font-mono text-sm">
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>FIS001: <b>6666</b> (David)</span> {renderCopyButton("6666", "k-f1")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>FIS002: <b>7777</b> (Laura)</span> {renderCopyButton("7777", "k-f2")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>FIS003: <b>8888</b> (Javier)</span> {renderCopyButton("8888", "k-f3")}</li>
+                      <li className="flex justify-between items-center p-2 bg-muted rounded"><span>FIS004: <b>9999</b> (Claudia)</span> {renderCopyButton("9999", "k-f4")}</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="additional" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Usuarios Adicionales / Legados</CardTitle>
+                <CardDescription>Usuarios específicos creados manualmente o para propósitos especiales</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Rol</TableHead>
+                      <TableHead>Notas</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-mono">moises.menendez@garrigues.com</TableCell>
+                      <TableCell><Badge variant="outline">admin</Badge></TableCell>
+                      <TableCell>Canal_García_Comunidad</TableCell>
+                      <TableCell>{renderCopyButton("moises.menendez@garrigues.com", "add-1")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">moises.menendez@teras.capital</TableCell>
+                      <TableCell><Badge variant="outline">admin</Badge></TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell>{renderCopyButton("moises.menendez@teras.capital", "add-2")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">coco@empresaprueba.com</TableCell>
+                      <TableCell><Badge variant="outline">admin</Badge></TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell>{renderCopyButton("coco@empresaprueba.com", "add-3")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">responsable@test.com</TableCell>
+                      <TableCell><Badge variant="outline">responsible</Badge></TableCell>
+                      <TableCell>-</TableCell>
+                      <TableCell>{renderCopyButton("responsable@test.com", "add-4")}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-mono">carlos.garcia@empresa.com</TableCell>
+                      <TableCell><Badge variant="outline">employee</Badge></TableCell>
+                      <TableCell>EMP001 (Desarrollo)</TableCell>
+                      <TableCell>{renderCopyButton("carlos.garcia@empresa.com", "add-5")}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
-        {/* Companies table */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Empresas Disponibles
-            </CardTitle>
+            <CardTitle>Historias de Usuario Cubiertas V1</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>CIF</TableHead>
-                  <TableHead>Prefijo</TableHead>
-                  <TableHead>Sector</TableHead>
-                  <TableHead>Timezone</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companies?.map(company => (
-                  <TableRow key={company.id}>
-                    <TableCell className="font-medium">{company.name}</TableCell>
-                    <TableCell className="font-mono text-sm">{company.cif || '-'}</TableCell>
-                    <TableCell className="font-mono">{company.employee_code_prefix}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{company.sector || '-'}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{company.timezone}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* User Stories Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ciclos de Prueba V1 Cubiertos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <div>
-                <h4 className="font-semibold mb-2">Ciclo 0-1: Auth + RLS</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <h4 className="font-semibold mb-2">Empleado / Kiosk</h4>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>✅ Login/logout por rol</li>
-                  <li>✅ Aislamiento multi-tenant</li>
-                  <li>✅ Políticas RLS estrictas</li>
-                  <li>✅ Rol asesor implementado</li>
+                  <li>✅ Fichar Pin (Kiosk Offline Support)</li>
+                  <li>✅ Fichar QR Emp</li>
+                  <li>✅ Portal: Ver historial y corregir</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">Ciclo 3-4: Kiosk</h4>
+                <h4 className="font-semibold mb-2">Admin / Pymes</h4>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>✅ Fichaje PIN/QR</li>
-                  <li>✅ Bloqueo intentos fallidos</li>
-                  <li>✅ Terminal autorizado</li>
-                  <li>✅ Modo offline</li>
+                  <li>✅ Multi-tenant (Aislado)</li>
+                  <li>✅ Notarización QTSP (V1)</li>
+                  <li>✅ Auditoría Laboral (Control horario)</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">Ciclo 6-8: Compliance</h4>
+                <h4 className="font-semibold mb-2">Infraestructura</h4>
                 <ul className="space-y-1 text-muted-foreground">
-                  <li>✅ Correcciones workflow</li>
-                  <li>✅ Detección inconsistencias</li>
-                  <li>✅ Motor cumplimiento dinámico</li>
-                  <li>✅ Precedencia reglas (Ley→Convenio→Contrato)</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Ciclo 9-11: QTSP</h4>
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>✅ Evidencias selladas</li>
-                  <li>✅ Daily roots</li>
-                  <li>✅ Paquete ITSS</li>
-                  <li>✅ Retención 4 años</li>
+                  <li>✅ RLS Enforcement</li>
+                  <li>✅ Deterministic Seeding</li>
+                  <li>✅ Forensic Ledger</li>
                 </ul>
               </div>
             </div>

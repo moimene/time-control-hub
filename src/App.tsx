@@ -53,10 +53,13 @@ import SuperAdminUsers from "./pages/super-admin/Users";
 import SuperAdminActivity from "./pages/super-admin/Activity";
 import SuperAdminQTSPMonitor from "./pages/super-admin/QTSPMonitor";
 
+// Asesor Pages
+import AsesorDashboard from "./pages/asesor/Dashboard";
+
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, loading, isAdmin, isResponsible, isEmployee, isSuperAdmin } = useAuth();
+  const { user, loading, isAdmin, isResponsible, isEmployee, isSuperAdmin, isAsesor } = useAuth();
   const { hasCompany, isLoading: companyLoading } = useCompany();
 
   if (loading || (user && companyLoading)) {
@@ -72,6 +75,8 @@ function AppRoutes() {
     if (!user) return "/auth";
     // Super admin goes to super admin panel
     if (isSuperAdmin) return "/super-admin";
+    // Asesor goes to asesor panel (multi-company view)
+    if (isAsesor) return "/asesor";
     // If user has no company, redirect to setup
     if (!hasCompany && (isAdmin || !isEmployee)) return "/company-setup";
     if (isAdmin || isResponsible) return "/admin";
@@ -88,13 +93,13 @@ function AppRoutes() {
       <Route path="/company-setup" element={
         user ? <CompanySetup /> : <Navigate to="/auth" replace />
       } />
-      
+
       {/* Kiosk route - no auth required */}
       <Route path="/kiosk" element={<KioskHome />} />
-      
+
       {/* Test credentials page - no auth required */}
       <Route path="/test-credentials" element={<TestCredentials />} />
-      
+
       {/* Admin routes */}
       <Route path="/admin" element={
         <ProtectedRoute requiredRoles={['super_admin', 'admin', 'responsible']}>
@@ -231,6 +236,13 @@ function AppRoutes() {
       <Route path="/super-admin/qtsp" element={
         <ProtectedRoute requiredRoles={['super_admin']}>
           <SuperAdminQTSPMonitor />
+        </ProtectedRoute>
+      } />
+
+      {/* Asesor routes - read-only multi-company access */}
+      <Route path="/asesor" element={
+        <ProtectedRoute requiredRoles={['asesor']}>
+          <AsesorDashboard />
         </ProtectedRoute>
       } />
 

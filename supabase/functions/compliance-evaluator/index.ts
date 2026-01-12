@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -5,25 +6,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Default fallback rules (used only if no rule_sets found)
-const DEFAULT_RULES = {
-  MAX_DAILY_HOURS: 9,
-  MAX_WEEKLY_HOURS: 40,
-  MIN_DAILY_REST: 12,
-  MIN_WEEKLY_REST: 36,
-  BREAK_AFTER_HOURS: 6,
-  BREAK_DURATION_MIN: 15,
-  OVERTIME_MAX_YEAR: 80,
+// Rule codes and their fallback configurations
+const FALLBACK_RULES = {
+  MAX_DAILY_HOURS: { code: 'MAX_DAILY_HOURS', name: 'Jornada máxima diaria', limit: 9, severity: 'critical' as const },
+  MIN_DAILY_REST: { code: 'MIN_DAILY_REST', name: 'Descanso diario mínimo', limit: 12, severity: 'critical' as const },
+  MIN_WEEKLY_REST: { code: 'MIN_WEEKLY_REST', name: 'Descanso semanal mínimo', limit: 36, severity: 'critical' as const },
+  BREAK_REQUIRED: { code: 'BREAK_REQUIRED', name: 'Pausa intrajornada requerida', limit: 6, severity: 'warn' as const },
+  OVERTIME_YTD_75: { code: 'OVERTIME_YTD_75', name: 'Horas extra 75% límite', limit: 60, severity: 'warn' as const },
+  OVERTIME_YTD_90: { code: 'OVERTIME_YTD_90', name: 'Horas extra 90% límite', limit: 72, severity: 'critical' as const },
+  OVERTIME_YTD_CAP: { code: 'OVERTIME_YTD_CAP', name: 'Horas extra límite legal', limit: 80, severity: 'critical' as const },
 }
 
-interface RuleSet {
-  id: string
-  name: string
-  origin: 'law' | 'collective_agreement' | 'contract'
-  status: string
-  rules: Record<string, number | boolean>
-  effective_from: string
-  effective_to: string | null
+/**
+ * Fetches the applicable rules for an employee from the database.
+ * Follows precedence: Employee Override -> Department -> Center -> Company -> Global Template
+ */
+async function getEffectiveRules(supabase: any, companyId: string, employeeId: string) {
+  // 1. Try to find an active rule assignment for the employee
+  const { data: assignments, error } = await supabase
+    .from('rule_assignments')
+    .select(`
+      rule_version_id,
+      priority,
+      rule_versions (
+        payload_json
+      )
+    `)
+    .eq('company_id', companyId)
+    .eq('is_active', true)
+    .or(`employee_id.eq.${employeeId},employee_id.is.null`)
+    .order('priority', { ascending: false });
+
+  if (error || !assignments?.length) {
+    return FALLBACK_RULES;
+  }
+
+  // Merge rules (highest priority wins)
+  let mergedRules = { ...FALLBACK_RULES };
+  for (const assignment of assignments) {
+    const payload = assignment.rule_versions?.payload_json;
+    if (payload && typeof payload === 'object') {
+      mergedRules = { ...mergedRules, ...payload };
+    }
+  }
+
+  return mergedRules;
 }
 
 interface TimeEvent {
@@ -44,94 +71,13 @@ interface Violation {
   company_id: string
   employee_id: string
   rule_code: string
-  rule_version_id?: string
   severity: 'info' | 'warn' | 'critical'
   evidence_json: Record<string, unknown>
   violation_date: string
   status: 'open'
 }
 
-/**
- * Get effective rules for a company following precedence:
- * Law (base) -> Collective Agreement (overrides) -> Contract (highest priority)
- */
-async function getEffectiveRules(
-  supabase: any,
-  companyId: string,
-  date: string
-): Promise<{ rules: Record<string, number | boolean>; source: string; ruleSetId: string | null }> {
-  // Query rule_sets joined with rule_versions to get active published rules
-  const { data: ruleSets, error } = await supabase
-    .from('rule_sets')
-    .select(`
-      id,
-      name,
-      sector,
-      convenio,
-      status,
-      rule_versions (
-        id,
-        version,
-        effective_from,
-        effective_to,
-        payload_json,
-        published_at
-      )
-    `)
-    .eq('company_id', companyId)
-    .eq('status', 'active')
-
-  if (error) {
-    console.error('Error fetching rule_sets:', error)
-    return { rules: DEFAULT_RULES, source: 'default_fallback', ruleSetId: null }
-  }
-
-  if (!ruleSets?.length) {
-    console.log(`No rule_sets found for company ${companyId}, using defaults`)
-    return { rules: DEFAULT_RULES, source: 'default_fallback', ruleSetId: null }
-  }
-
-  // Find the most specific applicable rule version
-  let mergedRules: Record<string, number | boolean> = { ...DEFAULT_RULES }
-  let source = 'default_fallback'
-  let ruleSetId: string | null = null
-
-  for (const ruleSet of ruleSets) {
-    // Find applicable version for the target date
-    const versions = ruleSet.rule_versions || []
-    const applicableVersion = versions.find((v: any) => {
-      const from = new Date(v.effective_from)
-      const to = v.effective_to ? new Date(v.effective_to) : new Date('2099-12-31')
-      const target = new Date(date)
-      return target >= from && target <= to
-    })
-
-    if (applicableVersion && applicableVersion.payload_json) {
-      const payload = applicableVersion.payload_json
-      // Apply precedence based on origin in payload or rule type
-      const origin = payload.origin || (ruleSet.convenio ? 'collective_agreement' : 'law')
-      
-      // Merge rules (later rules override earlier ones)
-      mergedRules = { ...mergedRules, ...payload }
-      source = `${origin}:${ruleSet.name}`
-      ruleSetId = ruleSet.id
-      console.log(`Applied rules from "${ruleSet.name}" (${origin})`)
-    }
-  }
-
-  return { rules: mergedRules, source, ruleSetId }
-}
-
-function getSeverity(ruleCode: string): 'info' | 'warn' | 'critical' {
-  const criticalRules = ['MAX_DAILY_HOURS', 'MIN_DAILY_REST', 'MIN_WEEKLY_REST', 'OVERTIME_YTD_CAP']
-  const warnRules = ['BREAK_AFTER_HOURS', 'OVERTIME_YTD_75', 'OVERTIME_YTD_90']
-  
-  if (criticalRules.includes(ruleCode)) return 'critical'
-  if (warnRules.includes(ruleCode)) return 'warn'
-  return 'info'
-}
-
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -149,10 +95,6 @@ Deno.serve(async (req) => {
 
     const targetDate = date || new Date().toISOString().split('T')[0]
     console.log(`Evaluating compliance for company ${company_id} on ${targetDate}`)
-
-    // Get effective rules for this company (with precedence)
-    const { rules, source, ruleSetId } = await getEffectiveRules(supabase, company_id, targetDate)
-    console.log(`Using rules from: ${source}`, rules)
 
     // Get employees to evaluate
     let employeeQuery = supabase
@@ -173,15 +115,11 @@ Deno.serve(async (req) => {
     const violations: Violation[] = []
     const startOfYear = `${targetDate.substring(0, 4)}-01-01`
 
-    // Extract rule values with fallbacks
-    const MAX_DAILY_HOURS = (rules.MAX_DAILY_HOURS as number) || DEFAULT_RULES.MAX_DAILY_HOURS
-    const MIN_DAILY_REST = (rules.MIN_DAILY_REST as number) || DEFAULT_RULES.MIN_DAILY_REST
-    const MIN_WEEKLY_REST = (rules.MIN_WEEKLY_REST as number) || DEFAULT_RULES.MIN_WEEKLY_REST
-    const BREAK_AFTER_HOURS = (rules.BREAK_AFTER_HOURS as number) || DEFAULT_RULES.BREAK_AFTER_HOURS
-    const OVERTIME_MAX_YEAR = (rules.OVERTIME_MAX_YEAR as number) || DEFAULT_RULES.OVERTIME_MAX_YEAR
-
     for (const employee of employees || []) {
-      // Get time events for the target date
+      // 0. Get dynamic rules for this employee
+      const RULES = await getEffectiveRules(supabase, company_id, employee.id);
+
+      // 1. Get time events for the target date
       const { data: dayEvents, error: dayError } = await supabase
         .from('time_events')
         .select('*')
@@ -199,19 +137,18 @@ Deno.serve(async (req) => {
       const sessions = calculateWorkSessions(dayEvents || [])
       const totalHours = sessions.reduce((sum, s) => sum + s.hours, 0)
 
-      // Rule 1: MAX_DAILY_HOURS (dynamic from rule_sets)
-      if (totalHours > MAX_DAILY_HOURS) {
+      // Rule 1: MAX_DAILY_HOURS
+      if (totalHours > RULES.MAX_DAILY_HOURS.limit) {
         violations.push({
           company_id,
           employee_id: employee.id,
-          rule_code: 'MAX_DAILY_HOURS',
-          rule_version_id: ruleSetId || undefined,
-          severity: getSeverity('MAX_DAILY_HOURS'),
+          rule_code: RULES.MAX_DAILY_HOURS.code,
+          severity: RULES.MAX_DAILY_HOURS.severity,
           violation_date: targetDate,
           status: 'open',
           evidence_json: {
-            rule_source: source,
-            limit: MAX_DAILY_HOURS,
+            rule_name: RULES.MAX_DAILY_HOURS.name,
+            limit: RULES.MAX_DAILY_HOURS.limit,
             actual: Math.round(totalHours * 100) / 100,
             sessions: sessions.map(s => ({
               entry: s.entry.local_timestamp,
@@ -222,21 +159,20 @@ Deno.serve(async (req) => {
         })
       }
 
-      // Rule 2: BREAK_AFTER_HOURS (if worked > threshold without break)
+      // Rule 4: BREAK_REQUIRED (if worked > 6h without break)
       for (const session of sessions) {
-        if (session.hours > BREAK_AFTER_HOURS) {
+        if (session.hours > RULES.BREAK_REQUIRED.limit) {
           violations.push({
             company_id,
             employee_id: employee.id,
-            rule_code: 'BREAK_REQUIRED',
-            rule_version_id: ruleSetId || undefined,
-            severity: getSeverity('BREAK_AFTER_HOURS'),
+            rule_code: RULES.BREAK_REQUIRED.code,
+            severity: RULES.BREAK_REQUIRED.severity,
             violation_date: targetDate,
             status: 'open',
             evidence_json: {
-              rule_source: source,
+              rule_name: RULES.BREAK_REQUIRED.name,
               session_hours: Math.round(session.hours * 100) / 100,
-              threshold_hours: BREAK_AFTER_HOURS,
+              limit_hours: RULES.BREAK_REQUIRED.limit,
               entry: session.entry.local_timestamp,
               exit: session.exit?.local_timestamp
             }
@@ -244,7 +180,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Rule 3: MIN_DAILY_REST (check previous day's last exit to today's first entry)
+      // Rule 2: MIN_DAILY_REST (check previous day's last exit to today's first entry)
       const prevDate = new Date(targetDate)
       prevDate.setDate(prevDate.getDate() - 1)
       const prevDateStr = prevDate.toISOString().split('T')[0]
@@ -264,18 +200,17 @@ Deno.serve(async (req) => {
         const firstEntry = dayEvents.find(e => e.event_type === 'entry')
         if (firstEntry) {
           const restHours = (new Date(firstEntry.timestamp).getTime() - lastExit.getTime()) / (1000 * 60 * 60)
-          if (restHours < MIN_DAILY_REST) {
+          if (restHours < RULES.MIN_DAILY_REST.limit) {
             violations.push({
               company_id,
               employee_id: employee.id,
-              rule_code: 'MIN_DAILY_REST',
-              rule_version_id: ruleSetId || undefined,
-              severity: getSeverity('MIN_DAILY_REST'),
+              rule_code: RULES.MIN_DAILY_REST.code,
+              severity: RULES.MIN_DAILY_REST.severity,
               violation_date: targetDate,
               status: 'open',
               evidence_json: {
-                rule_source: source,
-                required_hours: MIN_DAILY_REST,
+                rule_name: RULES.MIN_DAILY_REST.name,
+                required_hours: RULES.MIN_DAILY_REST.limit,
                 actual_hours: Math.round(restHours * 100) / 100,
                 previous_exit: prevDayEvents[0].local_timestamp,
                 current_entry: firstEntry.local_timestamp
@@ -296,72 +231,65 @@ Deno.serve(async (req) => {
 
       const ytdSessions = calculateWorkSessions(ytdEvents || [])
       const ytdTotalHours = ytdSessions.reduce((sum, s) => sum + s.hours, 0)
-      
-      // Calculate standard hours based on working days
-      const startDateObj = new Date(startOfYear)
-      const endDateObj = new Date(targetDate)
-      const daysDiff = Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
+
+      // Assuming 8h/day standard, calculate approximate working days
+      const startDate = new Date(startOfYear)
+      const endDate = new Date(targetDate)
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       const workingDays = Math.floor(daysDiff * 5 / 7) // Approximate working days
-      const standardHoursPerDay = (rules.MAX_WEEKLY_HOURS as number || 40) / 5
-      const standardHours = workingDays * standardHoursPerDay
+      const standardHours = workingDays * 8
       const overtimeYTD = Math.max(0, ytdTotalHours - standardHours)
 
-      // Overtime thresholds (75%, 90%, 100% of max)
-      const overtime75 = OVERTIME_MAX_YEAR * 0.75
-      const overtime90 = OVERTIME_MAX_YEAR * 0.9
-
-      if (overtimeYTD > overtime75 && overtimeYTD <= overtime90) {
+      // Rule 5: OVERTIME_YTD_75
+      if (overtimeYTD > RULES.OVERTIME_YTD_75.limit && overtimeYTD <= RULES.OVERTIME_YTD_90.limit) {
         violations.push({
           company_id,
           employee_id: employee.id,
-          rule_code: 'OVERTIME_YTD_75',
-          rule_version_id: ruleSetId || undefined,
-          severity: 'warn',
+          rule_code: RULES.OVERTIME_YTD_75.code,
+          severity: RULES.OVERTIME_YTD_75.severity,
           violation_date: targetDate,
           status: 'open',
           evidence_json: {
-            rule_source: source,
-            threshold_hours: overtime75,
-            max_hours: OVERTIME_MAX_YEAR,
+            rule_name: RULES.OVERTIME_YTD_75.name,
+            threshold_hours: RULES.OVERTIME_YTD_75.limit,
             overtime_ytd: Math.round(overtimeYTD * 100) / 100,
-            percentage: Math.round((overtimeYTD / OVERTIME_MAX_YEAR) * 100)
+            percentage: Math.round((overtimeYTD / RULES.OVERTIME_YTD_CAP.limit) * 100)
           }
         })
       }
 
-      if (overtimeYTD > overtime90 && overtimeYTD <= OVERTIME_MAX_YEAR) {
+      // Rule 6: OVERTIME_YTD_90
+      if (overtimeYTD > RULES.OVERTIME_YTD_90.limit && overtimeYTD <= RULES.OVERTIME_YTD_CAP.limit) {
         violations.push({
           company_id,
           employee_id: employee.id,
-          rule_code: 'OVERTIME_YTD_90',
-          rule_version_id: ruleSetId || undefined,
-          severity: 'critical',
+          rule_code: RULES.OVERTIME_YTD_90.code,
+          severity: RULES.OVERTIME_YTD_90.severity,
           violation_date: targetDate,
           status: 'open',
           evidence_json: {
-            rule_source: source,
-            threshold_hours: overtime90,
-            max_hours: OVERTIME_MAX_YEAR,
+            rule_name: RULES.OVERTIME_YTD_90.name,
+            threshold_hours: RULES.OVERTIME_YTD_90.limit,
             overtime_ytd: Math.round(overtimeYTD * 100) / 100,
-            percentage: Math.round((overtimeYTD / OVERTIME_MAX_YEAR) * 100)
+            percentage: Math.round((overtimeYTD / RULES.OVERTIME_YTD_CAP.limit) * 100)
           }
         })
       }
 
-      if (overtimeYTD > OVERTIME_MAX_YEAR) {
+      // Rule 7: OVERTIME_YTD_CAP
+      if (overtimeYTD > RULES.OVERTIME_YTD_CAP.limit) {
         violations.push({
           company_id,
           employee_id: employee.id,
-          rule_code: 'OVERTIME_YTD_CAP',
-          rule_version_id: ruleSetId || undefined,
-          severity: 'critical',
+          rule_code: RULES.OVERTIME_YTD_CAP.code,
+          severity: RULES.OVERTIME_YTD_CAP.severity,
           violation_date: targetDate,
           status: 'open',
           evidence_json: {
-            rule_source: source,
-            limit_hours: OVERTIME_MAX_YEAR,
+            rule_name: RULES.OVERTIME_YTD_CAP.name,
+            limit_hours: RULES.OVERTIME_YTD_CAP.limit,
             overtime_ytd: Math.round(overtimeYTD * 100) / 100,
-            excess_hours: Math.round((overtimeYTD - OVERTIME_MAX_YEAR) * 100) / 100
+            excess_hours: Math.round((overtimeYTD - RULES.OVERTIME_YTD_CAP.limit) * 100) / 100
           }
         })
       }
@@ -371,7 +299,7 @@ Deno.serve(async (req) => {
     const dayOfWeek = new Date(targetDate).getDay()
     if (dayOfWeek === 0) { // Sunday
       for (const employee of employees || []) {
-        const weekViolation = await checkWeeklyRest(supabase as any, company_id, employee.id, targetDate, MIN_WEEKLY_REST, source, ruleSetId)
+        const weekViolation = await checkWeeklyRest(supabase as any, company_id, employee.id, targetDate)
         if (weekViolation) {
           violations.push(weekViolation)
         }
@@ -408,8 +336,6 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         date: targetDate,
-        rule_source: source,
-        effective_rules: rules,
         employees_evaluated: employees?.length || 0,
         violations_found: violations.length,
         violations: violations
@@ -438,7 +364,7 @@ function calculateWorkSessions(events: TimeEvent[]): WorkSession[] {
       const entryTime = new Date(currentEntry.timestamp).getTime()
       const exitTime = new Date(event.timestamp).getTime()
       const hours = (exitTime - entryTime) / (1000 * 60 * 60)
-      
+
       sessions.push({
         entry: currentEntry,
         exit: event,
@@ -461,14 +387,14 @@ function calculateWorkSessions(events: TimeEvent[]): WorkSession[] {
 }
 
 async function checkWeeklyRest(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   company_id: string,
   employee_id: string,
-  targetDate: string,
-  minWeeklyRest: number,
-  ruleSource: string,
-  ruleSetId: string | null
+  targetDate: string
 ): Promise<Violation | null> {
+  // Get dynamic rules for this employee
+  const RULES = await getEffectiveRules(supabase, company_id, employee_id);
+
   // Get events for the past 7 days
   const weekStart = new Date(targetDate)
   weekStart.setDate(weekStart.getDate() - 6)
@@ -498,18 +424,17 @@ async function checkWeeklyRest(
     }
   }
 
-  if (maxRestHours < minWeeklyRest) {
+  if (maxRestHours < RULES.MIN_WEEKLY_REST.limit) {
     return {
       company_id,
       employee_id,
-      rule_code: 'MIN_WEEKLY_REST',
-      rule_version_id: ruleSetId || undefined,
-      severity: 'critical',
+      rule_code: RULES.MIN_WEEKLY_REST.code,
+      severity: RULES.MIN_WEEKLY_REST.severity,
       violation_date: targetDate,
       status: 'open',
       evidence_json: {
-        rule_source: ruleSource,
-        required_hours: minWeeklyRest,
+        rule_name: RULES.MIN_WEEKLY_REST.name,
+        required_hours: RULES.MIN_WEEKLY_REST.limit,
         max_rest_found: Math.round(maxRestHours * 100) / 100,
         week_start: weekStartStr,
         week_end: targetDate

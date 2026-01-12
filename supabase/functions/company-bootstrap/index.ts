@@ -27,7 +27,7 @@ serve(async (req) => {
     });
 
     const body: BootstrapBody = await req.json();
-    
+
     if (!body.company_id) {
       return new Response(JSON.stringify({ error: "company_id requerido" }), {
         status: 400,
@@ -45,10 +45,10 @@ serve(async (req) => {
     // 1. Seed default absence types
     if (!body.skip_absence_types) {
       try {
-        const { error: absenceError } = await supabase.rpc("seed_default_absence_types", { 
-          p_company_id: companyId 
+        const { error: absenceError } = await supabase.rpc("seed_default_absence_types", {
+          p_company_id: companyId
         });
-        
+
         if (absenceError) {
           console.error("[company-bootstrap] absence types error:", absenceError);
           results.absence_types = { success: false, error: absenceError.message };
@@ -57,7 +57,7 @@ serve(async (req) => {
             .from("absence_types")
             .select("*", { count: "exact", head: true })
             .eq("company_id", companyId);
-          
+
           results.absence_types = { success: true, count: count || 0 };
           console.log(`[company-bootstrap] Seeded ${count} absence types`);
         }
@@ -72,7 +72,7 @@ serve(async (req) => {
       const { error: retentionError } = await supabase.rpc("seed_default_retention_config", {
         p_company_id: companyId
       });
-      
+
       if (retentionError) {
         console.error("[company-bootstrap] retention config error:", retentionError);
         results.retention_config = { success: false, error: retentionError.message };
@@ -81,7 +81,7 @@ serve(async (req) => {
           .from("data_retention_config")
           .select("*", { count: "exact", head: true })
           .eq("company_id", companyId);
-        
+
         results.retention_config = { success: true, count: count || 0 };
         console.log(`[company-bootstrap] Seeded ${count} retention configs`);
       }
@@ -90,7 +90,25 @@ serve(async (req) => {
       results.retention_config = { success: false, error: String(e) };
     }
 
-    // 3. Copy national holidays from global table
+    // 3. Seed default rule sets (Cycle 2)
+    try {
+      const { data: ruleResult, error: ruleError } = await supabase.rpc("seed_default_rule_sets", {
+        p_company_id: companyId
+      });
+
+      if (ruleError) {
+        console.error("[company-bootstrap] rule sets error:", ruleError);
+        results.rule_sets = { success: false, error: ruleError.message };
+      } else {
+        results.rule_sets = ruleResult;
+        console.log(`[company-bootstrap] Seeded rule sets for sector: ${ruleResult.sector}`);
+      }
+    } catch (e) {
+      console.error("[company-bootstrap] rule sets exception:", e);
+      results.rule_sets = { success: false, error: String(e) };
+    }
+
+    // 4. Copy national holidays from global table
     if (!body.skip_holidays) {
       try {
         // Get national holidays for current year
@@ -136,8 +154,8 @@ serve(async (req) => {
               company_id: companyId,
               holiday_date: h.holiday_date,
               holiday_type: h.type === 'nacional' ? 'nacional' : 'autonomico',
-              description: h.region 
-                ? `[${h.region}] ${h.name}` 
+              description: h.region
+                ? `[${h.region}] ${h.name}`
                 : h.name,
               is_working_day: false,
             }));

@@ -1,5 +1,5 @@
 // Types based on database schema
-export type AppRole = 'super_admin' | 'admin' | 'responsible' | 'employee';
+export type AppRole = 'super_admin' | 'admin' | 'responsible' | 'employee' | 'asesor';
 export type EmployeeStatus = 'active' | 'inactive' | 'suspended' | 'on_leave';
 export type EventType = 'entry' | 'exit';
 export type EventSource = 'qr' | 'pin' | 'manual';

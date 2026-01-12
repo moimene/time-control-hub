@@ -16,6 +16,7 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   isResponsible: boolean;
   isEmployee: boolean;
+  isAsesor: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer fetching roles/employee with setTimeout
         if (session?.user) {
           setTimeout(() => {
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
-      
+
       if (rolesData) {
         setRoles(rolesData.map(r => r.role as AppRole));
       }
@@ -77,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      
+
       if (employeeData) {
         setEmployee(employeeData as Employee);
       }
@@ -93,8 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({ 
-      email, 
+    const { error } = await supabase.auth.signUp({
+      email,
       password,
       options: {
         emailRedirectTo: redirectUrl
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSuperAdmin = roles.includes('super_admin');
   const isResponsible = roles.includes('responsible');
   const isEmployee = roles.includes('employee');
+  const isAsesor = roles.includes('asesor');
 
   return (
     <AuthContext.Provider value={{
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSuperAdmin,
       isResponsible,
       isEmployee,
+      isAsesor,
     }}>
       {children}
     </AuthContext.Provider>
