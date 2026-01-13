@@ -320,11 +320,19 @@ export function NationalHolidaysManager() {
     });
   };
 
-  // Filter holidays by tab and filters
-  const nationalHolidays = holidays?.filter(h => h.level === 'national' || (h.type === 'nacional' && !h.level)) || [];
-  const autonomicHolidays = holidays?.filter(h => h.level === 'autonomous' || (h.type === 'autonomico' && !h.municipality && !h.level)) || [];
+  // Filter holidays by tab and filters - use type as primary source of truth
+  const nationalHolidays = holidays?.filter(h => 
+    h.type === 'nacional' && !h.region && !h.municipality
+  ) || [];
+  
+  const autonomicHolidays = holidays?.filter(h => 
+    (h.type === 'autonomico' || h.level === 'autonomous') && 
+    h.region && 
+    !h.municipality
+  ) || [];
+  
   const localHolidays = holidays?.filter(h => {
-    const isLocal = h.level === 'local' || h.municipality;
+    const isLocal = h.municipality || h.level === 'local';
     if (!isLocal) return false;
     if (provinceFilter !== 'all' && h.province !== provinceFilter) return false;
     if (municipalityFilter !== 'all' && h.municipality !== municipalityFilter) return false;

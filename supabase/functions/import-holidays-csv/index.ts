@@ -172,16 +172,27 @@ serve(async (req) => {
           continue;
         }
 
-        const level = LEVEL_MAP[row.nivel] || row.nivel || 'nacional';
+        const levelType = LEVEL_MAP[row.nivel] || row.nivel || 'nacional';
         const region = REGION_MAP[row.comunidad_autonoma] || row.comunidad_autonoma || null;
+        
+        // Determine the correct level value based on CSV input or derived type
+        let derivedLevel: string;
+        if (row.nivel === 'national') derivedLevel = 'national';
+        else if (row.nivel === 'autonomous') derivedLevel = 'autonomous';
+        else if (row.nivel === 'local') derivedLevel = 'local';
+        else if (row.municipio) derivedLevel = 'local';
+        else if (region) derivedLevel = 'autonomous';
+        else if (levelType === 'nacional') derivedLevel = 'national';
+        else if (levelType === 'autonomico') derivedLevel = 'autonomous';
+        else derivedLevel = 'national';
         
         const holidayData = {
           year: yearNum,
           holiday_date: row.fecha,
           name: row.nombre,
-          type: level === 'local' ? 'autonomico' : level, // DB only has nacional/autonomico
+          type: derivedLevel === 'local' ? 'autonomico' : (levelType === 'local' ? 'autonomico' : levelType), // DB only has nacional/autonomico
           region: region,
-          level: row.nivel || 'national',
+          level: derivedLevel,
           province: row.provincia || null,
           municipality: row.municipio || null,
           island: row.isla || null,
