@@ -27,6 +27,7 @@ import {
   Shield,
   Loader2
 } from "lucide-react";
+import { sanitizeHtml } from "@/lib/security";
 
 export function LegalDocumentsSection() {
   const { companyId, company } = useCompany();
@@ -373,12 +374,12 @@ export function LegalDocumentsSection() {
             <div className="prose prose-sm max-w-none">
               <div 
                 dangerouslySetInnerHTML={{ 
-                  __html: selectedTemplate 
+                    __html: sanitizeHtml(selectedTemplate
                     ? substituteVariables(selectedTemplate.contentMarkdown, variableValues)
                         .replace(/\n/g, '<br>')
                         .replace(/#{1,6}\s(.+)/g, '<strong>$1</strong>')
                         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                    : '' 
+                    : '')
                 }} 
               />
             </div>
