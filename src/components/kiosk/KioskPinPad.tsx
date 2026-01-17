@@ -208,6 +208,7 @@ export function KioskPinPad({
             size="icon"
             className="absolute left-4 top-4"
             onClick={handleBack}
+            aria-label="Volver"
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
@@ -356,6 +357,7 @@ export function KioskPinPad({
               className={cn("h-16 transition-colors", buttonAccent)}
               onClick={handleDelete}
               disabled={isLoading || isValidating}
+              aria-label="Borrar último dígito"
             >
               <Delete className="h-6 w-6" />
             </Button>
