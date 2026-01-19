@@ -1218,6 +1218,66 @@ async function healthCheck(): Promise<{
   }
 }
 
+// Verify authorization for the request
+async function authorizeRequest(
+  req: Request,
+  supabaseAdmin: SupabaseClient,
+  companyId?: string
+): Promise<void> {
+  // 1. Check Service Role Key (Bypass for internal scheduler)
+  const authHeader = req.headers.get('Authorization');
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  // Check if the token matches service role key directly
+  if (authHeader?.replace('Bearer ', '') === serviceRoleKey) {
+    return;
+  }
+
+  // 2. Verify User Token
+  if (!authHeader) throw new Error('Unauthorized: No token provided');
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error('Unauthorized: Invalid token');
+  }
+
+  // If no companyId (e.g. health check), we just ensure the user is authenticated
+  if (!companyId) {
+    return;
+  }
+
+  // 3. Verify Company Access
+  // Check if user is super_admin
+  const { data: roles } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id);
+
+  if (roles?.some(r => r.role === 'super_admin')) {
+    return;
+  }
+
+  // Check if user belongs to the target company
+  const { data: userCompany } = await supabaseAdmin
+    .from('user_company')
+    .select('company_id')
+    .eq('user_id', user.id)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (!userCompany) {
+    throw new Error('Forbidden: User does not belong to this company');
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1225,6 +1285,13 @@ serve(async (req) => {
 
   try {
     const { action, company_id, ...params } = await req.json();
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify authorization
+    await authorizeRequest(req, supabase, company_id);
 
     // Health check doesn't require company_id
     if (action === 'health_check') {
@@ -1239,10 +1306,6 @@ serve(async (req) => {
     if (!company_id) {
       throw new Error('company_id is required');
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get company info
     const { data: company } = await supabase
