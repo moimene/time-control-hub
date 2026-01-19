@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -35,6 +35,9 @@ export function EmployeeCredentialsDialog({ employee, open, onOpenChange }: Empl
   const [password, setPassword] = useState('');
   const [showCredentials, setShowCredentials] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
+
+  const emailId = useId();
+  const passwordId = useId();
 
   const createUserMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
@@ -151,11 +154,11 @@ export function EmployeeCredentialsDialog({ employee, open, onOpenChange }: Empl
 
           {/* Email */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label htmlFor={emailId} className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Email del empleado
             </Label>
-            <Input value={employee?.email || ''} disabled />
+            <Input id={emailId} value={employee?.email || ''} disabled />
             {!employee?.email && (
               <p className="text-sm text-destructive">
                 El empleado debe tener email configurado para crear usuario
@@ -165,11 +168,12 @@ export function EmployeeCredentialsDialog({ employee, open, onOpenChange }: Empl
 
           {/* Password */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label htmlFor={passwordId} className="flex items-center gap-2">
               <KeyRound className="h-4 w-4" />
               Contraseña
             </Label>
             <Input
+              id={passwordId}
               type="text"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
