@@ -1,0 +1,4 @@
+## 2025-05-23 - Edge Function Public Exposure
+**Vulnerability:** The `qtsp-notarize` Supabase Edge Function was publicly accessible via `serve` without verifying the `Authorization` header. Although it instantiated a Supabase client with the Service Role Key, it did not check if the caller was authorized to trigger the function.
+**Learning:** Instantiating a Supabase Admin client inside a function does not automatically protect the function endpoint itself. The `serve` handler receives raw requests and must manually validate authentication using `req.headers.get('Authorization')` and `supabase.auth.getUser()`.
+**Prevention:** Always implement an "Authentication Gate" at the very beginning of any public Edge Function. Verify that the token is either the Service Role Key (for internal calls) or a valid User JWT.
