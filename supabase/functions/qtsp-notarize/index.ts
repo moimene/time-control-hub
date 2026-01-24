@@ -1244,6 +1244,48 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Security Check: Verify Authorization
+    // Allow if request uses Service Role Key (Internal System Call)
+    // Otherwise, verify user token and company access
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+
+    if (token !== supabaseServiceKey) {
+      if (!token) {
+        throw new Error('Unauthorized: Missing credentials');
+      }
+
+      // Verify user token
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
+      });
+
+      const { data: { user }, error: userError } = await userClient.auth.getUser();
+
+      if (userError || !user) {
+        console.error('Auth error:', userError);
+        throw new Error('Unauthorized: Invalid user token');
+      }
+
+      // Verify user belongs to the requested company
+      // user_belongs_to_company must be an RPC function in the database
+      const { data: hasAccess, error: rpcError } = await supabase.rpc('user_belongs_to_company', {
+        _company_id: company_id,
+        _user_id: user.id
+      });
+
+      if (rpcError) {
+        console.error('RPC check error:', rpcError);
+        throw new Error('Authorization check failed');
+      }
+
+      if (!hasAccess) {
+        console.warn(`User ${user.id} attempted to access company ${company_id} without permission`);
+        throw new Error('Forbidden: You do not have access to this company');
+      }
+    }
+
     // Get company info
     const { data: company } = await supabase
       .from('company')
