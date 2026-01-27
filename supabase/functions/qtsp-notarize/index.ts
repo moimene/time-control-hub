@@ -1218,6 +1218,55 @@ async function healthCheck(): Promise<{
   }
 }
 
+// Helper to verify authorization
+async function verifyAuthorization(
+  req: Request,
+  companyId: string,
+  supabaseServiceKey: string,
+  supabaseUrl: string
+): Promise<void> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    throw new Error('Missing Authorization header');
+  }
+
+  // 1. Check if it's an internal call using Service Role Key
+  if (authHeader === `Bearer ${supabaseServiceKey}`) {
+    return; // Authorized as internal system
+  }
+
+  // 2. If not internal, assume it's a user JWT and verify
+  // Note: We use the auth header to create a client that acts as the user
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+  const authClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: userError } = await authClient.auth.getUser();
+
+  if (userError || !user) {
+    console.error('User verification failed:', userError);
+    throw new Error('Unauthorized: Invalid user token');
+  }
+
+  // 3. Check if user belongs to the company using RPC
+  // This RPC must be available in the database
+  const { data: belongs, error: rpcError } = await authClient.rpc('user_belongs_to_company', {
+    _user_id: user.id,
+    _company_id: companyId
+  });
+
+  if (rpcError) {
+    console.error('RPC permission check failed:', rpcError);
+    throw new Error('Forbidden: Authorization check failed');
+  }
+
+  if (!belongs) {
+    console.error(`User ${user.id} does not belong to company ${companyId}`);
+    throw new Error('Forbidden: User does not belong to the target company');
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1225,6 +1274,9 @@ serve(async (req) => {
 
   try {
     const { action, company_id, ...params } = await req.json();
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Health check doesn't require company_id
     if (action === 'health_check') {
@@ -1240,8 +1292,9 @@ serve(async (req) => {
       throw new Error('company_id is required');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Verify Authorization
+    await verifyAuthorization(req, company_id, supabaseServiceKey, supabaseUrl);
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get company info
