@@ -1244,6 +1244,46 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // =============================================================================
+    // SECURITY: AUTHENTICATION & AUTHORIZATION
+    // =============================================================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing Authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    // Allow internal calls signed with Service Role Key
+    if (token !== supabaseServiceKey) {
+      // For external calls, verify user and permission
+      const supabaseAnon = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: userError } = await supabaseAnon.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Invalid user token');
+      }
+
+      // Check if user belongs to the company
+      const { data: hasAccess, error: rpcError } = await supabase.rpc('user_belongs_to_company', {
+        _user_id: user.id,
+        _company_id: company_id
+      });
+
+      if (rpcError) {
+        console.error('Permission check failed:', rpcError);
+        throw new Error('Permission check failed');
+      }
+
+      if (!hasAccess) {
+        throw new Error('User does not belong to this company');
+      }
+    }
+
     // Get company info
     const { data: company } = await supabase
       .from('company')
