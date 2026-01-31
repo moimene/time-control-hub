@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -37,6 +37,7 @@ import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
 import { EmployeeCredentialsDialog } from '@/components/employees/EmployeeCredentialsDialog';
 import { AUTONOMOUS_COMMUNITIES, getAutonomousCommunityName } from '@/lib/autonomousCommunities';
+import { filterEmployees } from '@/lib/employeeUtils';
 import type { EmployeeStatus } from '@/types/database';
 
 interface EmployeeWithLocation {
@@ -150,11 +151,9 @@ export default function Employees() {
     },
   });
 
-  const filteredEmployees = employees?.filter(
-    (e) =>
-      e.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.last_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.employee_code.toLowerCase().includes(search.toLowerCase())
+  const filteredEmployees = useMemo(
+    () => filterEmployees(employees || [], search),
+    [employees, search]
   );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
