@@ -18,11 +18,71 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    // Verify caller is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify roles (admin, super_admin, or asesor)
+    const { data: roles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', caller.id);
+
+    const hasPermission = roles?.some(r => ['admin', 'super_admin', 'asesor'].includes(r.role));
+
+    if (!hasPermission) {
+      return new Response(JSON.stringify({ error: "No tienes permisos para realizar esta acción" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { action, employee_id, email, password, user_id, new_password } = await req.json();
 
-    console.log(`Processing action: ${action}`);
+    console.log(`Processing action: ${action} by user ${caller.id}`);
 
     if (action === 'create') {
+      // Security check: verify caller belongs to the same company as the employee
+      const { data: employeeCheck } = await supabaseAdmin
+        .from('employees')
+        .select('company_id')
+        .eq('id', employee_id)
+        .single();
+
+      if (!employeeCheck) {
+        return new Response(JSON.stringify({ error: "Empleado no encontrado" }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const isSuperAdmin = roles?.some(r => r.role === 'super_admin');
+      if (!isSuperAdmin) {
+        const { data: callerCompany } = await supabaseAdmin
+          .from('user_company')
+          .select('company_id')
+          .eq('user_id', caller.id)
+          .eq('company_id', employeeCheck.company_id)
+          .maybeSingle();
+
+        if (!callerCompany) {
+          return new Response(JSON.stringify({ error: "No tienes acceso a esta empresa" }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -56,12 +116,8 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get company_id from employee
-      const { data: employeeData } = await supabaseAdmin
-        .from('employees')
-        .select('company_id')
-        .eq('id', employee_id)
-        .single();
+      // Use the already fetched employee data
+      const employeeData = employeeCheck;
 
       // Add user role
       const { error: roleError } = await supabaseAdmin
@@ -98,6 +154,37 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'reset_password') {
+      const isSuperAdmin = roles?.some(r => r.role === 'super_admin');
+
+      if (!isSuperAdmin) {
+        // Get target user's company
+        const { data: targetUserCompany } = await supabaseAdmin
+          .from('user_company')
+          .select('company_id')
+          .eq('user_id', user_id)
+          .maybeSingle();
+
+        if (!targetUserCompany) {
+          return new Response(JSON.stringify({ error: "Usuario destino no asociado a empresa" }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Check if caller is in same company
+        const { data: callerCompany } = await supabaseAdmin
+          .from('user_company')
+          .select('company_id')
+          .eq('user_id', caller.id)
+          .eq('company_id', targetUserCompany.company_id)
+          .maybeSingle();
+
+        if (!callerCompany) {
+          return new Response(JSON.stringify({ error: "No tienes acceso a esta empresa" }), {
+            status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
       const { error: resetError } = await supabaseAdmin.auth.admin.updateUserById(
         user_id,
         { password: new_password }
