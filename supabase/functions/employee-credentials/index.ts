@@ -22,6 +22,64 @@ Deno.serve(async (req) => {
 
     console.log(`Processing action: ${action}`);
 
+    // 1. Verify Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // 2. Verify Admin Role
+    const { data: roles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    const hasAdminRole = roles?.some((r: { role: string }) => ['admin', 'super_admin'].includes(r.role));
+    if (!hasAdminRole) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Admin role required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // 3. Verify Tenancy (ensure admin has access to the target company)
+    const isSuperAdmin = roles?.some((r: { role: string }) => r.role === 'super_admin');
+    if (!isSuperAdmin) {
+      let targetCompanyId: string | null = null;
+
+      if (action === 'create' && employee_id) {
+        const { data: targetEmployee } = await supabaseAdmin
+          .from('employees')
+          .select('company_id')
+          .eq('id', employee_id)
+          .single();
+        targetCompanyId = targetEmployee?.company_id;
+      } else if (action === 'reset_password' && user_id) {
+        const { data: targetEmployee } = await supabaseAdmin
+          .from('employees')
+          .select('company_id')
+          .eq('user_id', user_id)
+          .single();
+        targetCompanyId = targetEmployee?.company_id;
+      }
+
+      if (targetCompanyId) {
+        const { data: adminCompany } = await supabaseAdmin
+          .from('user_company')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .eq('company_id', targetCompanyId)
+          .single();
+
+        if (!adminCompany) {
+          return new Response(JSON.stringify({ error: 'Unauthorized: Access to this company denied' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+    }
+
     if (action === 'create') {
       // Create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

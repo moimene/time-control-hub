@@ -1,0 +1,4 @@
+## 2024-05-23 - Critical: Unauthenticated Admin Function
+**Vulnerability:** The `employee-credentials` Edge Function exposed administrative actions (create user, reset password) without verifying the caller's identity or permissions. Any user with the function URL could create accounts or reset passwords.
+**Learning:** Using `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS/Auth is necessary for admin tasks, but it shifts the responsibility of authentication to the function code itself. We missed explicit auth checks at the function entry point.
+**Prevention:** All Edge Functions performing privileged actions must explicitly validate the `Authorization` header using `supabase.auth.getUser()` and verify roles/tenancy before processing parameters.
