@@ -18,9 +18,99 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    // Verify authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check permissions
+    const { data: roles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    const isAdmin = roles?.some((r: { role: string }) => ['admin', 'super_admin'].includes(r.role));
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { action, employee_id, email, password, user_id, new_password } = await req.json();
 
-    console.log(`Processing action: ${action}`);
+    console.log(`Processing action: ${action} by user ${user.id}`);
+
+    // Verify tenancy
+    if (action === 'create') {
+      const { data: targetEmployee } = await supabaseAdmin
+        .from('employees')
+        .select('company_id')
+        .eq('id', employee_id)
+        .maybeSingle();
+
+      if (!targetEmployee) {
+        return new Response(
+          JSON.stringify({ error: 'Employee not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: userCompany } = await supabaseAdmin
+        .from('user_company')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .eq('company_id', targetEmployee.company_id)
+        .maybeSingle();
+
+      if (!userCompany) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: You do not have access to this company' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else if (action === 'reset_password') {
+      const { data: targetEmployee } = await supabaseAdmin
+        .from('employees')
+        .select('company_id')
+        .eq('user_id', user_id)
+        .maybeSingle();
+
+      if (!targetEmployee) {
+        return new Response(
+          JSON.stringify({ error: 'Employee not found for this user' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: userCompany } = await supabaseAdmin
+        .from('user_company')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .eq('company_id', targetEmployee.company_id)
+        .maybeSingle();
+
+      if (!userCompany) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: You do not have access to this company' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (action === 'create') {
       // Create auth user
