@@ -1244,6 +1244,46 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // =============================================================================
+    // SECURITY CHECK: Authorization & Tenancy
+    // =============================================================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing Authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    // Allow if called with Service Role Key (Internal System)
+    const isServiceCall = token === supabaseServiceKey;
+
+    if (!isServiceCall) {
+      // User call: Verify JWT and Tenancy
+      const supabaseUser = createClient(
+        supabaseUrl,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error('Unauthorized: Invalid user token');
+      }
+
+      // Check if user belongs to the requested company
+      const { data: membership } = await supabase
+        .from('user_company')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .maybeSingle();
+
+      if (!membership) {
+        console.error(`Security Alert: User ${user.id} attempted to access company ${company_id} without permission`);
+        throw new Error('Forbidden: User does not belong to this company');
+      }
+    }
+
     // Get company info
     const { data: company } = await supabase
       .from('company')
