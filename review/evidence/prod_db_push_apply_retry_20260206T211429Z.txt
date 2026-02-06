@@ -1,0 +1,48 @@
+Connecting to remote database...
+Do you want to push these migrations to the remote database?
+ • 20260109174115_ce34cc17-4919-4d03-bb9d-11ca5f668887.sql
+ • 20260109174732_aaaa1876-f39c-4940-b011-f945bf1731db.sql
+ • 20260109175343_c303dedd-914b-464c-8371-e36462a55d45.sql
+ • 20260109181137_f233bd0b-3fdc-4321-a26d-48fecd8bd3a9.sql
+ • 20260111000000_fix_rls_flipped_args.sql
+ • 20260111000001_add_asesor_role.sql
+ • 20260111000003_add_rule_templates.sql
+ • 20260111095528_8d92389b-7e62-4b19-b3be-d0b9af72d14f.sql
+ • 20260111100213_ab761519-66a5-4b3a-8800-d61aabedd583.sql
+ • 20260112030311_9c545219-63f8-4834-92dc-717d4fa8a603.sql
+ • 20260112041103_372624e2-d2a7-47fb-ae10-8d4bd80af1f1.sql
+ • 20260206201500_a7b56cee-83d1-4110-934e-c81578237351.sql
+
+ [Y/n] y
+Applying migration 20260109174115_ce34cc17-4919-4d03-bb9d-11ca5f668887.sql...
+NOTICE (00000): policy "Super admins can manage company rule versions" for relation "public.rule_versions" does not exist, skipping
+Applying migration 20260109174732_aaaa1876-f39c-4940-b011-f945bf1731db.sql...
+Applying migration 20260109175343_c303dedd-914b-464c-8371-e36462a55d45.sql...
+Applying migration 20260109181137_f233bd0b-3fdc-4321-a26d-48fecd8bd3a9.sql...
+NOTICE (00000): trigger "on_company_created_bootstrap" for relation "public.company" does not exist, skipping
+Applying migration 20260111000000_fix_rls_flipped_args.sql...
+NOTICE (00000): policy "Admins can manage employees" for relation "public.employees" does not exist, skipping
+NOTICE (00000): policy "Responsibles can view employees" for relation "public.employees" does not exist, skipping
+NOTICE (00000): policy "Employees can view own record" for relation "public.employees" does not exist, skipping
+NOTICE (00000): policy "Admins can view all events" for relation "public.time_events" does not exist, skipping
+NOTICE (00000): policy "Responsibles can view all events" for relation "public.time_events" does not exist, skipping
+NOTICE (00000): policy "Employees can view own events" for relation "public.time_events" does not exist, skipping
+Applying migration 20260111000001_add_asesor_role.sql...
+ERROR: unsafe use of new value "asesor" of enum type app_role (SQLSTATE 55P04)                             
+At statement: 1                                                                                            
+-- Update is_admin_or_above to potentially include or exclude asesor depending on requirements             
+-- For now, let's keep it as is and create is_admin_or_asesor if needed                                    
+-- Actually, the user says "Asesor Laboral: acceso limitado y auditado".                                   
+-- Usually they should see what an admin sees but maybe not manage.                                        
+                                                                                                           
+CREATE OR REPLACE FUNCTION public.is_admin_or_asesor(_user_id uuid)                                        
+RETURNS boolean                                                                                            
+LANGUAGE sql                                                                                               
+STABLE                                                                                                     
+SECURITY DEFINER                                                                                           
+SET search_path = public                                                                                   
+AS $$                                                                                                      
+  SELECT EXISTS (                                                                                          
+    SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role IN ('admin', 'super_admin', 'asesor')
+                                                                                                  ^        
+Try rerunning the command with --debug to troubleshoot the error.

@@ -10,7 +10,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "security:probe-credentials": "node scripts/security/probe-credential-revocation.mjs",
+    "security:rotate-kiosk-pins": "node scripts/security/rotate-kiosk-default-pins.mjs",
+    "security:probe-kiosk-default-pins": "node scripts/security/probe-kiosk-default-pin-revocation.mjs",
+    "security:audit-rls": "node scripts/security/audit-rls-flipped-args.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

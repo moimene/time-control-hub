@@ -62,6 +62,8 @@ const queryClient = new QueryClient();
 function AppRoutes() {
   const { user, loading, isAdmin, isResponsible, isEmployee, isSuperAdmin, isAsesor } = useAuth();
   const { hasCompany, isLoading: companyLoading } = useCompany();
+  const enableTestCredentialsRoute =
+    import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_CREDENTIALS === "true";
 
   if (loading || (user && companyLoading)) {
     return (
@@ -98,8 +100,10 @@ function AppRoutes() {
       {/* Kiosk route - no auth required */}
       <Route path="/kiosk" element={<KioskHome />} />
 
-      {/* Test credentials page - no auth required */}
-      <Route path="/test-credentials" element={<TestCredentials />} />
+      {/* Test credentials page is disabled by default outside explicit dev/test flag */}
+      {enableTestCredentialsRoute && (
+        <Route path="/test-credentials" element={<TestCredentials />} />
+      )}
 
       {/* Admin routes */}
       <Route path="/admin" element={

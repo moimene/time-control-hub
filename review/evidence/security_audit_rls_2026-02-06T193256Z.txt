@@ -1,0 +1,15 @@
+Found flipped user_belongs_to_company calls:
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:62 USING (company_id IS NOT NULL AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:67 USING (company_id IS NOT NULL AND public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:107 OR public.user_belongs_to_company(rs.company_id, auth.uid())
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:118 AND public.user_belongs_to_company(rs.company_id, auth.uid())
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:160 USING (public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:164 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:207 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:212 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:249 USING (public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:253 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:293 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106073715_1a500aeb-77da-488b-8754-4092030864f3.sql:297 USING (public.is_admin_or_above(auth.uid()) AND public.user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106094329_9f538d80-3929-4c71-9573-32bcb5964304.sql:28 USING (is_admin_or_above(auth.uid()) AND user_belongs_to_company(company_id, auth.uid()));
+- [allowed] 20260106094329_9f538d80-3929-4c71-9573-32bcb5964304.sql:33 WITH CHECK (is_admin_or_above(auth.uid()) AND user_belongs_to_company(company_id, auth.uid()));

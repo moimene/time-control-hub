@@ -54,6 +54,115 @@ interface AbsenceType {
   is_paid: boolean;
 }
 
+type AppRole = 'super_admin' | 'admin' | 'responsible' | 'employee' | 'asesor';
+
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function authorizeAbsenceCreate(
+  req: Request,
+  supabase: ReturnType<typeof createClient>,
+  companyId: string,
+  employeeId: string,
+  origin: 'employee' | 'admin'
+): Promise<{ userId: string; roles: AppRole[]; isAdminLike: boolean } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return jsonResponse({ error: 'Missing Authorization header' }, 401);
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  if (!token) {
+    return jsonResponse({ error: 'Invalid Authorization token' }, 401);
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData?.user) {
+    return jsonResponse({ error: 'Unauthorized user' }, 401);
+  }
+
+  const userId = authData.user.id;
+  const { data: roleRows, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+
+  if (roleError) {
+    throw new Error(`Unable to resolve user roles: ${roleError.message}`);
+  }
+
+  const roles = (roleRows || []).map(r => r.role as AppRole);
+  const isSuperAdmin = roles.includes('super_admin');
+  const isAdminLike = isSuperAdmin || roles.includes('admin') || roles.includes('responsible');
+  const isEmployee = roles.includes('employee');
+
+  if (!isAdminLike && !isEmployee) {
+    return jsonResponse({ error: 'Insufficient permissions' }, 403);
+  }
+
+  if (origin === 'admin' && !isAdminLike) {
+    return jsonResponse({ error: 'Only admin/responsible users can set origin=admin' }, 403);
+  }
+
+  const { data: targetEmployee, error: targetEmployeeError } = await supabase
+    .from('employees')
+    .select('id, user_id, company_id')
+    .eq('id', employeeId)
+    .maybeSingle();
+
+  if (targetEmployeeError) {
+    throw new Error(`Unable to resolve employee: ${targetEmployeeError.message}`);
+  }
+
+  if (!targetEmployee) {
+    return jsonResponse({ error: 'Employee not found' }, 400);
+  }
+
+  if (targetEmployee.company_id !== companyId) {
+    return jsonResponse({ error: 'employee_id does not belong to provided company_id' }, 400);
+  }
+
+  if (isSuperAdmin) {
+    return { userId, roles, isAdminLike };
+  }
+
+  const { data: linkedCompany, error: linkedCompanyError } = await supabase
+    .from('user_company')
+    .select('company_id')
+    .eq('user_id', userId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (linkedCompanyError) {
+    throw new Error(`Unable to validate user-company link: ${linkedCompanyError.message}`);
+  }
+
+  const { data: linkedEmployee, error: linkedEmployeeError } = await supabase
+    .from('employees')
+    .select('id, company_id')
+    .eq('user_id', userId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (linkedEmployeeError) {
+    throw new Error(`Unable to validate employee-company link: ${linkedEmployeeError.message}`);
+  }
+
+  if (!linkedCompany && !linkedEmployee) {
+    return jsonResponse({ error: 'User not assigned to requested company' }, 403);
+  }
+
+  if (!isAdminLike && targetEmployee.user_id !== userId) {
+    return jsonResponse({ error: 'Employees can only create absences for themselves' }, 403);
+  }
+
+  return { userId, roles, isAdminLike };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -72,6 +181,15 @@ serve(async (req) => {
       justification_files, justification_meta, travel_km,
       origin = 'employee', center_id
     } = body;
+
+    if (!company_id || !employee_id || !absence_type_id || !start_date || !end_date) {
+      return jsonResponse({ error: 'Missing required absence request parameters' }, 400);
+    }
+
+    const authContext = await authorizeAbsenceCreate(req, supabase, company_id, employee_id, origin);
+    if (authContext instanceof Response) {
+      return authContext;
+    }
 
     // Verificar idempotencia
     const idempotencyKey = req.headers.get('idempotency-key');
@@ -352,8 +470,8 @@ serve(async (req) => {
 
     // 13. Registrar en audit_log
     await supabase.from('audit_log').insert({
-      actor_id: employee_id,
-      actor_type: origin === 'admin' ? 'admin' : 'employee',
+      actor_id: authContext.userId,
+      actor_type: authContext.isAdminLike ? 'admin' : 'employee',
       action: 'absence_request_created',
       entity_type: 'absence_request',
       entity_id: request.id,

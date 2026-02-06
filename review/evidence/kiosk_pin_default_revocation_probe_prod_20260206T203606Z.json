@@ -1,0 +1,205 @@
+{
+  "started_at": "2026-02-06T20:33:21.837Z",
+  "finished_at": "2026-02-06T20:33:23.831Z",
+  "environment": {
+    "supabase_url": "https://ouxzjfqqgxlvxhjyihum.supabase.co"
+  },
+  "totals": {
+    "probed": 21,
+    "active_default_pins": 0,
+    "missing": 0,
+    "errored": 21
+  },
+  "active": [],
+  "results": [
+    {
+      "employee_code": "BAR001",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "BAR002",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "BAR003",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "BAR004",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "BAR005",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "ZAP001",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "ZAP002",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "ZAP003",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "ZAP004",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "DEN001",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "DEN002",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "DEN003",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "DEN004",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "DEN005",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "FIS001",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "FIS002",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "FIS003",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "FIS004",
+      "source": "src/pages/TestCredentials.tsx",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "EMP001",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "EMP002",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    },
+    {
+      "employee_code": "EMP003",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "employee_id": null,
+      "company_id": null,
+      "default_pin_still_valid": false,
+      "missing": false,
+      "error": "Could not find the table 'public.employees' in the schema cache"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+run-compliance-tests
+seed-compliance-data

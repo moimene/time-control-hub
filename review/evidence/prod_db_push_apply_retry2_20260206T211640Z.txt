@@ -1,0 +1,30 @@
+Connecting to remote database...
+Do you want to push these migrations to the remote database?
+ • 20260111000001_add_asesor_role.sql
+ • 20260111000003_add_rule_templates.sql
+ • 20260111095528_8d92389b-7e62-4b19-b3be-d0b9af72d14f.sql
+ • 20260111100213_ab761519-66a5-4b3a-8800-d61aabedd583.sql
+ • 20260112030311_9c545219-63f8-4834-92dc-717d4fa8a603.sql
+ • 20260112041103_372624e2-d2a7-47fb-ae10-8d4bd80af1f1.sql
+ • 20260206201500_a7b56cee-83d1-4110-934e-c81578237351.sql
+
+ [Y/n] y
+Applying migration 20260111000001_add_asesor_role.sql...
+Applying migration 20260111000003_add_rule_templates.sql...
+Applying migration 20260111095528_8d92389b-7e62-4b19-b3be-d0b9af72d14f.sql...
+NOTICE (42710): enum label "asesor" already exists, skipping
+Applying migration 20260111100213_ab761519-66a5-4b3a-8800-d61aabedd583.sql...
+NOTICE (00000): policy "asesor_can_view_assigned_company_employees" for relation "public.employees" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_events" for relation "public.time_events" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_violations" for relation "public.compliance_violations" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_incidents" for relation "public.compliance_incidents" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_rules" for relation "public.rule_sets" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_audit" for relation "public.audit_log" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_absences" for relation "public.absence_requests" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_company_corrections" for relation "public.correction_requests" does not exist, skipping
+NOTICE (00000): policy "asesor_can_view_assigned_companies" for relation "public.company" does not exist, skipping
+Applying migration 20260112030311_9c545219-63f8-4834-92dc-717d4fa8a603.sql...
+NOTICE (00000): Total companies seeded: 0
+Applying migration 20260112041103_372624e2-d2a7-47fb-ae10-8d4bd80af1f1.sql...
+Applying migration 20260206201500_a7b56cee-83d1-4110-934e-c81578237351.sql...
+Finished supabase db push.

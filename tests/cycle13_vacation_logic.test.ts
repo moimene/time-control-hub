@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { it, expect, beforeAll } from 'vitest';
+import { describeServiceIntegration, getServiceClient } from './test_env';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a'; // Bar El Rincón
-const EMPLOYEE_EMAIL = 'juan.martinez@elrincon.com';
-const CURRENT_YEAR = 2026;
-
-describe('Cycle 13: Vacation Logic & Pro-rata', () => {
+describeServiceIntegration('Cycle 13: Vacation Logic & Pro-rata', () => {
+    const supabase = getServiceClient();
+    const COMPANY_ID = process.env.COMPLIANCE_COMPANY_ID || 'a0000000-0000-0000-0000-00000000000a'; // Bar El Rincón
+    const EMPLOYEE_EMAIL = process.env.COMPLIANCE_EMPLOYEE_EMAIL || 'juan.martinez@elrincon.com';
+    const CURRENT_YEAR = Number(process.env.TEST_VACATION_YEAR || '2026');
     let employeeId: string;
 
     beforeAll(async () => {

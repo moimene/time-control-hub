@@ -1,21 +1,20 @@
-import { describe, it, expect } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-import { v4 as uuidv4 } from 'uuid';
+import { it, expect } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { describeIntegration, getAnonClient } from './test_env';
 
-dotenv.config();
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-
-describe('Cycle 5: Offline PWA + Sync', () => {
+describeIntegration('Cycle 5: Offline PWA + Sync', () => {
+    const supabase = getAnonClient();
 
     it('Should sync offline events and prevent duplicates', async () => {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
         // 1. Prepare offline events
-        const offlineUuid = uuidv4();
-        const employeeCode = 'EMP001'; // Juan Martinez
+        const offlineUuid = randomUUID();
+        const employeeCode = process.env.TEST_KIOSK_EMPLOYEE_CODE || 'EMP001'; // Seed default
+        const companyId = process.env.TEST_KIOSK_COMPANY_ID || 'c0000000-0000-0000-0000-000000000001';
+        const pin = process.env.TEST_KIOSK_PIN;
+        if (!pin) {
+            console.warn('Skipping offline sync test: missing TEST_KIOSK_PIN');
+            return;
+        }
         const timestamp = new Date().toISOString();
 
         const events = [
@@ -25,7 +24,7 @@ describe('Cycle 5: Offline PWA + Sync', () => {
                 event_type: 'entry',
                 local_timestamp: timestamp,
                 auth_method: 'pin',
-                auth_data: '1234'
+                auth_data: pin
             }
         ];
 
@@ -34,11 +33,12 @@ describe('Cycle 5: Offline PWA + Sync', () => {
             body: {
                 action: 'sync_offline',
                 events: events,
-                company_id: 'c0000000-0000-0000-0000-000000000001'
+                company_id: companyId
             }
         });
 
         if (error) console.error('Sync error:', error);
+        expect(error).toBeNull();
         expect(result.success).toBe(true);
         expect(result.synced).toBe(1);
 
@@ -47,7 +47,7 @@ describe('Cycle 5: Offline PWA + Sync', () => {
             body: {
                 action: 'sync_offline',
                 events: events,
-                company_id: 'c0000000-0000-0000-0000-000000000001'
+                company_id: companyId
             }
         });
 

@@ -1,24 +1,18 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { it, expect } from 'vitest';
+import { describeIntegration, getAnonClient, requireCredential } from './test_env';
 
-dotenv.config();
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-
-async function getClient(email: string, password: string) {
-    const client = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+async function getClient(prefix: string) {
+    const client = getAnonClient();
+    const { email, password } = requireCredential(prefix);
+    const { error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return client;
 }
 
-describe('Cycle 6: Correcciones + Workflow + Auditoría', () => {
+describeIntegration('Cycle 6: Correcciones + Workflow + Auditoría', () => {
 
     it('Employee should be able to request a correction', async () => {
-        const email = 'juan.martinez@elrincon.com';
-        const client = await getClient(email, 'emp123');
+        const client = await getClient('TEST_EMPLOYEE');
 
         // 1. Get employee and an existing event
         const { data: employee } = await client.from('employees').select('id').single();
@@ -43,8 +37,7 @@ describe('Cycle 6: Correcciones + Workflow + Auditoría', () => {
     });
 
     it('Responsible should be able to approve a correction', async () => {
-        const respEmail = 'responsable@elrincon.com';
-        const client = await getClient(respEmail, 'resp123');
+        const client = await getClient('TEST_RESPONSIBLE');
 
         // 1. Find a pending request
         const { data: request } = await client.from('correction_requests')

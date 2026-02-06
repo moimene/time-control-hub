@@ -1,16 +1,15 @@
 
-import { describe, it, expect } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { it, expect } from 'vitest';
+import { describeIntegration, getAnonClient } from './test_env';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-describe('Cycle 4: Kiosk Authentication & Clock-in', () => {
+describeIntegration('Cycle 4: Kiosk Authentication & Clock-in', () => {
+    const supabase = getAnonClient();
+    const employeeCode = process.env.TEST_KIOSK_EMPLOYEE_CODE || 'BAR001';
+    const correctPin = process.env.TEST_KIOSK_PIN;
 
     it('Should validate a valid employee code', async () => {
         const { data, error } = await supabase.functions.invoke('kiosk-clock', {
-            body: { action: 'validate', employee_code: 'BAR001' }
+            body: { action: 'validate', employee_code: employeeCode }
         });
 
         if (error) {
@@ -24,11 +23,12 @@ describe('Cycle 4: Kiosk Authentication & Clock-in', () => {
     });
 
     it('Should fail with incorrect PIN', async () => {
+        const wrongPin = correctPin === '0000' ? '9999' : '0000';
         const { data, error } = await supabase.functions.invoke('kiosk-clock', {
             body: {
                 action: 'pin',
-                employee_code: 'BAR001',
-                pin: '0000' // Wrong PIN
+                employee_code: employeeCode,
+                pin: wrongPin // Wrong PIN
             }
         });
 
@@ -48,12 +48,16 @@ describe('Cycle 4: Kiosk Authentication & Clock-in', () => {
     });
 
     it('Should succeed with correct PIN', async () => {
-        // Note: This requires the seed data to have been created with PIN 1234
+        if (!correctPin) {
+            console.warn('Skipping kiosk correct PIN test: missing TEST_KIOSK_PIN');
+            return;
+        }
+
         const { data, error } = await supabase.functions.invoke('kiosk-clock', {
             body: {
                 action: 'pin',
-                employee_code: 'BAR001',
-                pin: '1234'
+                employee_code: employeeCode,
+                pin: correctPin
             }
         });
 

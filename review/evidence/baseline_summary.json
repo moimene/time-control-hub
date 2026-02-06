@@ -1,0 +1,40 @@
+{
+  "commit": "b786f6b",
+  "commands": {
+    "npm_ci": 0,
+    "npm_lint": 1,
+    "npm_test": 1,
+    "npm_build": 0,
+    "npm_audit": 1
+  },
+  "lint": {
+    "problems": 283,
+    "errors": 266,
+    "warnings": 17
+  },
+  "tests_files": {
+    "failed": 7,
+    "passed": 5,
+    "total": 12
+  },
+  "tests_cases": {
+    "failed": 3,
+    "passed": 10,
+    "total": 13
+  },
+  "audit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 4,
+    "high": 6,
+    "critical": 0,
+    "total": 10
+  },
+  "function_exposure": {
+    "total": 57,
+    "verify_jwt_false": 55,
+    "mutating": 47,
+    "mutating_verifyfalse": 46,
+    "mutating_verifyfalse_no_token_validation": 36
+  }
+}

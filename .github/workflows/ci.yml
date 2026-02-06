@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: RLS Drift Guard (static)
+        run: npm run -s security:audit-rls
+
+      - name: Test (unit/source-contract only)
+        run: npm test
+        env:
+          RUN_INTEGRATION_TESTS: "false"
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit (fail on high/critical)
+        run: npm audit --audit-level=high
+
+      - name: Lint (non-blocking until lint debt is remediated)
+        run: npm run lint
+        continue-on-error: true

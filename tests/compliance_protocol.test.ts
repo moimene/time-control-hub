@@ -1,15 +1,17 @@
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { it, expect, beforeAll } from 'vitest';
 import {
-    supabase,
+    getComplianceAdminClient,
     COMPANY_ID,
     getEmployeeId,
     clearTestData,
     insertEvents,
     invokeEvaluator
 } from './compliance_utils';
+import { describeServiceIntegration } from './test_env';
 
-describe('Labor Compliance Protocol Verification', () => {
+describeServiceIntegration('Labor Compliance Protocol Verification', () => {
+    const supabase = getComplianceAdminClient();
     let employeeId: string;
     const todayStr = new Date().toISOString().split('T')[0];
 

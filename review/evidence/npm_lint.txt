@@ -1,0 +1,483 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+/private/tmp/time-control-hub/src/components/absences/AbsenceRequestForm.tsx
+   64:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  425:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/absences/JustificationUpload.tsx
+  113:6  warning  React Hook useCallback has a missing dependency: 'processFiles'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/private/tmp/time-control-hub/src/components/admin/AbsenceApprovalPanel.tsx
+   58:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   92:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  366:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  503:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  503:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/admin/EvidenceCalendar.tsx
+  121:6  warning  React Hook useMemo has a missing dependency: 'getDayStatus'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/private/tmp/time-control-hub/src/components/admin/QTSPIntegrationTests.tsx
+  166:11  error  'requestBody' is never reassigned. Use 'const' instead  prefer-const
+
+/private/tmp/time-control-hub/src/components/admin/QTSPPDFExport.tsx
+   23:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  152:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/admin/TeamCalendarView.tsx
+  221:6  warning  React Hook useMemo has a missing dependency: 'getAbsenceForDay'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/private/tmp/time-control-hub/src/components/admin/TemplateDiagnosticPanel.tsx
+  90:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/calendar/CalendarEditor.tsx
+  137:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/communications/AdvancedMessageComposer.tsx
+  151:9  error  Unexpected lexical declaration in case block  no-case-declarations
+
+/private/tmp/time-control-hub/src/components/communications/EvidenceExportDialog.tsx
+  102:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/communications/MessageTrackingPanel.tsx
+  39:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/compliance/ComplianceDashboard.tsx
+  46:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:99  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/compliance/ModuleStatusCard.tsx
+  13:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/compliance/ProtocolReportPanel.tsx
+  20:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/incidents/CorrectionsContent.tsx
+   55:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/incidents/OrphanClockInsContent.tsx
+   64:44  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  131:5   error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/private/tmp/time-control-hub/src/components/itss/PackagePreview.tsx
+  17:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/kiosk/KioskPinPad.tsx
+  156:6  warning  React Hook useEffect has missing dependencies: 'handleBack', 'handleDelete', 'handleNext', and 'handleNumberClick'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/private/tmp/time-control-hub/src/components/settings/CalendarLaboralSection.tsx
+  212:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  252:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  273:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/settings/CompanyLegalDataSection.tsx
+   68:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  126:20  error    Unexpected constant truthiness on the left-hand side of a `||` expression                                                       no-constant-binary-expression
+  127:21  error    Unexpected constant truthiness on the left-hand side of a `||` expression                                                       no-constant-binary-expression
+  128:26  error    Unexpected constant truthiness on the left-hand side of a `||` expression                                                       no-constant-binary-expression
+  170:22  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/settings/ConfigWizardButton.tsx
+  17:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/settings/DataRetentionSection.tsx
+   42:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  363:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  382:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/settings/SecuritySection.tsx
+  86:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/templates/TemplateEditor.tsx
+  64:33  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  65:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  66:43  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  67:35  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  68:39  error    React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?   react-hooks/rules-of-hooks
+  70:3   error    React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  74:6   warning  React Hook useEffect has a missing dependency: 'initialPayload'. Either include it or remove the dependency array                                                                            react-hooks/exhaustive-deps
+
+/private/tmp/time-control-hub/src/components/templates/wizard/TemplateWizard.tsx
+  25:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/templates/wizard/WizardContext.tsx
+   15:21  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   33:33  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  229:52  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  290:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/templates/wizard/steps/StepConvenio.tsx
+  92:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/templates/wizard/steps/StepSimulation.tsx
+   41:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/components/ui/badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/private/tmp/time-control-hub/src/components/ui/form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/components/ui/textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+/private/tmp/time-control-hub/src/components/ui/toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/hooks/useAuth.tsx
+  140:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/hooks/useCompany.tsx
+  31:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/private/tmp/time-control-hub/src/hooks/useFullscreen.ts
+  25:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/hooks/useKioskSession.ts
+   68:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:63  error  Empty block statement                     no-empty
+  136:61  error  Empty block statement                     no-empty
+  137:70  error  Empty block statement                     no-empty
+  143:55  error  Empty block statement                     no-empty
+  144:64  error  Empty block statement                     no-empty
+  147:63  error  Empty block statement                     no-empty
+  254:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  301:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/lib/cnaeMapping.ts
+  192:36  error  Unnecessary escape character: \.  no-useless-escape
+  215:36  error  Unnecessary escape character: \.  no-useless-escape
+
+/private/tmp/time-control-hub/src/pages/Auth.tsx
+  162:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/ResetPassword.tsx
+  110:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/AuditLog.tsx
+  284:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  285:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:90  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  304:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  305:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  310:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  311:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/CalendarLaboral.tsx
+  127:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  171:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  228:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  250:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/Corrections.tsx
+   56:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/Dashboard.tsx
+   34:9   error  Unexpected lexical declaration in case block  no-case-declarations
+  235:42  error  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/DataRetention.tsx
+   44:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  375:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  394:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/ITSSPackageGenerator.tsx
+   45:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  518:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  568:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/OrphanClockIns.tsx
+  85:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/Reports.tsx
+   94:48   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:61   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:39   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:28   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:34   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:30   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  304:36   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  364:39   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  389:109  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  393:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  464:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  639:83   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  653:62   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  663:60   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/Templates.tsx
+  34:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/admin/TimeRecords.tsx
+   86:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  209:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/employee/Dashboard.tsx
+   96:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  160:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  197:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  283:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  298:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  298:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  301:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/employee/LegalDocuments.tsx
+   29:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/employee/MyRequests.tsx
+  253:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  307:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/employee/Notifications.tsx
+  92:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/super-admin/Activity.tsx
+  161:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  212:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/super-admin/Companies.tsx
+   24:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  115:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  488:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  564:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  564:86  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/super-admin/QTSPMonitor.tsx
+  285:6   warning  React Hook useEffect has a missing dependency: 'consecutiveFailures'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  415:54  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  416:52  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  417:52  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  605:34  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  835:42  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  935:50  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/src/pages/super-admin/Users.tsx
+  71:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/absence-approve/index.ts
+  113:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  263:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/absence-create/index.ts
+   30:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  264:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/compliance-evaluator/index.ts
+   24:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  302:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  390:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/coverage-check/index.ts
+  69:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/data-retention-purge/index.ts
+   23:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  184:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/employee-change-pin/index.ts
+  91:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/escalation-alert/index.ts
+   27:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/generate-daily-root/index.ts
+  111:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/generate-itss-package/index.ts
+   95:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  158:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  186:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  207:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  284:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  332:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  352:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  489:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/generate-legal-document/index.ts
+  178:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/generate-legal-reports/index.ts
+   84:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  268:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  312:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  326:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  399:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  414:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/inconsistency-alert/index.ts
+  200:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/kiosk-auth/index.ts
+  149:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  228:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  229:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  230:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  233:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/kiosk-clock/index.ts
+  390:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  440:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-certify/index.ts
+   63:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  203:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  268:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-export-evidence/index.ts
+  163:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  202:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-read/index.ts
+   60:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-reminder/index.ts
+  174:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  180:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-respond/index.ts
+   14:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  257:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-scheduler/index.ts
+  120:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/message-send/index.ts
+  188:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/notification-dispatcher/index.ts
+  246:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  316:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/orphan-alert/index.ts
+   92:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  251:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  272:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/qtsp-export-package/index.ts
+  118:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/qtsp-notarize/index.ts
+  266:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  377:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  418:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/run-compliance-tests/index.ts
+  24:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/seed-compliance-data/index.ts
+   32:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/sign-monthly-hours/index.ts
+  116:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/sla-escalation/index.ts
+   53:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:101  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:59   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:101  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/sync-template-leaves/index.ts
+  236:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/supabase/functions/weekly-inconsistency-summary/index.ts
+  114:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  272:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/private/tmp/time-control-hub/tailwind.config.ts
+  90:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/private/tmp/time-control-hub/tests/cycle4_kiosk.test.ts
+  37:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 283 problems (266 errors, 17 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
