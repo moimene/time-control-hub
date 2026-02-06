@@ -2,6 +2,12 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
+// Optional integration overlay.
+// Kept in a separate ignored file so integration creds never need to live in `.env`.
+if (process.env.RUN_INTEGRATION_TESTS === 'true') {
+    dotenv.config({ path: '.env.integration', override: true, quiet: true });
+}
+
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 

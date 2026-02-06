@@ -86,7 +86,7 @@ This creates a large unauthenticated attack surface where service-role code path
 4. `F004` — Public test credential route + exposed fixture/admin endpoints create credential and account takeover risk. (Closed.)
 
 ### P1
-1. `F005` — Corrections workflow broken by audit trigger FK mismatch (`employee_id` written into `actor_id` referencing `auth.users`). (Fix implemented via migration; deploy required.)
+1. `F005` — Corrections workflow issues: audit trigger FK mismatch and missing `company_id` scoping blocked approvals. (Fixed via migrations; deploy required outside verified env.)
 2. `F006` — Non-hermetic integration tests default to shared remote Supabase and fail inconsistently on missing secrets. (Closed.)
 3. `F007` — Offline cycle test broken by missing `uuid` dependency. (Closed.)
 4. `F008` — ITSS test masks backend failures with null dereference. (Closed.)
@@ -105,8 +105,8 @@ This creates a large unauthenticated attack surface where service-role code path
 |---|---|---|
 | `employees` | High | Exposed mutating endpoints and test fixtures can alter records without strong caller checks (`F001`, `F004`). |
 | `time_events` | High | Publicly callable service-role workflows plus reporting exports increase tampering/exfiltration risk (`F001`, `F002`). |
-| `correction_requests` | High | Workflow currently blocked by audit FK breakage (`F005`). |
-| `audit_log` | High | Integrity issue in trigger actor mapping; can break writes and compromise audit reliability (`F005`). |
+| `correction_requests` | High | Workflow previously blocked by audit FK + scoping issues; fixed via migrations (`F005`). |
+| `audit_log` | High | Trigger actor mapping issue fixed via migration (`F005`). |
 | `user_roles` | High | Public test/setup functions manipulate roles and auth users (`F004`). |
 | `company` | High | Company-scoped operations are exposed through multiple service-role endpoints with weak request trust (`F001`, `F004`). |
 | QTSP evidence tables | Medium/High | Export/health/retry endpoints publicly reachable when `verify_jwt=false`; strong auth boundaries missing (`F001`, `F002`). |
