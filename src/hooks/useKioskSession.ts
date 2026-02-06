@@ -119,33 +119,33 @@ async function loadToken(): Promise<string | null> {
 
   // Try sessionStorage backup
   try {
-    const token = sessionStorage.getItem(STORAGE_BACKUP_KEY);
-    if (token) {
-      // Restore to localStorage
-      try { localStorage.setItem(STORAGE_KEY, token); } catch {}
-      return token;
-    }
-  } catch (e) {
-    console.warn('[useKioskSession] sessionStorage read failed:', e);
-  }
+	    const token = sessionStorage.getItem(STORAGE_BACKUP_KEY);
+	    if (token) {
+	      // Restore to localStorage
+	      try { localStorage.setItem(STORAGE_KEY, token); } catch { /* ignore */ }
+	      return token;
+	    }
+	  } catch (e) {
+	    console.warn('[useKioskSession] sessionStorage read failed:', e);
+	  }
 
   // Try IndexedDB as last resort
-  const token = await getFromIndexedDB(STORAGE_KEY);
-  if (token) {
-    // Restore to localStorage and sessionStorage
-    try { localStorage.setItem(STORAGE_KEY, token); } catch {}
-    try { sessionStorage.setItem(STORAGE_BACKUP_KEY, token); } catch {}
-  }
-  return token;
-}
+	  const token = await getFromIndexedDB(STORAGE_KEY);
+	  if (token) {
+	    // Restore to localStorage and sessionStorage
+	    try { localStorage.setItem(STORAGE_KEY, token); } catch { /* ignore */ }
+	    try { sessionStorage.setItem(STORAGE_BACKUP_KEY, token); } catch { /* ignore */ }
+	  }
+	  return token;
+	}
 
-function clearToken(): void {
-  try { localStorage.removeItem(STORAGE_KEY); } catch {}
-  try { sessionStorage.removeItem(STORAGE_BACKUP_KEY); } catch {}
-  removeFromIndexedDB(STORAGE_KEY);
-  // Also clear old terminal selection
-  try { localStorage.removeItem('kiosk_terminal_id'); } catch {}
-}
+	function clearToken(): void {
+	  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+	  try { sessionStorage.removeItem(STORAGE_BACKUP_KEY); } catch { /* ignore */ }
+	  removeFromIndexedDB(STORAGE_KEY);
+	  // Also clear old terminal selection
+	  try { localStorage.removeItem('kiosk_terminal_id'); } catch { /* ignore */ }
+	}
 
 export function useKioskSession(): UseKioskSessionReturn {
   const [session, setSession] = useState<KioskSession | null>(null);

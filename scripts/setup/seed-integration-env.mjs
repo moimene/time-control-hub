@@ -69,7 +69,6 @@ async function ensureRow(serviceClient, table, uniqueWhere, createValues, select
   const { data: existing, error: selectError } = await serviceClient
     .from(table)
     .select(select)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     .match(uniqueWhere)
     .maybeSingle();
 
@@ -281,4 +280,3 @@ main().catch((error) => {
   console.error(`Integration seed failed: ${message}`);
   process.exit(1);
 });
-

@@ -118,17 +118,18 @@ export function CompanyLegalDataSection() {
   useEffect(() => {
     if (existingSettings) {
       setFormData({ ...DEFAULT_VALUES, ...existingSettings });
-    } else if (company) {
-      // Pre-fill with company data if available
-      setFormData(prev => ({
-        ...prev,
-        center_name: company.name || '',
-        dpd_email: `dpd@${company.name?.toLowerCase().replace(/\s+/g, '')}.com` || '',
-        hr_contact: `rrhh@${company.name?.toLowerCase().replace(/\s+/g, '')}.com` || '',
-        support_channel: `soporte@${company.name?.toLowerCase().replace(/\s+/g, '')}.com` || '',
-      }));
-    }
-  }, [existingSettings, company]);
+	    } else if (company) {
+	      // Pre-fill with company data if available
+	      const companySlug = company.name ? company.name.toLowerCase().replace(/\s+/g, '') : '';
+	      setFormData(prev => ({
+	        ...prev,
+	        center_name: company.name || '',
+	        dpd_email: companySlug ? `dpd@${companySlug}.com` : '',
+	        hr_contact: companySlug ? `rrhh@${companySlug}.com` : '',
+	        support_channel: companySlug ? `soporte@${companySlug}.com` : '',
+	      }));
+	    }
+	  }, [existingSettings, company]);
 
   // Save mutation
   const saveMutation = useMutation({

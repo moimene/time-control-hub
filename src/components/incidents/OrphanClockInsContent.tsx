@@ -126,11 +126,15 @@ export function OrphanClockInsContent() {
     onError: () => toast.error('Error al cerrar los fichajes'),
   });
 
-  const toggleSelection = (id: string) => {
-    const newSet = new Set(selectedIds);
-    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
-    setSelectedIds(newSet);
-  };
+	  const toggleSelection = (id: string) => {
+	    const newSet = new Set(selectedIds);
+	    if (newSet.has(id)) {
+	      newSet.delete(id);
+	    } else {
+	      newSet.add(id);
+	    }
+	    setSelectedIds(newSet);
+	  };
 
   const toggleSelectAll = () => {
     setSelectedIds(selectedIds.size === orphanEntries.length ? new Set() : new Set(orphanEntries.map(e => e.id)));

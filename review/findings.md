@@ -17,6 +17,17 @@ Commands were executed on the pinned commit and captured in `/tmp/time-control-h
 | `npm run build` | 0 | `/tmp/time-control-hub/review/evidence/npm_build.txt` |
 | `npm audit --json` | 1 | `/tmp/time-control-hub/review/evidence/npm_audit.json` |
 
+## Post-Remediation Status (Feb 6 2026)
+These commands reflect the current branch state after remediation work.
+
+| Command | Exit code | Evidence |
+|---|---:|---|
+| `npm run lint` | 0 | `/tmp/time-control-hub/review/evidence/npm_lint_post_20260206T223254Z.txt` |
+| `npm test` | 0 | `/tmp/time-control-hub/review/evidence/npm_test_post_20260206T223254Z.txt` |
+| `npm run build` | 0 | `/tmp/time-control-hub/review/evidence/npm_build_post_20260206T223254Z.txt` |
+| `supabase migration list --linked` | 0 | `/tmp/time-control-hub/review/evidence/prod_migration_list_post_20260206T223254Z.txt` |
+| `supabase config push --yes` | 0 | `/tmp/time-control-hub/review/evidence/prod_config_push_20260206T223254Z.txt` |
+
 ## Bucket Classification
 - Security: `F001`, `F002`, `F003`, `F004`, `F009`
 - Functional: `F005`
@@ -93,11 +104,11 @@ This creates a large unauthenticated attack surface where service-role code path
 5. `F009` — High-severity dependency advisories in runtime/toolchain dependencies. (Closed; moderate Vite/esbuild remains.)
 6. `F010` — `.env` tracked and ignore policy does not prevent future secret commits. (Closed.)
 7. `F011` — No CI workflows enforcing quality/security gates. (Closed; lint non-blocking until debt remediated.)
-8. `F012` — Historical RLS argument-order bug fixed later, but remains a migration drift risk across environments. (Mitigated with static guard; environment validation pending.)
+8. `F012` — Historical RLS argument-order bug fixed later, but remains a migration drift risk across environments. (Closed: static guard + live environment audit via `security_rls_drift_snapshot`.)
 
 ### P2
-1. `F013` — Lint debt concentrated in shared hooks/pages and edge functions.
-2. `F014` — Oversized frontend chunk indicates route/code-splitting gaps.
+1. `F013` — Lint debt concentrated in shared hooks/pages and edge functions. (Closed as blocking issue: lint now exits 0; warnings remain as tracked debt.)
+2. `F014` — Oversized frontend chunk indicates route/code-splitting gaps. (Closed: route-level splitting + vendor chunking removed the large-chunk warning.)
 
 ## Data/RLS Risk Matrix by Critical Table
 
@@ -112,6 +123,6 @@ This creates a large unauthenticated attack surface where service-role code path
 | QTSP evidence tables | Medium/High | Export/health/retry endpoints publicly reachable when `verify_jwt=false`; strong auth boundaries missing (`F001`, `F002`). |
 
 ## Pending Environment Validations (Out of Scope for Local-Only Access)
-- Confirm effective RLS policies in each deployed environment via live catalog queries.
+- Confirm effective RLS policies in each deployed environment via live catalog queries (completed for `ouxzjfqqgxlvxhjyihum` via `/tmp/time-control-hub/review/evidence/security_audit_rls_live_20260206T221401Z.json`; still pending for any additional environments).
 - Validate whether any public function endpoints are already blocked by gateway/network controls external to repository config.
 - Validate whether test routes/functions are disabled in production deployment build profiles.

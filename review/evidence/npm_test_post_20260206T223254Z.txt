@@ -1,0 +1,27 @@
+
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+ ↓ tests/cycle7_alerts.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle4_kiosk.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle10_reporting.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle9_compliance.test.ts (1 test | 1 skipped)
+ ↓ tests/compliance_protocol.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle12_retention.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle2_onboarding.test.ts (1 test | 1 skipped)
+ ✓ tests/cycle16_credential_rotation.test.ts (2 tests | 1 skipped) 2ms
+ ↓ tests/cycle6_corrections.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle14_integrity_qtsp.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle1_rls.test.ts (1 test | 1 skipped)
+ ✓ tests/cycle15_security_authz.test.ts (9 tests | 1 skipped) 5ms
+ ↓ tests/cycle5_offline.test.ts (1 test | 1 skipped)
+ ↓ tests/cycle13_vacation_logic.test.ts (1 test | 1 skipped)
+
+ Test Files  2 passed | 12 skipped (14)
+      Tests  9 passed | 14 skipped (23)
+   Start at  23:32:57
+   Duration  664ms (transform 527ms, setup 1.06s, import 852ms, tests 6ms, environment 6.15s)
+

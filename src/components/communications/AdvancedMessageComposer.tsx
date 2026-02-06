@@ -143,18 +143,19 @@ export function AdvancedMessageComposer({
     );
   };
 
-  const getRecipientCount = () => {
-    switch (audienceType) {
-      case 'all':
-        return employees.length;
-      case 'department':
-        const dept = form.watch('audience_department');
-        return employees.filter(e => e.department === dept).length;
-      case 'individual':
-      case 'custom':
-        return selectedEmployees.length;
-      default:
-        return 0;
+	  const getRecipientCount = () => {
+	    switch (audienceType) {
+	      case 'all':
+	        return employees.length;
+	      case 'department': {
+	        const dept = form.watch('audience_department');
+	        return employees.filter(e => e.department === dept).length;
+	      }
+	      case 'individual':
+	      case 'custom':
+	        return selectedEmployees.length;
+	      default:
+	        return 0;
     }
   };
 
