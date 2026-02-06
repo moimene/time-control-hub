@@ -18,6 +18,14 @@
 1. Pause fixture/seed execution in shared environments (`ALLOW_TEST_FIXTURES` disabled unless emergency).
 2. Announce a password-rotation maintenance window to affected operators.
 
+### 1.b Rotate Supabase project-level secrets (if exposed)
+If any Supabase secrets were shared outside intended channels (for example: `service_role` key or database password), treat them as compromised and rotate them.
+
+1. Rotate the Supabase JWT secret / API keys (this regenerates `anon` and `service_role` keys and invalidates the leaked `service_role` key).
+2. Update all deployments and Edge Function secrets that reference the old `SUPABASE_SERVICE_ROLE_KEY`.
+3. Rotate the Supabase database password if it was exposed, and update any connection strings / CLI local config accordingly.
+4. Re-run any “live probes” that depend on service role access using the newly rotated key only (never store/commit the new key).
+
 ### 2. Build authoritative account list
 1. Export all users from Supabase Auth dashboard.
 2. Filter users matching exposed inventory emails (from Cycle 16).
