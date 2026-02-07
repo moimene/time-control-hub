@@ -20,6 +20,10 @@ dist-ssr
 # Supabase CLI temp state (ephemeral; should not be committed)
 supabase/.temp/
 
+# Playwright
+playwright-report/
+test-results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

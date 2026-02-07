@@ -5,7 +5,9 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Prefer explicit env vars, then `.env`, then `.env.integration` (gitignored).
+dotenv.config({ override: false, quiet: true });
+dotenv.config({ path: '.env.integration', override: false, quiet: true });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -21,6 +23,16 @@ if (!supabaseServiceKey) {
 function randomPassword() {
   // High-entropy printable password. Avoids embedding any credentials in source control.
   return crypto.randomBytes(24).toString('base64url');
+}
+
+function randomPin() {
+  // 4-digit PIN (string). Stored only in the local `.env.integration` file (gitignored).
+  return String(crypto.randomInt(0, 10000)).padStart(4, '0');
+}
+
+function computePinHash(pin, salt) {
+  // Must match `supabase/functions/kiosk-clock` (SHA-256 of pin + salt, hex).
+  return crypto.createHash('sha256').update(pin + salt).digest('hex');
 }
 
 function createAnonClient() {
@@ -70,6 +82,7 @@ async function ensureRow(serviceClient, table, uniqueWhere, createValues, select
     .from(table)
     .select(select)
     .match(uniqueWhere)
+    .limit(1)
     .maybeSingle();
 
   if (selectError) throw new Error(`select failed (${table}): ${selectError.message}`);
@@ -97,6 +110,14 @@ async function main() {
   const companyName = process.env.INTEGRATION_COMPANY_NAME || 'Bar El Rincón';
   const companyCif = process.env.INTEGRATION_COMPANY_CIF || 'INT-TEST-BAR-001';
 
+  const employeeCodePrefix = process.env.INTEGRATION_EMPLOYEE_CODE_PREFIX || 'BAR';
+  const employeeCode = process.env.INTEGRATION_EMPLOYEE_CODE || `${employeeCodePrefix}001`;
+  const otherEmployeeCode = process.env.INTEGRATION_OTHER_EMPLOYEE_CODE || `${employeeCodePrefix}002`;
+  const employeePin = process.env.INTEGRATION_EMPLOYEE_PIN || randomPin();
+
+  const terminalName = process.env.INTEGRATION_TERMINAL_NAME || 'Kiosco Integración';
+  const terminalLocation = process.env.INTEGRATION_TERMINAL_LOCATION || 'Entrada';
+
   const adminEmail = process.env.INTEGRATION_ADMIN_EMAIL || 'integration.admin@timecontrol.test';
   const responsibleEmail =
     process.env.INTEGRATION_RESPONSIBLE_EMAIL || 'integration.responsible@timecontrol.test';
@@ -118,9 +139,16 @@ async function main() {
       city: 'Madrid',
       postal_code: '28001',
       timezone: 'Europe/Madrid',
+      employee_code_prefix: employeeCodePrefix,
     },
-    'id, name, cif, timezone',
+    'id, name, cif, timezone, employee_code_prefix',
   );
+
+  // Keep prefix aligned even if the company existed already.
+  await serviceClient
+    .from('company')
+    .update({ employee_code_prefix: employeeCodePrefix })
+    .eq('id', company.id);
 
   // 2) Auth users (passwords rotated to random values)
   const adminUserId = await ensureAuthUser(serviceClient, { email: adminEmail, password: adminPassword });
@@ -169,8 +197,8 @@ async function main() {
   );
 
   // 5) Employees: one linked employee + one extra to validate employee isolation via RLS.
-  const employeeCode = process.env.INTEGRATION_EMPLOYEE_CODE || 'INTEMP001';
-  const otherEmployeeCode = process.env.INTEGRATION_OTHER_EMPLOYEE_CODE || 'INTEMP002';
+  const pinSalt = crypto.randomUUID();
+  const pinHash = computePinHash(employeePin, pinSalt);
 
   const linkedEmployee = await ensureRow(
     serviceClient,
@@ -186,16 +214,23 @@ async function main() {
       status: 'active',
       company_id: company.id,
       user_id: employeeUserId,
-      // Pin fields are optional for these integration tests; set random to avoid known defaults.
-      pin_hash: crypto.randomBytes(16).toString('hex'),
-      pin_salt: crypto.randomUUID(),
+      pin_hash: pinHash,
+      pin_salt: pinSalt,
     },
     'id, employee_code, company_id, user_id',
   );
 
   await serviceClient
     .from('employees')
-    .update({ company_id: company.id, user_id: employeeUserId, email: employeeEmail })
+    .update({
+      company_id: company.id,
+      user_id: employeeUserId,
+      email: employeeEmail,
+      pin_hash: pinHash,
+      pin_salt: pinSalt,
+      pin_failed_attempts: 0,
+      pin_locked_until: null,
+    })
     .eq('id', linkedEmployee.id);
 
   await ensureRow(
@@ -217,7 +252,28 @@ async function main() {
     'id',
   );
 
-  // 6) Minimal time event so Cycle 6 can select an event under employee RLS.
+  // 6) One active terminal so kiosk flows can be exercised end-to-end.
+  const terminal = await ensureRow(
+    serviceClient,
+    'terminals',
+    { company_id: company.id, name: terminalName },
+    {
+      company_id: company.id,
+      name: terminalName,
+      location: terminalLocation,
+      status: 'active',
+      settings: { seeded_by: 'scripts/setup/seed-integration-env.mjs', started_at: startedAt },
+    },
+    'id, name, location',
+  );
+
+  // Ensure terminal is active and correctly linked.
+  await serviceClient
+    .from('terminals')
+    .update({ company_id: company.id, status: 'active', location: terminalLocation })
+    .eq('id', terminal.id);
+
+  // 7) Minimal time event so Cycle 6 can select an event under employee RLS.
   const now = new Date();
   const { error: timeEventError } = await serviceClient.from('time_events').insert({
     company_id: company.id,
@@ -231,7 +287,7 @@ async function main() {
   });
   if (timeEventError) throw new Error(`insert time_events failed: ${timeEventError.message}`);
 
-  // 7) Write `.env.integration` (ignored by git) for local integration runs.
+  // 8) Write `.env.integration` (ignored by git) for local integration runs.
   const integrationEnvPath = process.env.INTEGRATION_ENV_PATH || '.env.integration';
   const envLines = [
     '# Generated by scripts/setup/seed-integration-env.mjs',
@@ -252,13 +308,21 @@ async function main() {
     '',
     `TEST_COMPANY_NAME=${companyName}`,
     `TEST_COMPANY_ID=${company.id}`,
+    `TEST_EMPLOYEE_CODE_PREFIX=${employeeCodePrefix}`,
     `TEST_EMPLOYEE_CODE=${employeeCode}`,
+    `TEST_EMPLOYEE_PIN=${employeePin}`,
+    '',
+    `TEST_KIOSK_COMPANY_ID=${company.id}`,
+    `TEST_KIOSK_EMPLOYEE_CODE=${employeeCode}`,
+    `TEST_KIOSK_PIN=${employeePin}`,
+    `TEST_KIOSK_TERMINAL_ID=${terminal.id}`,
+    `TEST_KIOSK_TERMINAL_NAME=${terminal.name}`,
     '',
   ];
 
   await fs.writeFile(path.resolve(integrationEnvPath), envLines.join('\n'), { encoding: 'utf8', mode: 0o600 });
 
-  // 8) Sanity check: sign in with anon key using the new creds (no password output).
+  // 9) Sanity check: sign in with anon key using the new creds (no password output).
   const anonClient = createAnonClient();
   const { error: loginError } = await anonClient.auth.signInWithPassword({
     email: employeeEmail,

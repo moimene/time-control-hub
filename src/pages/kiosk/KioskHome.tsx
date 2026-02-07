@@ -475,8 +475,8 @@ export default function KioskHome() {
     return (
       <KioskTerminalSelector
         onSelect={handleTerminalSelect}
-        companyId={session.companyId}
         companyName={session.companyName}
+        deviceToken={session.deviceToken}
         onLogout={handleLogout}
       />
     );

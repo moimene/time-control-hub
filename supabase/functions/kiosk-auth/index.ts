@@ -236,6 +236,67 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'list_terminals') {
+      const { deviceToken } = body;
+
+      if (!deviceToken) {
+        return new Response(
+          JSON.stringify({ error: 'Token requerido' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const tokenHash = await hashToken(deviceToken);
+
+      // Find session (no terminal join needed).
+      const { data: session, error: sessionError } = await adminClient
+        .from('kiosk_sessions')
+        .select('id, company_id, is_active, expires_at')
+        .eq('device_token_hash', tokenHash)
+        .single();
+
+      if (sessionError || !session) {
+        return new Response(
+          JSON.stringify({ error: 'Sesión no encontrada' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!session.is_active) {
+        return new Response(
+          JSON.stringify({ error: 'Sesión revocada' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (session.expires_at && new Date(session.expires_at) < new Date()) {
+        return new Response(
+          JSON.stringify({ error: 'Sesión expirada' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: terminals, error: terminalsError } = await adminClient
+        .from('terminals')
+        .select('id, name, location')
+        .eq('company_id', session.company_id)
+        .eq('status', 'active')
+        .order('name');
+
+      if (terminalsError) {
+        console.error(`[kiosk-auth] Error fetching terminals: ${terminalsError.message}`);
+        return new Response(
+          JSON.stringify({ error: 'Error al cargar los terminales' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, terminals: terminals || [] }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'set_terminal') {
       const { deviceToken, terminalId } = body;
 

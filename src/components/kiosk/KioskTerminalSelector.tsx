@@ -12,12 +12,12 @@ interface Terminal {
 
 interface KioskTerminalSelectorProps {
   onSelect: (terminalId: string) => void;
-  companyId: string;
   companyName: string;
+  deviceToken: string;
   onLogout: () => void;
 }
 
-export function KioskTerminalSelector({ onSelect, companyId, companyName, onLogout }: KioskTerminalSelectorProps) {
+export function KioskTerminalSelector({ onSelect, companyName, deviceToken, onLogout }: KioskTerminalSelectorProps) {
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,16 +26,14 @@ export function KioskTerminalSelector({ onSelect, companyId, companyName, onLogo
   useEffect(() => {
     const fetchTerminals = async () => {
       try {
-        const { data, error: fetchError } = await supabase
-          .from('terminals')
-          .select('id, name, location')
-          .eq('company_id', companyId)
-          .eq('status', 'active')
-          .order('name');
+        const { data, error: invokeError } = await supabase.functions.invoke('kiosk-auth', {
+          body: { action: 'list_terminals', deviceToken },
+        });
 
-        if (fetchError) throw fetchError;
+        if (invokeError) throw invokeError;
+        if (data?.error) throw new Error(data.error);
 
-        setTerminals(data || []);
+        setTerminals(data?.terminals || []);
       } catch (err) {
         console.error('Error fetching terminals:', err);
         setError('Error al cargar los terminales');
@@ -45,7 +43,7 @@ export function KioskTerminalSelector({ onSelect, companyId, companyName, onLogo
     };
 
     fetchTerminals();
-  }, [companyId]);
+  }, [deviceToken]);
 
   const handleSelect = async (terminalId: string) => {
     setSelecting(terminalId);
