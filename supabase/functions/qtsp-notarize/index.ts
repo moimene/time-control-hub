@@ -1226,6 +1226,39 @@ serve(async (req) => {
   try {
     const { action, company_id, ...params } = await req.json();
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // =========================================================================
+    // AUTHENTICATION & AUTHORIZATION
+    // =========================================================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      // Return 401 instead of 500 (via throw) for better semantics
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Missing Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const token = authHeader.replace('Bearer ', '');
+
+    // 1. Check for Service Role (Internal System Call)
+    const isServiceRole = token === supabaseServiceKey;
+    let user = null;
+
+    if (!isServiceRole) {
+      // 2. Validate User Token
+      const { data: { user: foundUser }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !foundUser) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      user = foundUser;
+    }
+
     // Health check doesn't require company_id
     if (action === 'health_check') {
       const result = await healthCheck();
@@ -1240,9 +1273,27 @@ serve(async (req) => {
       throw new Error('company_id is required');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // 3. Authorization (Company Check)
+    if (!isServiceRole && user) {
+      // Check if user belongs to company
+      const { data: membership } = await supabase
+        .from('user_company')
+        .select('company_id')
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .maybeSingle();
+
+      if (!membership) {
+        // Fallback: Check if super admin
+        const { data: isSuperAdmin } = await supabase.rpc('is_super_admin', { _user_id: user.id });
+        if (!isSuperAdmin) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Forbidden: User does not belong to this company' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
 
     // Get company info
     const { data: company } = await supabase
