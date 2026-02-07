@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompany } from '@/hooks/useCompany';
@@ -194,7 +194,7 @@ export function TeamCalendarView() {
   }, [blackouts]);
 
   // Get absences for a specific employee and day
-  const getAbsenceForDay = (employeeId: string, day: Date) => {
+  const getAbsenceForDay = useCallback((employeeId: string, day: Date) => {
     if (!absences) return null;
     return absences.find(a => 
       a.employee_id === employeeId &&
@@ -203,7 +203,7 @@ export function TeamCalendarView() {
         end: parseISO(a.end_date)
       })
     );
-  };
+  }, [absences]);
 
   // Count absences per day for conflict detection
   const absenceCountPerDay = useMemo(() => {
@@ -218,7 +218,7 @@ export function TeamCalendarView() {
     });
     
     return counts;
-  }, [absences, filteredEmployees, calendarDays]);
+  }, [absences, filteredEmployees, calendarDays, getAbsenceForDay]);
 
   // Detect conflicts (more than 50% of team absent)
   const conflictDays = useMemo(() => {

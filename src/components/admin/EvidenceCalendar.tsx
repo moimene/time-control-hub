@@ -103,7 +103,8 @@ export function EvidenceCalendar({ evidences, dailyRoots = [] }: EvidenceCalenda
 
     days.forEach((day) => {
       if (isBefore(day, new Date()) || isToday(day)) {
-        const status = getDayStatus(day);
+        const dateStr = format(day, "yyyy-MM-dd");
+        const status = evidenceByDate.get(dateStr);
         if (status) {
           switch (status.status) {
             case 'completed': completed++; break;

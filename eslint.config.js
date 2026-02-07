@@ -19,8 +19,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-explicit-any": "warn",
+      // These rules generate large volumes of warnings in this repo and make lint noisy.
+      // Keep hook rules enabled (real behavior risks) and track `any` removal separately.
+      "react-refresh/only-export-components": "off",
+      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
     },
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,25 +48,21 @@ export function KioskPinPad({
   const [overrideReason, setOverrideReason] = useState<string>('');
   const [customReason, setCustomReason] = useState<string>('');
 
-  const handleNumberClick = (num: string) => {
+  const handleNumberClick = useCallback((num: string) => {
     if (step === 'code') {
-      if (employeeNumber.length < 3) {
-        setEmployeeNumber(prev => prev + num);
-      }
+      setEmployeeNumber((prev) => (prev.length < 3 ? prev + num : prev));
     } else {
-      if (pin.length < 6) {
-        setPin(prev => prev + num);
-      }
+      setPin((prev) => (prev.length < 6 ? prev + num : prev));
     }
-  };
+  }, [step]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (step === 'code') {
       setEmployeeNumber(prev => prev.slice(0, -1));
     } else {
       setPin(prev => prev.slice(0, -1));
     }
-  };
+  }, [step]);
 
   const handleClear = () => {
     if (step === 'code') {
@@ -76,7 +72,7 @@ export function KioskPinPad({
     }
   };
 
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     if (step === 'code' && employeeNumber.length >= 1) {
       const fullEmployeeCode = employeeCodePrefix + employeeNumber.padStart(3, '0');
 
@@ -97,7 +93,18 @@ export function KioskPinPad({
         onSubmit(fullEmployeeCode, pin);
       }
     }
-  };
+  }, [
+    step,
+    employeeNumber,
+    employeeCodePrefix,
+    onValidateCode,
+    isOverriding,
+    overrideReason,
+    customReason,
+    overrideEventType,
+    onSubmit,
+    pin,
+  ]);
 
   const handleToggleOverride = () => {
     if (!isOverriding) {
@@ -114,14 +121,14 @@ export function KioskPinPad({
 
   const currentEventType = isOverriding ? overrideEventType : nextEventType;
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (step === 'pin') {
       setPin('');
       setStep('code');
     } else {
       onCancel();
     }
-  };
+  }, [step, onCancel]);
 
   const currentValue = step === 'code' ? employeeNumber : pin;
   const minLength = step === 'code' ? 1 : 4;
@@ -153,7 +160,22 @@ export function KioskPinPad({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLoading, isValidating, currentValue, minLength, step, employeeNumber, pin, isOverriding, overrideReason, customReason]);
+  }, [
+    isLoading,
+    isValidating,
+    currentValue,
+    minLength,
+    step,
+    employeeNumber,
+    pin,
+    isOverriding,
+    overrideReason,
+    customReason,
+    handleBack,
+    handleDelete,
+    handleNext,
+    handleNumberClick,
+  ]);
 
   // Render digit boxes for employee code
   const renderCodeDigits = () => {

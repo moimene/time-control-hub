@@ -54,7 +54,7 @@ export function TemplateEditor({ ruleSet, onSimulate }: TemplateEditorProps) {
     setPayload(initialPayload);
     setValidation(null);
     setHasChanges(false);
-  }, [ruleSet.id, latestVersion?.id]);
+  }, [ruleSet.id, latestVersion?.id, initialPayload]);
 
   // If no version exists, show error state
   if (!latestVersion) {

@@ -104,13 +104,13 @@ export function JustificationUpload({
     };
   };
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
     const droppedFiles = Array.from(e.dataTransfer.files);
     await processFiles(droppedFiles);
-  }, [files, maxFiles]);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
