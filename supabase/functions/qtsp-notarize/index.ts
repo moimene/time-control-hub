@@ -132,6 +132,58 @@ interface QTSPLogEntry {
   duration_ms: number;
 }
 
+// Validate authentication and authorization
+async function validateAuth(
+  headers: Headers,
+  supabase: SupabaseClient,
+  targetCompanyId?: string
+): Promise<boolean> {
+  const authHeader = headers.get('Authorization');
+  if (!authHeader) return false;
+
+  // 1. Check for Service Role Key (Internal/Admin usage)
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (authHeader === `Bearer ${serviceRoleKey}`) {
+    return true;
+  }
+
+  // 2. Validate User JWT
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return false;
+  }
+
+  // 3. If company_id is provided, check if user has access to it
+  if (targetCompanyId) {
+    // Check user_company table (Admins/Responsibles)
+    const { data: userCompany } = await supabase
+      .from('user_company')
+      .select('company_id')
+      .eq('user_id', user.id)
+      .eq('company_id', targetCompanyId)
+      .maybeSingle();
+
+    if (userCompany) return true;
+
+    // Check employees table (Employees)
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('company_id')
+      .eq('user_id', user.id)
+      .eq('company_id', targetCompanyId)
+      .maybeSingle();
+
+    if (employee) return true;
+
+    console.log(`Auth: User ${user.id} does not have access to company ${targetCompanyId}`);
+    return false;
+  }
+
+  return true;
+}
+
 // Log QTSP operation to audit table
 async function logQTSPOperation(
   supabase: SupabaseClient,
@@ -1243,6 +1295,16 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify authentication and authorization
+    const isAuthorized = await validateAuth(req.headers, supabase, company_id);
+    if (!isAuthorized) {
+      console.error(`Unauthorized access attempt for company ${company_id}`);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get company info
     const { data: company } = await supabase
