@@ -1244,6 +1244,59 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // =========================================================================
+    // SECURITY CHECK: Authorization & Tenancy Verification
+    // =========================================================================
+    const authHeader = req.headers.get('Authorization');
+    const isServiceRole = authHeader === `Bearer ${supabaseServiceKey}`;
+
+    if (!isServiceRole) {
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify user token
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        console.error('Auth verification failed:', userError);
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify user belongs to company or is super_admin
+      const { data: membership } = await supabase
+        .from('user_company')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_id', company_id)
+        .maybeSingle();
+
+      if (!membership) {
+        // Check if super_admin
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (roleData?.role !== 'super_admin') {
+          console.error(`Access denied for user ${user.id} to company ${company_id}`);
+          return new Response(
+            JSON.stringify({ error: 'Forbidden: You do not have access to this company' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
+    // =========================================================================
+
     // Get company info
     const { data: company } = await supabase
       .from('company')
