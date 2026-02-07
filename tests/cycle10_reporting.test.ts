@@ -6,11 +6,16 @@ describeIntegration('Cycle 10: Reporting + ITSS Package', () => {
     it('Should generate a full ITSS package with manifest and hashes', async () => {
         const supabase = getAnonClient();
         const adminCred = requireCredential('TEST_ADMIN');
-        const companyId = process.env.TEST_ITSS_COMPANY_ID || 'c0000000-0000-0000-0000-000000000001';
+        const companyId =
+            process.env.TEST_ITSS_COMPANY_ID ||
+            process.env.TEST_COMPANY_ID ||
+            'c0000000-0000-0000-0000-000000000001';
 
         // Signing as admin
-        const { error: loginError } = await supabase.auth.signInWithPassword(adminCred);
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword(adminCred);
         expect(loginError).toBeNull();
+        const accessToken = loginData?.session?.access_token;
+        expect(accessToken).toBeTruthy();
 
         // 1. Invoke ITSS generation
         const { data: result, error } = await supabase.functions.invoke('generate-itss-package', {
@@ -25,6 +30,11 @@ describeIntegration('Cycle 10: Reporting + ITSS Package', () => {
                     contract_summary: true
                 },
                 dry_run: true // Test without saving to DB for now
+            },
+            // Some environments/configurations don't attach the JWT automatically when
+            // `persistSession=false`, so pass it explicitly to ensure 401/403 tests are meaningful.
+            headers: {
+                Authorization: `Bearer ${accessToken}`
             }
         });
 

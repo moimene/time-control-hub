@@ -91,7 +91,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-itss-package]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-legal-document]
 verify_jwt = true

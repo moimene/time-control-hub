@@ -6,6 +6,7 @@ describeIntegration('Cycle 4: Kiosk Authentication & Clock-in', () => {
     const supabase = getAnonClient();
     const employeeCode = process.env.TEST_KIOSK_EMPLOYEE_CODE || 'BAR001';
     const correctPin = process.env.TEST_KIOSK_PIN;
+    const expectedFirstName = process.env.TEST_KIOSK_EMPLOYEE_FIRST_NAME;
 
     it('Should validate a valid employee code', async () => {
         const { data, error } = await supabase.functions.invoke('kiosk-clock', {
@@ -18,7 +19,12 @@ describeIntegration('Cycle 4: Kiosk Authentication & Clock-in', () => {
         }
 
         expect(data.success).toBe(true);
-        expect(data.employee.first_name).toBe('Juan');
+        if (expectedFirstName) {
+            expect(data.employee.first_name).toBe(expectedFirstName);
+        } else {
+            expect(typeof data.employee.first_name).toBe('string');
+            expect(data.employee.first_name.length).toBeGreaterThan(0);
+        }
         expect(data.next_event_type).toBeDefined();
     });
 

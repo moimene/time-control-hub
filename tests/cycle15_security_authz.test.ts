@@ -62,7 +62,9 @@ describe('Cycle 15: Security Regression (Lote 1) - source contract', () => {
       .map((entry) => entry.functionName)
       .sort();
 
-    expect(verifyJwtFalse).toEqual(['kiosk-auth', 'kiosk-clock']);
+    // Supabase Auth access tokens are ES256 in this project. Edge "verify_jwt" does not currently
+    // accept those tokens, so user-invoked functions that do their own auth checks must be exempt.
+    expect(verifyJwtFalse).toEqual(['generate-itss-package', 'kiosk-auth', 'kiosk-clock']);
   });
 
   it('generate-itss-package should contain auth and authorization 401/403 guards', () => {
