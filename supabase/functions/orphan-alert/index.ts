@@ -37,6 +37,7 @@ serve(async (req) => {
       );
     }
 
+    const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
     const resend = new Resend(resendApiKey);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -241,7 +242,7 @@ serve(async (req) => {
 
       try {
         await resend.emails.send({
-          from: "Control Horario <onboarding@resend.dev>",
+          from: `Control Horario <${resendFromEmail}>`,
           to: company.admin_emails,
           subject: `⚠️ ${company.orphans.length} fichaje(s) huérfano(s) detectado(s) - ${company.company_name}`,
           html: htmlContent,

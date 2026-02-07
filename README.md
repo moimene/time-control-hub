@@ -96,7 +96,7 @@ graph TB
         ADVISOR["Asesor Laboral\n/advisor"]
     end
 
-    subgraph "Backend - Lovable Cloud"
+    subgraph "Backend - Supabase (Owned Project)"
         AUTH["Authentication"]
         DB[("PostgreSQL\n+ RLS")]
         STORAGE["Storage\nPDFs sellados"]
@@ -153,7 +153,7 @@ graph TB
 | Frontend | React 18 + Vite + TypeScript | SPA multi-panel responsive |
 | UI | shadcn/ui + Tailwind CSS | Design system consistente |
 | State | TanStack Query | Cache, sincronización, offline |
-| Backend | Lovable Cloud (Supabase) | Auth, DB, Storage, Edge Functions |
+| Backend | Supabase (owned project) | Auth, DB, Storage, Edge Functions |
 | Base de Datos | PostgreSQL + RLS | Multi-tenancy seguro |
 | QTSP | EADTrust / Digital Trust | Firma, sellos, custodia |
 | Cron | pg_cron + pg_net | Automatizaciones programadas |
@@ -1651,18 +1651,19 @@ $$;
 
 ### Requisitos
 
-- Node.js 18+
-- Cuenta en Lovable.dev
+- Node.js 20+
+- Proyecto Supabase (propio)
+- (Opcional) Cuenta Vercel u otro proveedor para desplegar el frontend desde GitHub
 
 ### Variables de Entorno
 
 ```env
-# Generadas automáticamente por Lovable Cloud
+# Frontend (Vite)
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
 VITE_SUPABASE_PROJECT_ID=xxx
 
-# Secretos QTSP (configurar en Lovable)
+# Edge Functions secrets (configurar en Supabase)
 DIGITALTRUST_API_URL=https://api.eadtrust.eu
 DIGITALTRUST_LOGIN_URL=https://auth.eadtrust.eu/oauth/token
 DIGITALTRUST_CLIENT_ID=your-client-id
@@ -1670,7 +1671,10 @@ DIGITALTRUST_CLIENT_SECRET=your-secret
 
 # Email (opcional)
 RESEND_API_KEY=re_xxx
+RESEND_FROM_EMAIL=no-reply@yourdomain.tld
 ```
+
+> Guía de despliegue sin Lovable: ver `docs/DEPLOYMENT.md`.
 
 ### Desarrollo Local
 
@@ -1680,7 +1684,7 @@ git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
 
 # Instalar dependencias
-npm install
+npm ci
 
 # Iniciar desarrollo
 npm run dev
@@ -1785,5 +1789,5 @@ Proyecto propietario - Todos los derechos reservados.
   <strong>Time Control Hub</strong><br/>
   Plataforma de Control Horario y Cumplimiento Laboral<br/>
   con Servicios de Confianza Cualificados (QTSP)<br/><br/>
-  Desarrollado con React, Lovable Cloud y Digital Trust
+  Desarrollado con React, Supabase y Digital Trust
 </p>

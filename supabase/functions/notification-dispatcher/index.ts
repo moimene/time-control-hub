@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const resendApiKey = Deno.env.get('RESEND_API_KEY')!
+    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const resend = new Resend(resendApiKey)
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
       try {
         if (notification.channel === 'email' || notification.channel === 'both') {
           if (notification.recipient_email) {
-            await sendEmailNotification(resend, notification)
+            await sendEmailNotification(resend, notification, resendFromEmail)
           }
         }
 
@@ -168,13 +169,17 @@ Deno.serve(async (req) => {
   }
 })
 
-async function sendEmailNotification(resend: InstanceType<typeof Resend>, notification: NotificationRecord) {
+async function sendEmailNotification(
+  resend: InstanceType<typeof Resend>,
+  notification: NotificationRecord,
+  resendFromEmail: string,
+) {
   const body = notification.body_json as Record<string, string>
   
   const html = generateEmailHtml(notification.notification_type, body)
 
   const response = await resend.emails.send({
-    from: 'Cumplimiento <compliance@resend.dev>',
+    from: `Cumplimiento <${resendFromEmail}>`,
     to: [notification.recipient_email!],
     subject: notification.subject || 'Alerta de Cumplimiento',
     html,

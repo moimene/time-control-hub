@@ -52,9 +52,10 @@ async function sendEmailNotification(
   emails: string[],
   subject: string,
   body: string,
-  resendApiKey: string
+  resendApiKey: string,
+  resendFromEmail: string
 ): Promise<boolean> {
-  if (!resendApiKey || emails.length === 0) return false;
+  if (!resendApiKey || !resendFromEmail || emails.length === 0) return false;
   
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -64,7 +65,7 @@ async function sendEmailNotification(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'QTSP Alerts <alerts@lovable.dev>',
+        from: `QTSP Alerts <${resendFromEmail}>`,
         to: emails,
         subject,
         html: body,
@@ -115,6 +116,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY') || '';
+    const resendFromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action } = await req.json();
@@ -207,7 +209,13 @@ serve(async (req) => {
             if (rule.notify_emails.length > 0) {
               const subject = `[QTSP Alert L${rule.level}] ${category} - Acción requerida`;
               const body = buildEmailBody(log, rule.level, category);
-              notificationSent = await sendEmailNotification(rule.notify_emails, subject, body, resendApiKey);
+              notificationSent = await sendEmailNotification(
+                rule.notify_emails,
+                subject,
+                body,
+                resendApiKey,
+                resendFromEmail,
+              );
             }
 
             // Update escalation with notification status

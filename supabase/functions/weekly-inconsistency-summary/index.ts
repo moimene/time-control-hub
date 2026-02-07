@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -240,7 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log(`Sending weekly summary to ${responsible.email} for department ${responsible.department}`);
 
         const emailResponse = await resend.emails.send({
-          from: `${company.name} Fichajes <onboarding@resend.dev>`,
+          from: `${company.name} Fichajes <${resendFromEmail}>`,
           to: [responsible.email],
           subject: `📊 Resumen Semanal: ${employeeInconsistencies.length} empleados con inconsistencias - ${responsible.department}`,
           html: emailHtml,
