@@ -24,6 +24,9 @@ supabase/.temp/
 playwright-report/
 test-results/
 
+# Local scratch files
+.tmp_functions_list.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
