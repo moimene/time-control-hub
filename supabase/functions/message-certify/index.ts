@@ -6,6 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function envFirst(...names: string[]): string | null {
+  for (const name of names) {
+    const value = Deno.env.get(name);
+    if (value && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function requireEnv(...names: string[]): string {
+  const value = envFirst(...names);
+  if (!value) {
+    throw new Error(`Missing required env var: ${names.join(' or ')}`);
+  }
+  return value;
+}
+
 interface CertifyRequest {
   action: 'certify_pending' | 'certify_single' | 'verify_chain';
   company_id?: string;
@@ -272,9 +288,9 @@ async function verifyEvidenceChain(
 }
 
 async function authenticate(): Promise<string> {
-  const loginUrl = Deno.env.get('DIGITALTRUST_LOGIN_URL')!;
-  const clientId = Deno.env.get('DIGITALTRUST_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('DIGITALTRUST_CLIENT_SECRET')!;
+  const loginUrl = requireEnv('DIGITALTRUST_LOGIN_URL', 'QTSP_OKTA_TOKEN_URL');
+  const clientId = requireEnv('DIGITALTRUST_CLIENT_ID', 'QTSP_CLIENT_API');
+  const clientSecret = requireEnv('DIGITALTRUST_CLIENT_SECRET', 'QTSP_CLIENT_SECRET');
 
   const response = await fetch(loginUrl, {
     method: 'POST',
@@ -303,7 +319,7 @@ async function requestQTSPTimestamp(token: string, contentHash: string): Promise
   provider: string;
   serial: string;
 }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
 
   const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/tsp/timestamp`, {
     method: 'POST',

@@ -12,6 +12,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function envFirst(...names: string[]): string | null {
+  for (const name of names) {
+    const value = Deno.env.get(name);
+    if (value && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function requireEnv(...names: string[]): string {
+  const value = envFirst(...names);
+  if (!value) {
+    throw new Error(`Missing required env var: ${names.join(' or ')}`);
+  }
+  return value;
+}
+
 // =============================================================================
 // QTSP CONFIGURATION - Centralized constants (can be moved to env vars later)
 // =============================================================================
@@ -168,9 +184,9 @@ async function logQTSPOperation(
 
 // Authenticate with Digital Trust
 async function authenticate(): Promise<string> {
-  const loginUrl = Deno.env.get('DIGITALTRUST_LOGIN_URL')!;
-  const clientId = Deno.env.get('DIGITALTRUST_CLIENT_ID')!;
-  const clientSecret = Deno.env.get('DIGITALTRUST_CLIENT_SECRET')!;
+  const loginUrl = requireEnv('DIGITALTRUST_LOGIN_URL', 'QTSP_OKTA_TOKEN_URL');
+  const clientId = requireEnv('DIGITALTRUST_CLIENT_ID', 'QTSP_CLIENT_API');
+  const clientSecret = requireEnv('DIGITALTRUST_CLIENT_SECRET', 'QTSP_CLIENT_SECRET');
 
   const response = await fetch(loginUrl, {
     method: 'POST',
@@ -202,7 +218,7 @@ async function getOrCreateCaseFile(
   companyId: string,
   companyName: string
 ): Promise<{ id: string; externalId: string }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
 
   // Check if we already have a case file for this company
   const { data: existing } = await supabase
@@ -325,7 +341,7 @@ async function getOrCreateEvidenceGroup(
   caseFileExternalId: string,
   yearMonth: string
 ): Promise<{ id: string; externalId: string }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
 
   // Check if we already have an evidence group for this month
   const { data: existing } = await supabase
@@ -480,7 +496,7 @@ async function createTSPEvidence(
   date: string,
   companyId: string
 ): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: DbEvidence | null }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
   const startTime = Date.now();
 
   // IDEMPOTENCY CHECK: Check if evidence already exists for this daily_root
@@ -660,7 +676,7 @@ async function createGenericHashEvidence(
   companyId: string,
   metadata?: Record<string, unknown>
 ): Promise<{ success: boolean; alreadyExists?: boolean; evidence?: DbEvidence | null }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
   const startTime = Date.now();
 
   // IDEMPOTENCY CHECK: Check if evidence already exists for this entity
@@ -819,7 +835,7 @@ async function checkAndUpdateEvidence(
   evidence: DbEvidence,
   companyId: string
 ): Promise<DbEvidence> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
   const startTime = Date.now();
 
   if (!evidence.external_id) {
@@ -894,7 +910,7 @@ async function sealPDF(
   fileName: string,
   companyId: string
 ): Promise<{ sealedPdfPath: string; alreadyExists?: boolean }> {
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+  const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
   const startTime = Date.now();
 
   // IDEMPOTENCY CHECK: Check if evidence already exists for this report_month
@@ -1187,7 +1203,7 @@ async function healthCheck(): Promise<{
     authOk = true;
 
     // Test API connectivity with a simple GET request
-    const apiUrl = Deno.env.get('DIGITALTRUST_API_URL')!;
+    const apiUrl = requireEnv('DIGITALTRUST_API_URL', 'QTSP_API_BASE_URL');
     const response = await fetch(`${apiUrl}/digital-trust/api/v1/private/case-files?limit=1`, {
       headers: { 'Authorization': `Bearer ${token}` },
     });

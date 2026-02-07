@@ -21,7 +21,9 @@ interface HealthResult {
 
 async function checkQTSPHealth(): Promise<HealthResult> {
   const startTime = Date.now();
-  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL') || 'https://api.pre.gcloudfactory.com';
+  const apiUrl = Deno.env.get('DIGITALTRUST_API_URL') ||
+    Deno.env.get('QTSP_API_BASE_URL') ||
+    'https://api.pre.gcloudfactory.com';
 
   try {
     const controller = new AbortController();
