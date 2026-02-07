@@ -72,26 +72,54 @@ serve(async (req) => {
         assignedToUserId = asesor.user_id;
         assignedToEmployeeId = asesor.id;
       } else {
-        // Fall back to finding an admin in the company
-        const { data: adminRole } = await supabase
-          .from('user_roles')
+        // Fall back to finding an admin-like user assigned to the same company.
+        // Note: `user_roles` is global; company membership is tracked in `user_company` / `employees`.
+        const { data: companyUsers, error: companyUsersError } = await supabase
+          .from('user_company')
           .select('user_id')
-          .eq('company_id', companyId)
-          .eq('role', 'admin')
-          .limit(1)
-          .single();
+          .eq('company_id', companyId);
 
-        if (adminRole?.user_id) {
-          assignedToUserId = adminRole.user_id;
-          
-          // Get admin's employee record if exists
-          const { data: adminEmployee } = await supabase
-            .from('employees')
-            .select('id')
-            .eq('user_id', adminRole.user_id)
-            .single();
-          
-          assignedToEmployeeId = adminEmployee?.id || null;
+        if (companyUsersError) {
+          console.error('Error fetching company users:', companyUsersError);
+        }
+
+        const candidateUserIds = (companyUsers || [])
+          .map((row: any) => row.user_id as string)
+          .filter(Boolean);
+
+        if (candidateUserIds.length > 0) {
+          const { data: roleRows, error: rolesError } = await supabase
+            .from('user_roles')
+            .select('user_id, role')
+            .in('user_id', candidateUserIds)
+            .in('role', ['admin', 'super_admin', 'asesor']);
+
+          if (rolesError) {
+            console.error('Error fetching candidate roles:', rolesError);
+          }
+
+          const preferredOrder = ['asesor', 'admin', 'super_admin'] as const;
+          const chosen = preferredOrder
+            .map((role) => (roleRows || []).find((row: any) => row.role === role))
+            .find(Boolean) as any;
+
+          if (chosen?.user_id) {
+            assignedToUserId = chosen.user_id;
+
+            // Get assigned user's employee record if exists (used for notifications).
+            const { data: assignedEmployee, error: assignedEmployeeError } = await supabase
+              .from('employees')
+              .select('id')
+              .eq('user_id', assignedToUserId)
+              .eq('company_id', companyId)
+              .maybeSingle();
+
+            if (assignedEmployeeError) {
+              console.error('Error fetching assigned employee record:', assignedEmployeeError);
+            }
+
+            assignedToEmployeeId = assignedEmployee?.id || null;
+          }
         }
       }
     }

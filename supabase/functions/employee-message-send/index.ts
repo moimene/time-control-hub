@@ -1,4 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,13 +29,18 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
+    }
+    const roleError = requireAnyRole({ ctx: caller, allowed: ['employee'], corsHeaders });
+    if (roleError) return roleError;
+
     const { employee_id, subject, body, category }: SendRequest = await req.json();
 
     if (!employee_id || !subject || !body) {
-      return new Response(
-        JSON.stringify({ error: 'employee_id, subject y body son requeridos' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'employee_id, subject y body son requeridos' }, 400, corsHeaders);
     }
 
     // Verify employee exists and get company_id
@@ -41,18 +52,25 @@ Deno.serve(async (req) => {
 
     if (empError || !employee) {
       console.error('Employee not found:', empError);
-      return new Response(
-        JSON.stringify({ error: 'Empleado no encontrado' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Empleado no encontrado' }, 404, corsHeaders);
     }
 
     if (employee.status !== 'active') {
-      return new Response(
-        JSON.stringify({ error: 'El empleado no está activo' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'El empleado no está activo' }, 400, corsHeaders);
     }
+
+    if (!employee.user_id || employee.user_id !== caller.userId) {
+      return jsonResponse({ error: 'Employees can only send messages as themselves' }, 403, corsHeaders);
+    }
+
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId: employee.company_id,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
 
     const now = new Date().toISOString();
 

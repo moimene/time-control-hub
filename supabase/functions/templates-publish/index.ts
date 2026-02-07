@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,23 +30,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const authHeader = req.headers.get("Authorization") || '';
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
     }
-
-    // Get user from token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const roleError = requireAnyRole({
+      ctx: caller,
+      allowed: ['super_admin', 'admin', 'responsible'],
+      corsHeaders,
+    });
+    if (roleError) return roleError;
 
     const { rule_version_id, effective_from } = await req.json();
 
@@ -74,6 +75,19 @@ serve(async (req) => {
     }
 
     const ruleSet = version.rule_sets as { id: string; company_id: string | null; status: string; name: string };
+
+    if (!ruleSet.company_id) {
+      return jsonResponse({ error: 'rule_set is missing company_id' }, 400, corsHeaders);
+    }
+
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId: ruleSet.company_id,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
 
     // Check rule set is in draft status
     if (ruleSet.status !== 'draft' && ruleSet.status !== 'validating') {
@@ -116,7 +130,7 @@ serve(async (req) => {
       .update({
         payload_hash: payloadHash,
         published_at: new Date().toISOString(),
-        published_by: user.id,
+        published_by: caller.userId,
         effective_from: effective_from || new Date().toISOString().split('T')[0],
       })
       .eq('id', rule_version_id);
@@ -137,7 +151,7 @@ serve(async (req) => {
 
     // Log in audit
     await supabase.from('audit_log').insert({
-      actor_id: user.id,
+      actor_id: caller.userId,
       actor_type: 'user',
       entity_type: 'rule_version',
       entity_id: rule_version_id,

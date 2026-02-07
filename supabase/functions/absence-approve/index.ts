@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,12 +24,21 @@ async function hashPayload(payload: string): Promise<string> {
 
 interface AbsenceApproveRequest {
   request_id: string;
-  approver_id: string;
-  action: 'approve' | 'reject' | 'escalate' | 'request_changes' | 'revoke';
+  action:
+    | 'approve'
+    | 'approved'
+    | 'reject'
+    | 'rejected'
+    | 'escalate'
+    | 'escalated'
+    | 'request_changes'
+    | 'revoke';
   notes?: string;
   step?: number;
   override_coverage?: boolean;
   override_reason?: string;
+  // Legacy input (ignored). Approver is derived from the authenticated caller.
+  approver_id?: string;
 }
 
 serve(async (req) => {
@@ -38,7 +53,37 @@ serve(async (req) => {
   try {
     const bodyText = await req.text();
     const body: AbsenceApproveRequest = JSON.parse(bodyText);
-    const { request_id, approver_id, action, notes, step = 1, override_coverage, override_reason } = body;
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
+    }
+    const roleError = requireAnyRole({
+      ctx: caller,
+      allowed: ['super_admin', 'admin', 'responsible'],
+      corsHeaders,
+    });
+    if (roleError) return roleError;
+
+    const { request_id, notes, step = 1, override_coverage, override_reason } = body;
+
+    if (!request_id) {
+      return jsonResponse({ error: 'request_id is required' }, 400, corsHeaders);
+    }
+
+    const actionMap: Record<string, AbsenceApproveRequest['action']> = {
+      approve: 'approve',
+      approved: 'approve',
+      reject: 'reject',
+      rejected: 'reject',
+      escalate: 'escalate',
+      escalated: 'escalate',
+      request_changes: 'request_changes',
+      revoke: 'revoke',
+    };
+    const rawAction = body.action;
+    const action = actionMap[rawAction] || rawAction;
+    const approver_id = caller.userId;
 
     // Verificar idempotencia
     const idempotencyKey = req.headers.get('idempotency-key');
@@ -107,6 +152,18 @@ serve(async (req) => {
     const absenceType = request.absence_types;
     const employee = request.employees;
     const companyId = employee?.company_id || request.company_id;
+    if (!companyId) {
+      return jsonResponse({ error: 'Unable to resolve company_id for request' }, 400, corsHeaders);
+    }
+
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
 
     // 3. Validar justificante si es requerido
     if (action === 'approve' && absenceType?.requires_justification) {

@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
@@ -64,6 +70,22 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabaseClient,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible', 'employee'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+    }
+
     // Fetch employee details with email and company
     const { data: employee, error: employeeError } = await supabaseClient
       .from('employees')
@@ -77,6 +99,21 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Employee not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
+    }
+
+    if (caller.kind === 'user') {
+      const companyAccess = await requireCompanyAccess({
+        supabaseAdmin: supabaseClient,
+        ctx: caller,
+        companyId: employee.company_id,
+        corsHeaders,
+        allowEmployee: true,
+      });
+      if (companyAccess instanceof Response) return companyAccess;
+
+      if (!caller.isAdminLike && companyAccess.employeeId && companyAccess.employeeId !== employee_id) {
+        return jsonResponse({ error: 'Employees can only trigger alerts for themselves' }, 403, corsHeaders);
+      }
     }
 
     // Check if email notifications are enabled for this company

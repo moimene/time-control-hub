@@ -55,7 +55,7 @@ serve(async (req) => {
     // Get employee record
     const { data: employee, error: empError } = await supabase
       .from('employees')
-      .select('id, pin_hash, pin_salt, pin_locked_until')
+      .select('id, pin_hash, pin_salt, pin_locked_until, pin_failed_attempts')
       .eq('user_id', user.id)
       .single();
 
@@ -84,14 +84,15 @@ serve(async (req) => {
       const currentHashHex = currentHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
       if (currentHashHex !== employee.pin_hash) {
+        const failedAttempts = (employee as any).pin_failed_attempts ? Number((employee as any).pin_failed_attempts) + 1 : 1;
+        const shouldLock = failedAttempts >= 5;
+
         // Increment failed attempts
         await supabase
           .from('employees')
           .update({ 
-            pin_failed_attempts: (employee as any).pin_failed_attempts + 1,
-            pin_locked_until: (employee as any).pin_failed_attempts >= 4 
-              ? new Date(Date.now() + 15 * 60 * 1000).toISOString() 
-              : null
+            pin_failed_attempts: failedAttempts,
+            pin_locked_until: shouldLock ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null
           })
           .eq('id', employee.id);
 

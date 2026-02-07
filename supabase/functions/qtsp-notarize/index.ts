@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1224,7 +1230,44 @@ serve(async (req) => {
   }
 
   try {
-    const { action, company_id, ...params } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { action, company_id, ...params } = body as Record<string, unknown>;
+
+    if (!action || typeof action !== 'string') {
+      return jsonResponse({ error: 'action is required' }, 400, corsHeaders);
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({ ctx: caller, allowed: ['super_admin', 'admin'], corsHeaders });
+      if (roleError) return roleError;
+
+      if (action !== 'health_check') {
+        if (!company_id || typeof company_id !== 'string') {
+          return jsonResponse({ error: 'company_id is required' }, 400, corsHeaders);
+        }
+
+        const companyAccess = await requireCompanyAccess({
+          supabaseAdmin: supabase,
+          ctx: caller,
+          companyId: company_id,
+          corsHeaders,
+          allowEmployee: true,
+        });
+        if (companyAccess instanceof Response) return companyAccess;
+      }
+    }
 
     // Health check doesn't require company_id
     if (action === 'health_check') {
@@ -1236,13 +1279,9 @@ serve(async (req) => {
     }
 
     // company_id is REQUIRED for all other actions
-    if (!company_id) {
-      throw new Error('company_id is required');
+    if (!company_id || typeof company_id !== 'string') {
+      return jsonResponse({ error: 'company_id is required' }, 400, corsHeaders);
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get company info
     const { data: company } = await supabase

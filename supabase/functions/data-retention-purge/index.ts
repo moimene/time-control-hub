@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +77,35 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { company_id, dry_run = false } = body;
+
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
+    if (caller.kind === 'user') {
+      // Running for all companies is super-admin only.
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: company_id ? ['super_admin', 'admin'] : ['super_admin'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      if (company_id) {
+        const companyAccess = await requireCompanyAccess({
+          supabaseAdmin: supabase,
+          ctx: caller,
+          companyId: company_id,
+          corsHeaders,
+          allowEmployee: false,
+        });
+        if (companyAccess instanceof Response) return companyAccess;
+      }
+    }
 
     console.log(`Data retention purge started. Dry run: ${dry_run}, Company: ${company_id || 'all'}`);
 

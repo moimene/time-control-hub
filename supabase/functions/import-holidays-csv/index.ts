@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAnyRole, requireCallerContext } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -115,6 +116,18 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
+
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({ ctx: caller, allowed: ['super_admin'], corsHeaders });
+      if (roleError) return roleError;
+    }
 
     const { csvContent, year, replaceExisting = false } = await req.json();
     

@@ -1,22 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsonResponse, requireCallerContext, requireCompanyAccess } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ReadRequest {
-  thread_id: string;
-  employee_id: string;
-  device_info?: {
-    type: 'kiosk' | 'web' | 'mobile';
-    id?: string;
-    ip?: string;
-    user_agent?: string;
-  };
+type DeviceInfo = {
+  type: 'kiosk' | 'web' | 'mobile';
+  id?: string;
+  ip?: string;
+  user_agent?: string;
+  userAgent?: string;
+};
+
+type MessageReadRequest = {
+  recipientId?: string;
+  threadId?: string;
+  employeeId?: string;
+  confirmRead?: boolean;
+  deviceInfo?: DeviceInfo;
+  // Legacy / snake_case inputs (still accepted)
+  recipient_id?: string;
+  thread_id?: string;
+  employee_id?: string;
   confirm_read?: boolean;
-}
+  device_info?: DeviceInfo;
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,28 +39,48 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { thread_id, employee_id, device_info, confirm_read = false }: ReadRequest = await req.json();
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
+    }
 
-    if (!thread_id || !employee_id) {
-      return new Response(
-        JSON.stringify({ error: 'thread_id and employee_id are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const body: MessageReadRequest = await req.json().catch(() => ({}));
+    const recipientId = body.recipientId || body.recipient_id;
+    const thread_id = body.threadId || body.thread_id;
+    const employee_id = body.employeeId || body.employee_id;
+    const device_info = body.deviceInfo || body.device_info;
+    const confirm_read = body.confirmRead ?? body.confirm_read ?? true;
+
+    if (!recipientId && (!thread_id || !employee_id)) {
+      return jsonResponse({ error: 'recipientId (or threadId+employeeId) is required' }, 400, corsHeaders);
     }
 
     // Get recipient record
-    const { data: recipient, error: recipientError } = await supabase
+    const recipientQuery = supabase
       .from('message_recipients')
       .select('*, message_threads(*)')
-      .eq('thread_id', thread_id)
-      .eq('employee_id', employee_id)
       .single();
 
+    const { data: recipient, error: recipientError } = recipientId
+      ? await recipientQuery.eq('id', recipientId)
+      : await recipientQuery.eq('thread_id', thread_id).eq('employee_id', employee_id);
+
     if (recipientError || !recipient) {
-      return new Response(
-        JSON.stringify({ error: 'Recipient not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Recipient not found' }, 404, corsHeaders);
+    }
+
+    // Only the recipient employee can confirm read (even if the caller is also admin-like).
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId: recipient.company_id,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
+    if (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id) {
+      return jsonResponse({ error: 'Employees can only confirm read for their own messages' }, 403, corsHeaders);
     }
 
     const now = new Date().toISOString();
@@ -63,7 +94,7 @@ serve(async (req) => {
       read_device_type: device_info?.type || 'web',
       read_device_id: device_info?.id,
       read_ip: device_info?.ip,
-      read_user_agent: device_info?.user_agent
+      read_user_agent: device_info?.user_agent || device_info?.userAgent
     };
 
     if (isFirstRead) {
@@ -90,7 +121,7 @@ serve(async (req) => {
       const { data: content } = await supabase
         .from('message_contents')
         .select('body_text, body_markdown, attachments')
-        .eq('thread_id', thread_id)
+        .eq('thread_id', recipient.thread_id)
         .eq('is_current', true)
         .single();
 
@@ -101,11 +132,11 @@ serve(async (req) => {
 
       await createMessageEvidence(supabase, {
         company_id: thread.company_id,
-        thread_id,
+        thread_id: recipient.thread_id,
         recipient_id: recipient.id,
         event_type: 'read',
         event_data: {
-          employee_id,
+          employee_id: recipient.employee_id,
           content_hash: contentHash,
           device_info,
           is_first_read: isFirstRead,
@@ -122,12 +153,12 @@ serve(async (req) => {
           actioned_at: now 
         })
         .eq('notification_type', 'message')
-        .eq('reference_id', thread_id)
-        .eq('employee_id', employee_id)
+        .eq('reference_id', recipient.thread_id)
+        .eq('employee_id', recipient.employee_id)
         .in('status', ['pending', 'shown']);
     }
 
-    console.log(`Message ${thread_id} read by employee ${employee_id}`);
+    console.log(`Message ${recipient.thread_id} read by employee ${recipient.employee_id}`);
 
     return new Response(
       JSON.stringify({

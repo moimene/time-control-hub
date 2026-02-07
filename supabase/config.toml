@@ -1,7 +1,7 @@
 project_id = "ouxzjfqqgxlvxhjyihum"
 
 [functions.import-holidays-csv]
-verify_jwt = true
+verify_jwt = false
 
 [functions.kiosk-clock]
 verify_jwt = false
@@ -13,13 +13,13 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.log-export]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-daily-root]
 verify_jwt = true
 
 [functions.qtsp-notarize]
-verify_jwt = true
+verify_jwt = false
 
 [functions.qtsp-scheduler]
 verify_jwt = true
@@ -31,64 +31,70 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.qtsp-health-alert]
-verify_jwt = true
+verify_jwt = false
 
 [functions.qtsp-health-monitor]
 verify_jwt = true
 
 [functions.qtsp-toggle-alerts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.orphan-alert]
 verify_jwt = true
 
 [functions.inconsistency-alert]
-verify_jwt = true
+verify_jwt = false
 
 [functions.weekly-inconsistency-summary]
 verify_jwt = true
 
 [functions.compliance-evaluator]
-verify_jwt = true
+verify_jwt = false
+
+[functions.run-compliance-tests]
+verify_jwt = false
+
+[functions.seed-compliance-data]
+verify_jwt = false
 
 [functions.templates-validate]
-verify_jwt = true
+verify_jwt = false
 
 [functions.templates-publish]
-verify_jwt = true
+verify_jwt = false
 
 [functions.templates-simulate]
-verify_jwt = true
+verify_jwt = false
 
 [functions.templates-diff]
-verify_jwt = true
+verify_jwt = false
 
 [functions.notification-dispatcher]
 verify_jwt = true
 
 [functions.qtsp-retry]
-verify_jwt = true
+verify_jwt = false
 
 [functions.escalation-alert]
 verify_jwt = true
 
 [functions.generate-legal-reports]
-verify_jwt = true
+verify_jwt = false
 
 [functions.employee-change-pin]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sign-monthly-hours]
-verify_jwt = true
+verify_jwt = false
 
 [functions.vacation-calculator]
 verify_jwt = true
 
 [functions.acknowledge-document]
-verify_jwt = true
+verify_jwt = false
 
 [functions.data-retention-purge]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-itss-package]
 verify_jwt = false
@@ -97,64 +103,64 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.employee-credentials]
-verify_jwt = true
+verify_jwt = false
 
 [functions.closure-reminder]
 verify_jwt = true
 
 [functions.assistant-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-support-ticket]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-send]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-read]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-respond]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-certify]
 verify_jwt = true
 
 [functions.message-reminder]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-export-evidence]
-verify_jwt = true
+verify_jwt = false
 
 [functions.message-scheduler]
 verify_jwt = true
 
 [functions.employee-message-send]
-verify_jwt = true
+verify_jwt = false
 
 [functions.company-create]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-password-reset]
-verify_jwt = true
+verify_jwt = false
 
 [functions.company-provision]
-verify_jwt = true
+verify_jwt = false
 
 [functions.company-bootstrap]
-verify_jwt = true
+verify_jwt = false
 
 [functions.seed-v1-fixtures]
-verify_jwt = true
+verify_jwt = false
 
 [functions.absence-approve]
-verify_jwt = true
+verify_jwt = false
 
 [functions.absence-create]
-verify_jwt = true
+verify_jwt = false
 
 [functions.coverage-check]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sla-escalation]
 verify_jwt = true

@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,27 +64,37 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
     }
+    const roleError = requireAnyRole({
+      ctx: caller,
+      allowed: ['super_admin', 'admin', 'responsible'],
+      corsHeaders,
+    });
+    if (roleError) return roleError;
 
     const { rule_version_id, company_id, period_days = 30 } = await req.json();
 
     if (!rule_version_id || !company_id) {
-      return new Response(JSON.stringify({ error: "rule_version_id and company_id are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "rule_version_id and company_id are required" }, 400, corsHeaders);
     }
+
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId: company_id,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
 
     // Fetch the template payload
     const { data: version, error: versionError } = await supabase
       .from('rule_versions')
-      .select('payload_json')
+      .select('payload_json, rule_sets!inner(company_id)')
       .eq('id', rule_version_id)
       .single();
 
@@ -87,6 +103,11 @@ serve(async (req) => {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const versionCompanyId = (version as any).rule_sets?.company_id as string | undefined;
+    if (versionCompanyId && versionCompanyId !== company_id && !caller.isSuperAdmin) {
+      return jsonResponse({ error: 'rule_version_id does not belong to provided company_id' }, 403, corsHeaders);
     }
 
     const payload = version.payload_json as TemplatePayload;

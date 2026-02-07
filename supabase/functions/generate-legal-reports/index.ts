@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,10 +48,33 @@ serve(async (req) => {
     const { company_id, report_type, month, employee_id } = await req.json() as ReportRequest;
 
     if (!company_id || !report_type || !month) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Missing required parameters' }, 400, corsHeaders);
+    }
+
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible', 'asesor'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      const companyAccess = await requireCompanyAccess({
+        supabaseAdmin: supabase,
+        ctx: caller,
+        companyId: company_id,
+        corsHeaders,
+        allowEmployee: true,
+      });
+      if (companyAccess instanceof Response) return companyAccess;
     }
 
     console.log(`Generating ${report_type} report for company ${company_id}, month ${month}`);

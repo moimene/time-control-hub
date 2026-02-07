@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,13 +22,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
     const { thread_id, format = 'json' } = await req.json();
 
     if (!thread_id) {
-      return new Response(
-        JSON.stringify({ error: 'thread_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'thread_id is required' }, 400, corsHeaders);
     }
 
     console.log(`Exporting evidence for thread ${thread_id}, format: ${format}`);
@@ -39,6 +50,24 @@ serve(async (req) => {
         JSON.stringify({ error: 'Thread not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible', 'asesor'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      const companyAccess = await requireCompanyAccess({
+        supabaseAdmin: supabase,
+        ctx: caller,
+        companyId: thread.company_id,
+        corsHeaders,
+        allowEmployee: true,
+      });
+      if (companyAccess instanceof Response) return companyAccess;
     }
 
     // Fetch content

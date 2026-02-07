@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,13 +28,18 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
     const { thread_id, send_now = true, scheduled_at }: SendRequest = await req.json();
 
     if (!thread_id) {
-      return new Response(
-        JSON.stringify({ error: 'thread_id is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'thread_id is required' }, 400, corsHeaders);
     }
 
     // Get thread with content
@@ -46,6 +57,24 @@ serve(async (req) => {
         JSON.stringify({ error: 'Thread not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      const companyAccess = await requireCompanyAccess({
+        supabaseAdmin: supabase,
+        ctx: caller,
+        companyId: thread.company_id,
+        corsHeaders,
+        allowEmployee: true,
+      });
+      if (companyAccess instanceof Response) return companyAccess;
     }
 
     if (thread.status !== 'draft' && thread.status !== 'scheduled') {
@@ -119,6 +148,11 @@ serve(async (req) => {
     // For scheduled, we'll create them when the scheduler runs
 
     if (send_now) {
+      const actor =
+        caller.kind === 'user'
+          ? { actor_type: 'user', actor_id: caller.userId }
+          : { actor_type: 'system' };
+
       // Create send evidence with QTSP
       await createMessageEvidence(supabase, {
         company_id,
@@ -128,7 +162,7 @@ serve(async (req) => {
           content_hash: contentHash,
           recipients_hash: recipientsHash,
           recipient_count: recipientIds.length,
-          actor_type: 'user'
+          ...actor
         }
       });
 

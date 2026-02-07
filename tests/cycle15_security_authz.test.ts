@@ -50,7 +50,7 @@ function createAnonClient() {
 }
 
 describe('Cycle 15: Security Regression (Lote 1) - source contract', () => {
-  it('supabase config should keep verify_jwt=false only for kiosk exceptions', () => {
+  it('supabase config should set verify_jwt=false for user-invoked Edge Functions (ES256 compatibility)', () => {
     const configToml = readRepoFile('supabase/config.toml');
     const entries = Array.from(
       configToml.matchAll(/\[functions\.([^\]]+)\]\s*\nverify_jwt = (true|false)/g),
@@ -64,7 +64,47 @@ describe('Cycle 15: Security Regression (Lote 1) - source contract', () => {
 
     // Supabase Auth access tokens are ES256 in this project. Edge "verify_jwt" does not currently
     // accept those tokens, so user-invoked functions that do their own auth checks must be exempt.
-    expect(verifyJwtFalse).toEqual(['generate-itss-package', 'kiosk-auth', 'kiosk-clock']);
+    expect(verifyJwtFalse).toEqual([
+      'absence-approve',
+      'absence-create',
+      'acknowledge-document',
+      'admin-password-reset',
+      'assistant-chat',
+      'company-bootstrap',
+      'company-create',
+      'company-provision',
+      'compliance-evaluator',
+      'coverage-check',
+      'create-support-ticket',
+      'data-retention-purge',
+      'employee-change-pin',
+      'employee-credentials',
+      'employee-message-send',
+      'generate-itss-package',
+      'generate-legal-reports',
+      'import-holidays-csv',
+      'inconsistency-alert',
+      'kiosk-auth',
+      'kiosk-clock',
+      'log-export',
+      'message-export-evidence',
+      'message-read',
+      'message-reminder',
+      'message-respond',
+      'message-send',
+      'qtsp-health-alert',
+      'qtsp-notarize',
+      'qtsp-retry',
+      'qtsp-toggle-alerts',
+      'run-compliance-tests',
+      'seed-compliance-data',
+      'seed-v1-fixtures',
+      'sign-monthly-hours',
+      'templates-diff',
+      'templates-publish',
+      'templates-simulate',
+      'templates-validate',
+    ]);
   });
 
   it('generate-itss-package should contain auth and authorization 401/403 guards', () => {

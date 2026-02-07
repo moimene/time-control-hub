@@ -1,28 +1,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsonResponse, requireCallerContext, requireCompanyAccess } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface RespondRequest {
-  thread_id: string;
-  employee_id: string;
+type DeviceInfo = {
+  type: 'kiosk' | 'web' | 'mobile';
+  ip?: string;
+  user_agent?: string;
+  userAgent?: string;
+};
+
+type SignatureData = {
+  type: 'checkbox' | 'drawn';
+  value: string | boolean;
+  timestamp: string;
+};
+
+type MessageRespondRequest = {
+  recipientId?: string;
+  threadId?: string;
+  employeeId?: string;
+  responseText?: string;
+  responseAttachments?: string[];
+  formData?: Record<string, any>;
+  signatureData?: SignatureData;
+  deviceInfo?: DeviceInfo;
+  sign?: boolean;
+  // Legacy / snake_case inputs (still accepted)
+  recipient_id?: string;
+  thread_id?: string;
+  employee_id?: string;
   response_text?: string;
   response_attachments?: string[];
   form_data?: Record<string, any>;
-  signature_data?: {
-    type: 'checkbox' | 'drawn';
-    value: string | boolean;
-    timestamp: string;
-  };
-  device_info?: {
-    type: 'kiosk' | 'web' | 'mobile';
-    ip?: string;
-    user_agent?: string;
-  };
-}
+  signature_data?: SignatureData;
+  device_info?: DeviceInfo;
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -34,40 +51,55 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { 
-      thread_id, 
-      employee_id, 
-      response_text, 
-      response_attachments,
-      form_data,
-      signature_data,
-      device_info
-    }: RespondRequest = await req.json();
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
+    }
 
-    if (!thread_id || !employee_id) {
-      return new Response(
-        JSON.stringify({ error: 'thread_id and employee_id are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const body: MessageRespondRequest = await req.json().catch(() => ({}));
+    const recipientId = body.recipientId || body.recipient_id;
+    const thread_id = body.threadId || body.thread_id;
+    const employee_id = body.employeeId || body.employee_id;
+    const response_text = body.responseText ?? body.response_text;
+    const response_attachments = body.responseAttachments ?? body.response_attachments;
+    const form_data = body.formData ?? body.form_data;
+    let signature_data = body.signatureData ?? body.signature_data;
+    const device_info = body.deviceInfo || body.device_info;
+    const sign = body.sign;
+
+    if (!recipientId && (!thread_id || !employee_id)) {
+      return jsonResponse({ error: 'recipientId (or threadId+employeeId) is required' }, 400, corsHeaders);
     }
 
     // Get recipient record with thread
-    const { data: recipient, error: recipientError } = await supabase
+    const recipientQuery = supabase
       .from('message_recipients')
       .select('*, message_threads(*)')
-      .eq('thread_id', thread_id)
-      .eq('employee_id', employee_id)
       .single();
 
+    const { data: recipient, error: recipientError } = recipientId
+      ? await recipientQuery.eq('id', recipientId)
+      : await recipientQuery.eq('thread_id', thread_id).eq('employee_id', employee_id);
+
     if (recipientError || !recipient) {
-      return new Response(
-        JSON.stringify({ error: 'Recipient not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Recipient not found' }, 404, corsHeaders);
     }
 
     const thread = recipient.message_threads;
     const now = new Date().toISOString();
+
+    const companyAccess = await requireCompanyAccess({
+      supabaseAdmin: supabase,
+      ctx: caller,
+      companyId: recipient.company_id,
+      corsHeaders,
+      allowEmployee: true,
+    });
+    if (companyAccess instanceof Response) return companyAccess;
+    if (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id) {
+      return jsonResponse({ error: 'Employees can only respond/sign for their own messages' }, 403, corsHeaders);
+    }
 
     // Validate requirements
     if (thread.requires_response && !response_text && !form_data && !response_attachments?.length) {
@@ -78,10 +110,11 @@ serve(async (req) => {
     }
 
     if (thread.requires_signature && !signature_data) {
-      return new Response(
-        JSON.stringify({ error: 'Signature is required for this message' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (sign) {
+        signature_data = { type: 'checkbox', value: true, timestamp: now };
+      } else {
+        return jsonResponse({ error: 'Signature is required for this message' }, 400, corsHeaders);
+      }
     }
 
     // Check deadline
@@ -142,11 +175,11 @@ serve(async (req) => {
     if (response_text || form_data || response_attachments?.length) {
       await createMessageEvidence(supabase, {
         company_id: thread.company_id,
-        thread_id,
+        thread_id: recipient.thread_id,
         recipient_id: recipient.id,
         event_type: 'responded',
         event_data: {
-          employee_id,
+          employee_id: recipient.employee_id,
           response_hash: responseHash,
           attachments_hash: attachmentsHash,
           has_form_data: !!form_data,
@@ -162,7 +195,7 @@ serve(async (req) => {
       const { data: content } = await supabase
         .from('message_contents')
         .select('body_text, body_markdown')
-        .eq('thread_id', thread_id)
+        .eq('thread_id', recipient.thread_id)
         .eq('is_current', true)
         .single();
 
@@ -173,11 +206,11 @@ serve(async (req) => {
 
       await createMessageEvidence(supabase, {
         company_id: thread.company_id,
-        thread_id,
+        thread_id: recipient.thread_id,
         recipient_id: recipient.id,
         event_type: 'signed',
         event_data: {
-          employee_id,
+          employee_id: recipient.employee_id,
           document_hash: documentHash,
           signature_hash: signatureHash,
           signature_type: signature_data.type,
@@ -190,7 +223,7 @@ serve(async (req) => {
       const { data: signatureEvidence } = await supabase
         .from('message_evidence')
         .select('id')
-        .eq('thread_id', thread_id)
+        .eq('thread_id', recipient.thread_id)
         .eq('recipient_id', recipient.id)
         .eq('event_type', 'signed')
         .order('created_at', { ascending: false })
@@ -205,18 +238,45 @@ serve(async (req) => {
       }
     }
 
-    // Notify sender about response
-    await supabase.from('employee_notifications').insert({
-      company_id: thread.company_id,
-      employee_id: thread.created_by, // This should be sender's employee_id
-      notification_type: 'message_response',
-      title: 'Respuesta recibida',
-      message: `Un empleado ha respondido a "${thread.subject}"`,
-      related_entity_type: 'message_thread',
-      related_entity_id: thread_id
-    });
+    // Update kiosk notification if exists
+    await supabase
+      .from('kiosk_notifications')
+      .update({
+        status: 'actioned',
+        actioned_at: now,
+      })
+      .eq('notification_type', 'message')
+      .eq('reference_id', recipient.thread_id)
+      .eq('employee_id', recipient.employee_id)
+      .in('status', ['pending', 'shown']);
 
-    console.log(`Response/signature recorded for message ${thread_id} by employee ${employee_id}`);
+    // Notify sender about response (best-effort: sender might not have an employee record)
+    try {
+      const { data: senderEmployee } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', thread.created_by)
+        .eq('company_id', thread.company_id)
+        .maybeSingle();
+
+      if (senderEmployee?.id) {
+        await supabase.from('employee_notifications').insert({
+          company_id: thread.company_id,
+          employee_id: senderEmployee.id,
+          notification_type: 'message_response',
+          title: 'Respuesta recibida',
+          message: `Un empleado ha respondido a "${thread.subject}"`,
+          related_entity_type: 'message_thread',
+          related_entity_id: recipient.thread_id,
+        });
+      }
+    } catch (notificationError) {
+      console.warn('Unable to notify sender about response:', notificationError);
+    }
+
+    console.log(
+      `Response/signature recorded for message ${recipient.thread_id} by employee ${recipient.employee_id}`,
+    );
 
     return new Response(
       JSON.stringify({

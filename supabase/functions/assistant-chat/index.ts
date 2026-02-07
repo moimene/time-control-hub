@@ -39,7 +39,7 @@ serve(async (req) => {
       });
     }
 
-    const { message, userRole } = await req.json();
+    const { message } = await req.json();
 
     if (!message) {
       return new Response(JSON.stringify({ error: 'Message is required' }), {
@@ -47,6 +47,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const { data: roleRows, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id);
+
+    if (rolesError) {
+      console.error('[assistant-chat] Failed to resolve user roles:', rolesError);
+    }
+
+    const roles = (roleRows || []).map((row: any) => row.role).filter(Boolean);
+    const roleContext = roles.length > 0 ? roles.join(', ') : 'unknown';
 
     // Get or create thread for this user
     let threadId: string;
@@ -86,8 +98,8 @@ serve(async (req) => {
         .insert({ user_id: user.id, thread_id: threadId });
     }
 
-    // Add context about user role to the message
-    const contextMessage = `[Contexto: El usuario tiene rol de ${userRole || 'usuario'}]\n\n${message}`;
+    // Add server-resolved context to the message (avoid trusting client-provided role).
+    const contextMessage = `[Contexto: roles=${roleContext}]\n\n${message}`;
 
     // Add message to thread
     const messageResponse = await fetch(`https://api.openai.com/v1/threads/${threadId}/messages`, {

@@ -1,10 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsonResponse, requireAnyRole, requireCallerContext, requireCompanyAccess } from "../_shared/auth.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+function isFixtureEnvironmentAllowed(req: Request): boolean {
+    const explicitFlag = Deno.env.get('ALLOW_TEST_FIXTURES') === 'true';
+    const appEnv = (
+        Deno.env.get('APP_ENV') ||
+        Deno.env.get('ENV') ||
+        Deno.env.get('NODE_ENV') ||
+        ''
+    ).toLowerCase();
+    const nonProdEnv = ['dev', 'development', 'local', 'test', 'staging', 'preview'];
+    const requestHost = new URL(req.url).hostname;
+    const localHost = requestHost === 'localhost' || requestHost === '127.0.0.1';
+
+    return explicitFlag || nonProdEnv.includes(appEnv) || localHost;
+}
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -19,13 +35,37 @@ serve(async (req) => {
             auth: { autoRefreshToken: false, persistSession: false },
         });
 
+        if (!isFixtureEnvironmentAllowed(req)) {
+            return jsonResponse({ error: 'Fixture seeding is disabled in this environment' }, 403, corsHeaders);
+        }
+
+        const caller = await requireCallerContext({
+            req,
+            supabaseAdmin,
+            corsHeaders,
+            allowServiceRole: true,
+        });
+        if (caller instanceof Response) return caller;
+        if (caller.kind === 'user') {
+            const roleError = requireAnyRole({ ctx: caller, allowed: ['super_admin'], corsHeaders });
+            if (roleError) return roleError;
+        }
+
         const { company_id } = await req.json();
 
         if (!company_id) {
-            return new Response(JSON.stringify({ error: 'company_id is required' }), {
-                status: 400,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            return jsonResponse({ error: 'company_id is required' }, 400, corsHeaders);
+        }
+
+        if (caller.kind === 'user') {
+            const companyAccess = await requireCompanyAccess({
+                supabaseAdmin,
+                ctx: caller,
+                companyId: company_id,
+                corsHeaders,
+                allowEmployee: true,
             });
+            if (companyAccess instanceof Response) return companyAccess;
         }
 
         console.log(`Seeding compliance data for company: ${company_id}`);

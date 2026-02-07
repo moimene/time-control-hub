@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsonResponse, requireCallerContext, requireCompanyAccess } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,14 +17,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user from authorization header
-    const authHeader = req.headers.get('Authorization');
-    let userId = null;
-    
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id;
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ success: false, error: 'Unauthorized caller' }, 401, corsHeaders);
     }
 
     const { 
@@ -35,14 +32,50 @@ serve(async (req) => {
       filters 
     } = await req.json();
 
-    console.log(`Export logged: ${exportFormat} for ${entity_type}, user: ${userId}, records: ${record_count}`);
+    let companyId: string | null = null;
+    if (employee_id) {
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('id, company_id, user_id')
+        .eq('id', employee_id)
+        .maybeSingle();
+
+      if (employeeError) {
+        throw new Error(`Unable to resolve employee: ${employeeError.message}`);
+      }
+
+      if (employee?.company_id) {
+        companyId = employee.company_id;
+        const companyAccess = await requireCompanyAccess({
+          supabaseAdmin: supabase,
+          ctx: caller,
+          companyId: employee.company_id,
+          corsHeaders,
+          allowEmployee: true,
+        });
+        if (companyAccess instanceof Response) return companyAccess;
+
+        if (companyAccess.employeeId && employee.user_id && employee.user_id !== caller.userId) {
+          return jsonResponse(
+            { success: false, error: 'Employees can only log exports for themselves' },
+            403,
+            corsHeaders,
+          );
+        }
+      }
+    }
+
+    console.log(
+      `Export logged: ${exportFormat} for ${entity_type}, user: ${caller.userId}, records: ${record_count}`,
+    );
 
     // Insert audit log entry
     const { error } = await supabase
       .from('audit_log')
       .insert({
-        actor_type: userId ? 'admin' : 'system',
-        actor_id: userId,
+        actor_type: 'user',
+        actor_id: caller.userId,
+        company_id: companyId,
         action: 'export',
         entity_type: entity_type || 'time_events',
         new_values: {

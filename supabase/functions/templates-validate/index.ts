@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -196,13 +202,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const caller = await requireCallerContext({ req, supabaseAdmin: supabase, corsHeaders });
+    if (caller instanceof Response) return caller;
+    if (caller.kind !== 'user') {
+      return jsonResponse({ error: 'Unauthorized caller' }, 401, corsHeaders);
     }
+    const roleError = requireAnyRole({
+      ctx: caller,
+      allowed: ['super_admin', 'admin', 'responsible'],
+      corsHeaders,
+    });
+    if (roleError) return roleError;
 
     const { payload, rule_version_id } = await req.json();
 
@@ -212,7 +222,7 @@ serve(async (req) => {
     if (rule_version_id) {
       const { data: version, error } = await supabase
         .from('rule_versions')
-        .select('payload_json')
+        .select('payload_json, rule_sets!inner(company_id)')
         .eq('id', rule_version_id)
         .single();
 
@@ -221,6 +231,18 @@ serve(async (req) => {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      const companyId = (version as any).rule_sets?.company_id as string | undefined;
+      if (companyId && !caller.isSuperAdmin) {
+        const companyAccess = await requireCompanyAccess({
+          supabaseAdmin: supabase,
+          ctx: caller,
+          companyId,
+          corsHeaders,
+          allowEmployee: true,
+        });
+        if (companyAccess instanceof Response) return companyAccess;
       }
 
       templatePayload = version.payload_json as TemplatePayload;

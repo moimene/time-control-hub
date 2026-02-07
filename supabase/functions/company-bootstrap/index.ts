@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +32,14 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
     const body: BootstrapBody = await req.json();
 
     if (!body.company_id) {
@@ -36,6 +50,24 @@ serve(async (req) => {
     }
 
     const companyId = body.company_id;
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      const companyAccess = await requireCompanyAccess({
+        supabaseAdmin: supabase,
+        ctx: caller,
+        companyId,
+        corsHeaders,
+        allowEmployee: true,
+      });
+      if (companyAccess instanceof Response) return companyAccess;
+    }
     const autonomousCommunity = body.autonomous_community;
     const results: Record<string, { success: boolean; count?: number; error?: string }> = {};
     const currentYear = new Date().getFullYear();

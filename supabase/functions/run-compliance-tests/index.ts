@@ -1,11 +1,27 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { jsonResponse, requireAnyRole, requireCallerContext, requireCompanyAccess } from "../_shared/auth.ts";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+function isFixtureEnvironmentAllowed(req: Request): boolean {
+    const explicitFlag = Deno.env.get('ALLOW_TEST_FIXTURES') === 'true';
+    const appEnv = (
+        Deno.env.get('APP_ENV') ||
+        Deno.env.get('ENV') ||
+        Deno.env.get('NODE_ENV') ||
+        ''
+    ).toLowerCase();
+    const nonProdEnv = ['dev', 'development', 'local', 'test', 'staging', 'preview'];
+    const requestHost = new URL(req.url).hostname;
+    const localHost = requestHost === 'localhost' || requestHost === '127.0.0.1';
+
+    return explicitFlag || nonProdEnv.includes(appEnv) || localHost;
+}
 
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
@@ -17,9 +33,36 @@ serve(async (req) => {
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+        if (!isFixtureEnvironmentAllowed(req)) {
+            return jsonResponse({ error: 'Compliance protocol tests are disabled in this environment' }, 403, corsHeaders);
+        }
+
+        const caller = await requireCallerContext({
+            req,
+            supabaseAdmin: supabase,
+            corsHeaders,
+            allowServiceRole: true,
+        });
+        if (caller instanceof Response) return caller;
+        if (caller.kind === 'user') {
+            const roleError = requireAnyRole({ ctx: caller, allowed: ['super_admin'], corsHeaders });
+            if (roleError) return roleError;
+        }
+
         const body = await req.json().catch(() => ({}));
         const company_id = body.company_id || 'a0000000-0000-0000-0000-00000000000a';
         const date = body.test_date || new Date().toISOString().split('T')[0];
+
+        if (caller.kind === 'user' && body.company_id) {
+            const companyAccess = await requireCompanyAccess({
+                supabaseAdmin: supabase,
+                ctx: caller,
+                companyId: company_id,
+                corsHeaders,
+                allowEmployee: true,
+            });
+            if (companyAccess instanceof Response) return companyAccess;
+        }
 
         const results: Record<string, any> = {
             timestamp: new Date().toISOString(),

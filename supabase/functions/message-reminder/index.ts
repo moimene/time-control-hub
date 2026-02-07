@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  jsonResponse,
+  requireAnyRole,
+  requireCallerContext,
+  requireCompanyAccess,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,12 +34,60 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const caller = await requireCallerContext({
+      req,
+      supabaseAdmin: supabase,
+      corsHeaders,
+      allowServiceRole: true,
+    });
+    if (caller instanceof Response) return caller;
+
+    const body = await req.json().catch(() => ({}));
+    const threadId = typeof body.thread_id === 'string' ? body.thread_id : null;
+
+    if (caller.kind === 'user') {
+      const roleError = requireAnyRole({
+        ctx: caller,
+        allowed: ['super_admin', 'admin', 'responsible'],
+        corsHeaders,
+      });
+      if (roleError) return roleError;
+
+      if (!threadId && !caller.isSuperAdmin) {
+        return jsonResponse({ error: 'Only super_admin can run global reminder dispatch' }, 403, corsHeaders);
+      }
+
+      if (threadId) {
+        const { data: thread, error: threadError } = await supabase
+          .from('message_threads')
+          .select('id, company_id')
+          .eq('id', threadId)
+          .maybeSingle();
+
+        if (threadError) {
+          throw new Error(`Unable to resolve thread: ${threadError.message}`);
+        }
+        if (!thread) {
+          return jsonResponse({ error: 'Thread not found' }, 404, corsHeaders);
+        }
+
+        const companyAccess = await requireCompanyAccess({
+          supabaseAdmin: supabase,
+          ctx: caller,
+          companyId: thread.company_id,
+          corsHeaders,
+          allowEmployee: true,
+        });
+        if (companyAccess instanceof Response) return companyAccess;
+      }
+    }
+
     console.log('Starting message reminder dispatcher...');
 
     const now = new Date();
 
     // Find messages with pending recipients that need reminders
-    const { data: pendingRecipients, error: recipientsError } = await supabase
+    let recipientsQuery = supabase
       .from('message_recipients')
       .select(`
         *,
@@ -45,6 +99,12 @@ serve(async (req) => {
       .in('delivery_status', ['pending', 'delivered', 'notified_kiosk'])
       .lt('reminder_count', DEFAULT_CONFIG.max_reminders)
       .or('next_reminder_at.is.null,next_reminder_at.lte.' + now.toISOString());
+
+    if (threadId) {
+      recipientsQuery = recipientsQuery.eq('thread_id', threadId);
+    }
+
+    const { data: pendingRecipients, error: recipientsError } = await recipientsQuery;
 
     if (recipientsError) throw recipientsError;
 
