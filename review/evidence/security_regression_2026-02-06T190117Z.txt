@@ -1,0 +1,29 @@
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+stderr | tests/cycle15_security_authz.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle16_credential_rotation.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+stderr | tests/cycle16_credential_rotation.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle16_credential_rotation.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+ ✓ tests/cycle16_credential_rotation.test.ts (2 tests | 1 skipped) 2ms
+ ✓ tests/cycle15_security_authz.test.ts (8 tests | 1 skipped) 6ms
+
+ Test Files  2 passed (2)
+      Tests  8 passed | 2 skipped (10)
+   Start at  20:01:18
+   Duration  848ms (transform 72ms, setup 152ms, import 89ms, tests 9ms, environment 871ms)
+

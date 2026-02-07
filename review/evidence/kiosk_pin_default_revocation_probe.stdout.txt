@@ -1,0 +1,7 @@
+
+> vite_react_shadcn_ts@0.0.0 security:probe-kiosk-default-pins
+> node scripts/security/probe-kiosk-default-pin-revocation.mjs
+
+[dotenv@17.2.3] injecting env (3) from .env -- tip: ⚙️  write to custom object with { processEnv: myObject }
+Kiosk default PIN revocation probe report written to /private/tmp/time-control-hub/review/evidence/kiosk_pin_default_revocation_probe_latest.json
+Probed: 21 | Active default pins: 0 | Missing: 0 | Errored: 0

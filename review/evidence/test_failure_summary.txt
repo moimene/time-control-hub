@@ -1,0 +1,14 @@
+SUPABASE_SERVICE_ROLE_KEY warnings: 12
+supabaseKey required errors: 4
+missing uuid import errors: 1
+audit_log FK errors: 2
+null success errors: 1
+null id errors: 1
+FAIL tests/compliance_protocol.test.ts [ tests/compliance_protocol.test.ts ]
+FAIL tests/cycle13_vacation_logic.test.ts [ tests/cycle13_vacation_logic.test.ts ]
+FAIL tests/cycle14_integrity_qtsp.test.ts [ tests/cycle14_integrity_qtsp.test.ts ]
+FAIL tests/cycle5_offline.test.ts [ tests/cycle5_offline.test.ts ]
+FAIL tests/cycle9_compliance.test.ts [ tests/cycle9_compliance.test.ts ]
+FAIL tests/cycle10_reporting.test.ts > Cycle 10: Reporting + ITSS Package > Should generate a full ITSS package with manifest and hashes
+FAIL tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Employee should be able to request a correction
+FAIL tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Responsible should be able to approve a correction

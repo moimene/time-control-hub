@@ -1,27 +1,30 @@
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+import { it, expect } from 'vitest';
+import { type SupabaseClient } from '@supabase/supabase-js';
+import { describeIntegration, getAnonClient, getCredential, requireCredential } from './test_env';
 
 // Helper to create a client for a specific user
 const getClient = async (email: string, password: string): Promise<SupabaseClient> => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getAnonClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(`Failed to login as ${email}: ${error.message}`);
     return supabase;
 };
 
-describe('Cycle 1: Multi-tenant & Role-based Access Control', () => {
+describeIntegration('Cycle 1: Multi-tenant & Role-based Access Control', () => {
+    const expectedCompanyName = process.env.TEST_COMPANY_NAME || 'Bar El Rincón';
+    const adminCred = requireCredential('TEST_ADMIN');
+    const employeeCred = requireCredential('TEST_EMPLOYEE');
+    const asesorCred = getCredential('TEST_ASESOR');
+    const superAdminCred = getCredential('TEST_SUPERADMIN');
 
     describe('Company Isolation (Anti-Leak)', () => {
         it('Admin of Bar El Rincón should NOT see Zapatería López employees', async () => {
-            const client = await getClient('admin@elrincon.com', 'bar123');
+            const client = await getClient(adminCred.email, adminCred.password);
 
             const { data: companies } = await client.from('company').select('id, name');
             expect(companies?.length).toBe(1);
-            expect(companies?.[0].name).toBe('Bar El Rincón');
+            expect(companies?.[0].name).toBe(expectedCompanyName);
             const barRinconId = companies?.[0].id;
 
             const { data: employees } = await client.from('employees').select('company_id, last_name, email');
@@ -34,7 +37,7 @@ describe('Cycle 1: Multi-tenant & Role-based Access Control', () => {
         });
 
         it('Employee should ONLY see their own data in sensitive tables', async () => {
-            const client = await getClient('juan.martinez@elrincon.com', 'emp123');
+            const client = await getClient(employeeCred.email, employeeCred.password);
 
             // Should not see other employees
             const { data: employees } = await client.from('employees').select('id');
@@ -47,25 +50,27 @@ describe('Cycle 1: Multi-tenant & Role-based Access Control', () => {
     });
 
     describe('Adviser Role (Cross-tenant)', () => {
-        // The user didn't provide a password for the asesor in the text, 
-        // but in my seed script I used 'asesor123' or similar. 
-        // Assuming the user has configured it.
         it('Asesor should see multiple companies if assigned', async () => {
-            try {
-                const client = await getClient('asesor@test.com', 'asesor123');
-                const { data: companies } = await client.from('company').select('name');
-
-                // Asesor in seed is linked to Bar Pepe (Bar El Rincón) and Clínica Vet
-                expect(companies?.length).toBeGreaterThanOrEqual(1);
-            } catch (e) {
-                console.warn('Asesor test skipped: User not found or password mismatch.');
+            if (!asesorCred) {
+                console.warn('Asesor test skipped: missing TEST_ASESOR_EMAIL/TEST_ASESOR_PASSWORD');
+                return;
             }
+
+            const client = await getClient(asesorCred.email, asesorCred.password);
+            const { data: companies } = await client.from('company').select('name');
+
+            expect(companies?.length).toBeGreaterThanOrEqual(1);
         });
     });
 
     describe('Super Admin Access', () => {
         it('Super Admin should see ALL companies', async () => {
-            const client = await getClient('superadmin@timecontrol.com', 'super123');
+            if (!superAdminCred) {
+                console.warn('Super admin test skipped: missing TEST_SUPERADMIN_EMAIL/TEST_SUPERADMIN_PASSWORD');
+                return;
+            }
+
+            const client = await getClient(superAdminCred.email, superAdminCred.password);
 
             const { data: companies } = await client.from('company').select('name');
             // Should see at least the 4 companies + any others

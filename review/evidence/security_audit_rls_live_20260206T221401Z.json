@@ -1,0 +1,1903 @@
+{
+  "started_at": "2026-02-06T22:14:03.371Z",
+  "finished_at": "2026-02-06T22:14:03.636Z",
+  "environment": {
+    "supabase_url": "https://ouxzjfqqgxlvxhjyihum.supabase.co"
+  },
+  "results": {
+    "user_belongs_to_company_signature": [
+      "_user_id uuid, _company_id uuid"
+    ],
+    "user_belongs_to_company_signature_ok": true,
+    "policies_total": 153,
+    "flipped_policies_total": 0
+  },
+  "flipped_policies": [],
+  "raw_snapshot": {
+    "jwt_role": "service_role",
+    "policies": [
+      {
+        "cmd": "SELECT",
+        "qual": "(user_id = auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employees",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_emp_view_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_company_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_company_view_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(user_belongs_to_company(auth.uid(), id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_company_update_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "user_company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_uc_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "user_company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_uc_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_id = auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "user_company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_uc_view_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employees",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_emp_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employees",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_emp_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND has_role(auth.uid(), 'responsible'::app_role))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employees",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_emp_responsible_view",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "terminals",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_term_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "terminals",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_term_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "time_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_te_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "time_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_te_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND has_role(auth.uid(), 'responsible'::app_role))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "time_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_te_responsible",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "time_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_te_employee_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND has_role(auth.uid(), 'responsible'::app_role))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_responsible_view",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND has_role(auth.uid(), 'responsible'::app_role))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_responsible_update",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_employee_view",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "corrected_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ce_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "corrected_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ce_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "corrected_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ce_employee_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_qr",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_qr_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_qr",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_qr_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "daily_roots",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_dr_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "daily_roots",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_dr_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "audit_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_al_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "audit_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_al_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "user_roles",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ur_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_id = auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "user_roles",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ur_view_own",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "qtsp_audit_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_qtsp_al_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "qtsp_audit_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_qtsp_al_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_case_files",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cf_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_case_files",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cf_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM dt_case_files cf\n  WHERE ((cf.id = dt_evidence_groups.case_file_id) AND user_belongs_to_company(auth.uid(), cf.company_id) AND is_admin_or_above(auth.uid()))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_evidence_groups",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_eg_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_evidence_groups",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_eg_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM (dt_evidence_groups eg\n     JOIN dt_case_files cf ON ((cf.id = eg.case_file_id)))\n  WHERE ((eg.id = dt_evidences.evidence_group_id) AND user_belongs_to_company(auth.uid(), cf.company_id) AND is_admin_or_above(auth.uid()))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_evidences",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ev_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "dt_evidences",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ev_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "kiosk_sessions",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ks_company_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "kiosk_sessions",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_ks_super_admin",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "company_settings",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view company settings",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "company_settings",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can update company settings",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "company_settings",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can insert company settings",
+        "schemaname": "public",
+        "with_check": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((is_template = true) AND (company_id IS NULL) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view global templates",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "((is_template = true) AND (company_id IS NULL) AND is_super_admin(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage global templates",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM rule_sets rs\n  WHERE ((rs.id = rule_versions.rule_set_id) AND (rs.is_template = true) AND (rs.company_id IS NULL) AND is_super_admin(auth.uid()))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_versions",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage template versions",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_violations",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own violations",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((recipient_user_id = auth.uid()) OR (recipient_employee_id = get_employee_id(auth.uid())))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view own notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "escalation_rules",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage all escalation rules",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND is_admin_or_above(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "escalation_rules",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view company escalation rules",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "escalation_history",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can view all escalation history",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "escalation_history",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can insert escalation history",
+        "schemaname": "public",
+        "with_check": "is_super_admin(auth.uid())"
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "escalation_history",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can update escalation history",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "certificate_downloads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can view all certificate downloads",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_types",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage absence types",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND (is_active = true))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_types",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view active absence types",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can manage own requests",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage all requests",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(has_role(auth.uid(), 'responsible'::app_role) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "Responsibles can view and update requests",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(has_role(auth.uid(), 'responsible'::app_role) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "Responsibles can update requests",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_approvals",
+        "permissive": "PERMISSIVE",
+        "policyname": "Approvers can insert approvals",
+        "schemaname": "public",
+        "with_check": "(is_admin_or_above(auth.uid()) OR has_role(auth.uid(), 'responsible'::app_role))"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM absence_requests ar\n  WHERE ((ar.id = absence_approvals.request_id) AND user_belongs_to_company(auth.uid(), ar.company_id))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_approvals",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view approvals",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_documents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can manage own documents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_documents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage all documents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "monthly_closures",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view and sign own closures",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "((employee_id = get_employee_id(auth.uid())) AND (status = 'pending'::text))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "monthly_closures",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can update own pending closures",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "monthly_closures",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage all closures",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can manage own notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(auth.uid() = created_by_user_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "support_tickets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view tickets they created",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "employee_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage company notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "vacation_balances",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own balance",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "vacation_balances",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage all balances",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_calendar_blocks",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage calendar blocks",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "absence_calendar_blocks",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view calendar blocks",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "true",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "legal_document_templates",
+        "permissive": "PERMISSIVE",
+        "policyname": "Templates are viewable by authenticated users",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "legal_document_templates",
+        "permissive": "PERMISSIVE",
+        "policyname": "Only super admins can manage templates",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_super_admin(auth.uid()) OR user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "legal_documents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view documents from their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_super_admin(auth.uid()) OR (is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id)))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "legal_documents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage documents for their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_super_admin(auth.uid()) OR (is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id)))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "contingency_records",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage contingency records for their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_super_admin(auth.uid()) OR user_belongs_to_company(auth.uid(), company_id) OR (employee_id = get_employee_id(auth.uid())))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "document_acknowledgments",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view acknowledgments from their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "document_acknowledgments",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can create their own acknowledgments",
+        "schemaname": "public",
+        "with_check": "((employee_id = get_employee_id(auth.uid())) AND user_belongs_to_company(auth.uid(), company_id))"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_super_admin(auth.uid()) OR user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "data_retention_config",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view retention config from their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_super_admin(auth.uid()) OR (is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id)))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "data_retention_config",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage retention config for their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_super_admin(auth.uid()) OR user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "data_purge_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view purge logs from their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "data_purge_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "Only system can create purge logs",
+        "schemaname": "public",
+        "with_check": "is_super_admin(auth.uid())"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_super_admin(auth.uid()) OR user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "contingency_records",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view contingency records from their company",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "labor_calendars",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view their company calendars",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "support_tickets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can create their own tickets",
+        "schemaname": "public",
+        "with_check": "(auth.uid() = created_by_user_id)"
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "labor_calendars",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage labor calendars",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "labor_calendars",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage all calendars",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "itss_packages",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view their company ITSS packages",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "itss_packages",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage ITSS packages",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "itss_packages",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage all ITSS packages",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "coverage_rules",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage coverage rules",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "coverage_rules",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view coverage rules",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "calendar_holidays",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage holidays",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "calendar_holidays",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view holidays",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "medical_docs",
+        "permissive": "PERMISSIVE",
+        "policyname": "Only admins can manage medical docs",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "medical_docs",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own medical docs",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "medical_docs",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can upload own medical docs",
+        "schemaname": "public",
+        "with_check": "((employee_id = get_employee_id(auth.uid())) AND user_belongs_to_company(auth.uid(), company_id))"
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "template_absence_links",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage template absence links",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "template_absence_links",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view template absence links",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "company",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_company_insert",
+        "schemaname": "public",
+        "with_check": "is_super_admin(auth.uid())"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(auth.uid() = user_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "assistant_threads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view their own thread",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "assistant_threads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can create their own thread",
+        "schemaname": "public",
+        "with_check": "(auth.uid() = user_id)"
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(auth.uid() = user_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "assistant_threads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can update their own thread",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(auth.uid() = assigned_to_user_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "support_tickets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Assigned users can view tickets",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(auth.uid() = assigned_to_user_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "support_tickets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Assigned users can update tickets",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_threads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage threads",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((created_by = auth.uid()) AND (status <> 'draft'::text))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_threads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view sent threads they created",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM message_threads t\n  WHERE ((t.id = message_contents.thread_id) AND is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), t.company_id))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_contents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage contents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM message_recipients r\n  WHERE ((r.thread_id = message_contents.thread_id) AND (r.employee_id = get_employee_id(auth.uid())))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_contents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Recipients can view contents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_recipients",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage recipients",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_recipients",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own receipts",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_recipients",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can update own receipts",
+        "schemaname": "public",
+        "with_check": "(employee_id = get_employee_id(auth.uid()))"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_evidence",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view evidence",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM message_recipients r\n  WHERE ((r.id = message_evidence.recipient_id) AND (r.employee_id = get_employee_id(auth.uid())))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_evidence",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own evidence",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_templates",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage templates",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(user_belongs_to_company(auth.uid(), company_id) AND (is_active = true))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "message_templates",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view active templates",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "kiosk_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage kiosk notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "kiosk_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can view own kiosk notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "qual": "(employee_id = get_employee_id(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "kiosk_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Employees can update own kiosk notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "((company_id IS NOT NULL) AND is_super_admin(auth.uid()))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage all company rule sets",
+        "schemaname": "public",
+        "with_check": "((company_id IS NOT NULL) AND is_super_admin(auth.uid()))"
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "national_holidays",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage national holidays",
+        "schemaname": "public",
+        "with_check": "is_super_admin(auth.uid())"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "true",
+        "roles": [
+          "public"
+        ],
+        "tablename": "national_holidays",
+        "permissive": "PERMISSIVE",
+        "policyname": "Anyone can view national holidays",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM rule_sets rs\n  WHERE ((rs.id = rule_versions.rule_set_id) AND (rs.company_id IS NOT NULL) AND is_super_admin(auth.uid()))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_versions",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage company rule versions",
+        "schemaname": "public",
+        "with_check": "(EXISTS ( SELECT 1\n   FROM rule_sets rs\n  WHERE ((rs.id = rule_versions.rule_set_id) AND (rs.company_id IS NOT NULL) AND is_super_admin(auth.uid()))))"
+      },
+      {
+        "cmd": "ALL",
+        "qual": "is_super_admin(auth.uid())",
+        "roles": [
+          "public"
+        ],
+        "tablename": "calendar_holidays",
+        "permissive": "PERMISSIVE",
+        "policyname": "Super admins can manage all holidays",
+        "schemaname": "public",
+        "with_check": "is_super_admin(auth.uid())"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "((company_id IS NOT NULL) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view their rule sets",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "((company_id IS NOT NULL) AND is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage company rule sets",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM rule_sets rs\n  WHERE ((rs.id = rule_versions.rule_set_id) AND (((rs.is_template = true) AND (rs.company_id IS NULL)) OR user_belongs_to_company(auth.uid(), rs.company_id)))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_versions",
+        "permissive": "PERMISSIVE",
+        "policyname": "Users can view rule versions through rule sets",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(EXISTS ( SELECT 1\n   FROM rule_sets rs\n  WHERE ((rs.id = rule_versions.rule_set_id) AND (rs.company_id IS NOT NULL) AND is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), rs.company_id))))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_versions",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage rule versions",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_assignments",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view assignments",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "rule_assignments",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage assignments",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_violations",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view company violations",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_violations",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage violations",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "user_belongs_to_company(auth.uid(), company_id)",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_incidents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Company members can view incidents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_incidents",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can manage incidents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view company notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "ALL",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "compliance_notifications",
+        "permissive": "PERMISSIVE",
+        "policyname": "System can manage notifications",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))",
+        "roles": [
+          "public"
+        ],
+        "tablename": "certificate_downloads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can view company certificate downloads",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "certificate_downloads",
+        "permissive": "PERMISSIVE",
+        "policyname": "Admins can insert certificate downloads",
+        "schemaname": "public",
+        "with_check": "(is_admin_or_above(auth.uid()) AND user_belongs_to_company(auth.uid(), company_id))"
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "employees",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_employees",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM employees e\n  WHERE ((e.id = time_events.employee_id) AND is_asesor_of_company(auth.uid(), e.company_id))))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "time_events",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_events",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "compliance_violations",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_violations",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "compliance_incidents",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_incidents",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "rule_sets",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_rules",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "audit_log",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_audit",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "absence_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_absences",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "is_asesor_of_company(auth.uid(), company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_company_corrections",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "SELECT",
+        "qual": "(EXISTS ( SELECT 1\n   FROM (user_company uc\n     JOIN user_roles ur ON ((uc.user_id = ur.user_id)))\n  WHERE ((uc.user_id = auth.uid()) AND (uc.company_id = company.id) AND (ur.role = 'asesor'::app_role))))",
+        "roles": [
+          "authenticated"
+        ],
+        "tablename": "company",
+        "permissive": "PERMISSIVE",
+        "policyname": "asesor_can_view_assigned_companies",
+        "schemaname": "public",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "qual": null,
+        "roles": [
+          "public"
+        ],
+        "tablename": "correction_requests",
+        "permissive": "PERMISSIVE",
+        "policyname": "mt_cr_employee_create",
+        "schemaname": "public",
+        "with_check": "((employee_id = get_employee_id(auth.uid())) AND (company_id = get_user_company_id(auth.uid())))"
+      }
+    ],
+    "checked_at": "2026-02-06T22:14:03.618289+00:00",
+    "current_user": "postgres",
+    "function_signatures": [
+      {
+        "name": "get_employee_id",
+        "schema": "public",
+        "result_type": "uuid",
+        "identity_args": "_user_id uuid"
+      },
+      {
+        "name": "get_user_company_id",
+        "schema": "public",
+        "result_type": "uuid",
+        "identity_args": "_user_id uuid"
+      },
+      {
+        "name": "has_role",
+        "schema": "public",
+        "result_type": "boolean",
+        "identity_args": "_user_id uuid, _role app_role"
+      },
+      {
+        "name": "is_admin_or_above",
+        "schema": "public",
+        "result_type": "boolean",
+        "identity_args": "_user_id uuid"
+      },
+      {
+        "name": "is_asesor_of_company",
+        "schema": "public",
+        "result_type": "boolean",
+        "identity_args": "_user_id uuid, _company_id uuid"
+      },
+      {
+        "name": "is_super_admin",
+        "schema": "public",
+        "result_type": "boolean",
+        "identity_args": "_user_id uuid"
+      },
+      {
+        "name": "user_belongs_to_company",
+        "schema": "public",
+        "result_type": "boolean",
+        "identity_args": "_user_id uuid, _company_id uuid"
+      }
+    ]
+  }
+}

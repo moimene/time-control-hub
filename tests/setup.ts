@@ -1,19 +1,29 @@
 
 import * as dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ quiet: true });
+
+// Optional integration overlay.
+// Kept in a separate ignored file so integration creds never need to live in `.env`.
+if (process.env.RUN_INTEGRATION_TESTS === 'true') {
+    dotenv.config({ path: '.env.integration', override: true, quiet: true });
+}
 
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-// Validate required environment variables for integration tests
-if (!process.env.VITE_SUPABASE_URL) {
-    process.env.VITE_SUPABASE_URL = 'https://rsbwqgzespcltmufkhdx.supabase.co';
-}
-if (!process.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY = 'mock-key';
-}
+// Integration tests must be explicitly enabled to avoid accidental writes to shared environments.
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === 'true';
 
-// Warn if service role key is missing (required for integration tests)
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.');
+if (runIntegration) {
+    const missing: string[] = [];
+    if (!process.env.VITE_SUPABASE_URL) missing.push('VITE_SUPABASE_URL');
+    if (!process.env.VITE_SUPABASE_PUBLISHABLE_KEY) missing.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+
+    if (missing.length > 0) {
+        throw new Error(`RUN_INTEGRATION_TESTS=true but missing: ${missing.join(', ')}`);
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Admin integration tests will be skipped.');
+    }
 }

@@ -1,0 +1,246 @@
+{
+  "started_at": "2026-02-06T18:52:56.420Z",
+  "finished_at": "2026-02-06T18:53:01.809Z",
+  "environment": {
+    "supabase_url": "https://rsbwqgzespcltmufkhdx.supabase.co"
+  },
+  "totals": {
+    "targeted": 21,
+    "rotated": 21,
+    "missing": 0,
+    "failed": 0
+  },
+  "results": [
+    {
+      "employee_code": "BAR001",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "d900d261-1279-4aa1-97b2-e39c316bd00c",
+      "company_id": "0252e3e6-67b3-4b8c-adcb-065e2237a05c",
+      "old_pin_hash_prefix": "eb4ed3ea8a",
+      "new_pin_hash_prefix": "ce28659935",
+      "error": null
+    },
+    {
+      "employee_code": "BAR002",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "8dca84d9-b50c-4367-9d37-8ab068e16398",
+      "company_id": "0252e3e6-67b3-4b8c-adcb-065e2237a05c",
+      "old_pin_hash_prefix": "6ce6dca0a0",
+      "new_pin_hash_prefix": "4bcb9f063a",
+      "error": null
+    },
+    {
+      "employee_code": "BAR003",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "7db7c1a4-6658-4e28-8307-6422d77eeb63",
+      "company_id": "0252e3e6-67b3-4b8c-adcb-065e2237a05c",
+      "old_pin_hash_prefix": "244c7e7d6f",
+      "new_pin_hash_prefix": "1ba4307560",
+      "error": null
+    },
+    {
+      "employee_code": "BAR004",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "ca885770-f27d-4440-8a5b-534d57b2abef",
+      "company_id": "0252e3e6-67b3-4b8c-adcb-065e2237a05c",
+      "old_pin_hash_prefix": "ace0813af7",
+      "new_pin_hash_prefix": "2d358e8a9b",
+      "error": null
+    },
+    {
+      "employee_code": "BAR005",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "dc61e076-887b-432b-a868-b5ed7b76677e",
+      "company_id": "0252e3e6-67b3-4b8c-adcb-065e2237a05c",
+      "old_pin_hash_prefix": "2f54890724",
+      "new_pin_hash_prefix": "1a850c06fd",
+      "error": null
+    },
+    {
+      "employee_code": "ZAP001",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "2dd0bc77-3b44-4fed-a4e3-65b186492288",
+      "company_id": "8156aeea-90ea-496b-b3d9-c3d9b0febfaa",
+      "old_pin_hash_prefix": "f9e70e4beb",
+      "new_pin_hash_prefix": "c5e6ae2378",
+      "error": null
+    },
+    {
+      "employee_code": "ZAP002",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "11ecd4be-cb28-4b0d-8de0-ced2b3689a7e",
+      "company_id": "8156aeea-90ea-496b-b3d9-c3d9b0febfaa",
+      "old_pin_hash_prefix": "94aba36a50",
+      "new_pin_hash_prefix": "dc189c7dac",
+      "error": null
+    },
+    {
+      "employee_code": "ZAP003",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "a50572da-b5cc-4dd3-8d69-3312e2539eee",
+      "company_id": "8156aeea-90ea-496b-b3d9-c3d9b0febfaa",
+      "old_pin_hash_prefix": "ecbcbb4d8e",
+      "new_pin_hash_prefix": "6e93a085b3",
+      "error": null
+    },
+    {
+      "employee_code": "ZAP004",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "12670b84-297c-42b4-ba3b-b6630a1f8952",
+      "company_id": "8156aeea-90ea-496b-b3d9-c3d9b0febfaa",
+      "old_pin_hash_prefix": "1c5f78d858",
+      "new_pin_hash_prefix": "904c337a57",
+      "error": null
+    },
+    {
+      "employee_code": "DEN001",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "d22938b1-9bf5-4767-b005-6c60ae11b9bf",
+      "company_id": "b169b4db-2cb7-40ac-8c11-e177224e4ffd",
+      "old_pin_hash_prefix": "323004ed22",
+      "new_pin_hash_prefix": "75d21c5013",
+      "error": null
+    },
+    {
+      "employee_code": "DEN002",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "99d5c49a-e44c-49fa-b962-622f82dbc025",
+      "company_id": "b169b4db-2cb7-40ac-8c11-e177224e4ffd",
+      "old_pin_hash_prefix": "5fe9168f5e",
+      "new_pin_hash_prefix": "072ac588cf",
+      "error": null
+    },
+    {
+      "employee_code": "DEN003",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "1c5bed14-bf43-4996-9fa5-85af1a794020",
+      "company_id": "b169b4db-2cb7-40ac-8c11-e177224e4ffd",
+      "old_pin_hash_prefix": "50b527f195",
+      "new_pin_hash_prefix": "20eea1f3bf",
+      "error": null
+    },
+    {
+      "employee_code": "DEN004",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "ff402565-aa6d-4457-a416-56aa3fedb14a",
+      "company_id": "b169b4db-2cb7-40ac-8c11-e177224e4ffd",
+      "old_pin_hash_prefix": "6f1851ddc6",
+      "new_pin_hash_prefix": "04f66345aa",
+      "error": null
+    },
+    {
+      "employee_code": "DEN005",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "069bef1b-1da4-4bda-90d2-5fffa58737ae",
+      "company_id": "b169b4db-2cb7-40ac-8c11-e177224e4ffd",
+      "old_pin_hash_prefix": "7ef7a7eee9",
+      "new_pin_hash_prefix": "09f8ce83b2",
+      "error": null
+    },
+    {
+      "employee_code": "FIS001",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "d19ef334-5a3d-4fa4-b003-af81aae47d6a",
+      "company_id": "e5ef3c86-90fd-418f-8f87-a682bb62b1d5",
+      "old_pin_hash_prefix": "c1a4c4a1fb",
+      "new_pin_hash_prefix": "8c786238a7",
+      "error": null
+    },
+    {
+      "employee_code": "FIS002",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "8f0e5b69-d7d3-4c20-af22-7d2c2e15da4f",
+      "company_id": "e5ef3c86-90fd-418f-8f87-a682bb62b1d5",
+      "old_pin_hash_prefix": "c6f207f68a",
+      "new_pin_hash_prefix": "ddff3b8d6d",
+      "error": null
+    },
+    {
+      "employee_code": "FIS003",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "17cb06d2-6207-4228-bbf0-339f0a528ce4",
+      "company_id": "e5ef3c86-90fd-418f-8f87-a682bb62b1d5",
+      "old_pin_hash_prefix": "26f39b78e2",
+      "new_pin_hash_prefix": "63b961e929",
+      "error": null
+    },
+    {
+      "employee_code": "FIS004",
+      "source": "src/pages/TestCredentials.tsx",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "5cf5736d-835b-4237-ab7c-bd5c0f576040",
+      "company_id": "e5ef3c86-90fd-418f-8f87-a682bb62b1d5",
+      "old_pin_hash_prefix": "fb9c7b2a3c",
+      "new_pin_hash_prefix": "ccdf390ea6",
+      "error": null
+    },
+    {
+      "employee_code": "EMP001",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "45605d3c-d71f-4395-9a5b-4aa4a8061b75",
+      "company_id": null,
+      "old_pin_hash_prefix": "c589bd6589",
+      "new_pin_hash_prefix": "3bc118000d",
+      "error": null
+    },
+    {
+      "employee_code": "EMP002",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "06c9c15f-0bc5-4601-b7cd-9a380f7ff0fc",
+      "company_id": null,
+      "old_pin_hash_prefix": "832256e56f",
+      "new_pin_hash_prefix": "c9f2d32593",
+      "error": null
+    },
+    {
+      "employee_code": "EMP003",
+      "source": "supabase/functions/setup-test-users/index.ts",
+      "rotated": true,
+      "missing": false,
+      "employee_id": "a6d1d7e5-52ee-4321-b994-39e399096a32",
+      "company_id": null,
+      "old_pin_hash_prefix": "1cf271af32",
+      "new_pin_hash_prefix": "2293287c42",
+      "error": null
+    }
+  ]
+}

@@ -124,11 +124,8 @@ serve(async (req) => {
       const retryCount = (evidence.retry_count || 0) + 1;
       const currentBackoff = evidence.backoff_seconds || BASE_DELAY_SECONDS;
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const evidenceGroup = evidence.evidence_group as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caseFile = evidenceGroup?.case_file as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const company = caseFile?.company as any;
       const companyId = company?.id;
       const companyName = company?.name || 'Unknown';

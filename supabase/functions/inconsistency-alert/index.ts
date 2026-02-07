@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -171,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending inconsistency alert email to ${employee.email}`);
 
     const emailResponse = await resend.emails.send({
-      from: `${companyName} Fichajes <onboarding@resend.dev>`,
+      from: `${companyName} Fichajes <${resendFromEmail}>`,
       to: [employee.email],
       subject: `⚠️ Alerta: ${inconsistencies.length} inconsistencia${inconsistencies.length > 1 ? 's' : ''} en tus fichajes`,
       html: emailHtml,

@@ -1,0 +1,321 @@
+
+> vite_react_shadcn_ts@0.0.0 test
+> vitest run
+
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stdout | tests/cycle5_offline.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+stderr | tests/cycle5_offline.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle1_rls.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+stderr | tests/cycle1_rls.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle6_corrections.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+stderr | tests/cycle6_corrections.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle12_retention.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+stderr | tests/cycle12_retention.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle4_kiosk.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+stderr | tests/cycle4_kiosk.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle9_compliance.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+stderr | tests/cycle9_compliance.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle7_alerts.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+stderr | tests/cycle7_alerts.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle10_reporting.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+
+stderr | tests/cycle10_reporting.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle14_integrity_qtsp.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+stderr | tests/cycle14_integrity_qtsp.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle2_onboarding.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+
+stderr | tests/cycle2_onboarding.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/compliance_protocol.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+
+stderr | tests/compliance_protocol.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle13_vacation_logic.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+
+stderr | tests/cycle13_vacation_logic.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle2_onboarding.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
+
+stdout | tests/cycle12_retention.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+
+stdout | tests/cycle10_reporting.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+
+stdout | tests/cycle7_alerts.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+
+stdout | tests/cycle6_corrections.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+
+stderr | tests/cycle12_retention.test.ts > Cycle 12: Retención & Purga > Should correctly identify records for purge based on 4-year limit
+Skipping Cycle 12 test: SUPABASE_SERVICE_ROLE_KEY missing
+
+stderr | tests/cycle7_alerts.test.ts > Cycle 7: Inconsistencias + Alertas > Should trigger an alert when an orphan entry is detected
+Skipping Cycle 7 test: SUPABASE_SERVICE_ROLE_KEY missing
+
+ ✓ tests/cycle12_retention.test.ts (1 test) 1ms
+ ✓ tests/cycle7_alerts.test.ts (1 test) 1ms
+stderr | tests/cycle2_onboarding.test.ts > Cycle 2: Onboarding "Preconfigurado" > Should create default rule sets when bootstrapping a company
+Skipping Cycle 2 test: SUPABASE_SERVICE_ROLE_KEY missing
+
+ ✓ tests/cycle2_onboarding.test.ts (1 test) 1ms
+stdout | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Company Isolation (Anti-Leak) > Admin of Bar El Rincón should NOT see Zapatería López employees
+Admin of Bar El Rincón found 8 employees: Camarero (pedro.camarero@test.com), González Torres (maria.gonzalez@elrincon.com), Sánchez Ruiz (pedro.sanchez@elrincon.com), Jiménez Pérez (carlos.jimenez@elrincon.com), López Fernández (ana.lopez@elrincon.com), Cocinera (laura.cocinera@test.com), Barra (miguel.barra@test.com), Martínez García (juan.martinez@elrincon.com)
+
+stderr | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Company Isolation (Anti-Leak) > Employee should ONLY see their own data in sensitive tables
+GoTrueClient@sb-rsbwqgzespcltmufkhdx-auth-token:1 (2.89.0) 2026-02-06T17:59:02.760Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stderr | tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Employee should be able to request a correction
+Error creating request: {
+  code: '23503',
+  details: 'Key (actor_id)=(d900d261-1279-4aa1-97b2-e39c316bd00c) is not present in table "users".',
+  hint: null,
+  message: 'insert or update on table "audit_log" violates foreign key constraint "audit_log_actor_id_fkey"'
+}
+
+stderr | tests/cycle10_reporting.test.ts > Cycle 10: Reporting + ITSS Package > Should generate a full ITSS package with manifest and hashes
+ITSS error: FunctionsHttpError: Edge Function returned a non-2xx status code
+    at FunctionsClient.<anonymous> (/private/tmp/time-control-hub/node_modules/@supabase/functions-js/dist/main/FunctionsClient.js:132:27)
+    at Generator.next (<anonymous>)
+    at fulfilled (/private/tmp/time-control-hub/node_modules/tslib/tslib.js:167:62)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5) {
+  context: Response {
+    status: 500,
+    statusText: 'Internal Server Error',
+    headers: Headers {
+      date: 'Fri, 06 Feb 2026 17:59:03 GMT',
+      'content-type': 'application/json',
+      'content-length': '65',
+      connection: 'keep-alive',
+      server: 'cloudflare',
+      'cf-ray': '9c9c8a00ba9beca2-MAD',
+      'cf-cache-status': 'DYNAMIC',
+      'access-control-allow-origin': '*',
+      'content-encoding': 'gzip',
+      'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+      vary: 'Accept-Encoding',
+      'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
+      'sb-gateway-version': '1',
+      'sb-project-ref': 'rsbwqgzespcltmufkhdx',
+      'sb-request-id': '019c341b-7c7f-7f95-a7d7-4490b578d4c8',
+      'x-deno-execution-id': 'e192ff56-829e-431b-8bb1-570551173a28',
+      'x-sb-edge-region': 'eu-west-3',
+      'x-served-by': 'supabase-edge-runtime',
+      'set-cookie': '__cf_bm=s2hTax0dbHRBZgG2kYOMviq8zLk9LtHF9NsM4AQgoA0-1770400743-1.0.1.1-cE2PDvwYmtZRDbFgRN3L5Ql87.lxekqcLVPwbYoEJEJvFTNDcHu_r.WnFUc4cWfELL9H.IWzZQA2MAwIG1tYGvDNMbbCyufB7Fk1EaHIPTo; path=/; expires=Fri, 06-Feb-26 18:29:03 GMT; domain=.supabase.co; HttpOnly; Secure; SameSite=None',
+      'alt-svc': 'h3=":443"; ma=86400'
+    },
+    body: ReadableStream { locked: false, state: 'readable', supportsBYOB: true },
+    bodyUsed: false,
+    ok: false,
+    redirected: false,
+    type: 'basic',
+    url: 'https://rsbwqgzespcltmufkhdx.supabase.co/functions/v1/generate-itss-package'
+  }
+}
+
+stderr | tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Responsible should be able to approve a correction
+GoTrueClient@sb-rsbwqgzespcltmufkhdx-auth-token:1 (2.89.0) 2026-02-06T17:59:02.935Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ❯ tests/cycle10_reporting.test.ts (1 test | 1 failed) 1011ms
+     × Should generate a full ITSS package with manifest and hashes 1010ms
+ ❯ tests/cycle6_corrections.test.ts (2 tests | 2 failed) 1244ms
+     × Employee should be able to request a correction 1009ms
+     × Responsible should be able to approve a correction 234ms
+stderr | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Adviser Role (Cross-tenant) > Asesor should see multiple companies if assigned
+GoTrueClient@sb-rsbwqgzespcltmufkhdx-auth-token:2 (2.89.0) 2026-02-06T17:59:03.201Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+stderr | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Adviser Role (Cross-tenant) > Asesor should see multiple companies if assigned
+Asesor test skipped: User not found or password mismatch.
+
+stderr | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Super Admin Access > Super Admin should see ALL companies
+GoTrueClient@sb-rsbwqgzespcltmufkhdx-auth-token:3 (2.89.0) 2026-02-06T17:59:03.271Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+
+ ✓ tests/cycle4_kiosk.test.ts (3 tests) 1437ms
+     ✓ Should validate a valid employee code  512ms
+     ✓ Should fail with incorrect PIN  338ms
+     ✓ Should succeed with correct PIN  585ms
+ ✓ tests/cycle1_rls.test.ts (4 tests) 1585ms
+       ✓ Admin of Bar El Rincón should NOT see Zapatería López employees  834ms
+       ✓ Employee should ONLY see their own data in sensitive tables  442ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/compliance_protocol.test.ts [ tests/compliance_protocol.test.ts ]
+Error: supabaseKey is required.
+ ❯ new SupabaseClient node_modules/@supabase/supabase-js/dist/index.mjs:200:27
+ ❯ createClient node_modules/@supabase/supabase-js/dist/index.mjs:390:9
+ ❯ tests/compliance_utils.ts:6:25
+      4| const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+      5| const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      6| export const supabase = createClient(supabaseUrl, supabaseServiceKey);
+       |                         ^
+      7| 
+      8| export const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a'; // B…
+ ❯ tests/compliance_protocol.test.ts:3:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  tests/cycle13_vacation_logic.test.ts [ tests/cycle13_vacation_logic.test.ts ]
+Error: supabaseKey is required.
+ ❯ new SupabaseClient node_modules/@supabase/supabase-js/dist/index.mjs:200:27
+ ❯ createClient node_modules/@supabase/supabase-js/dist/index.mjs:390:9
+ ❯ tests/cycle13_vacation_logic.test.ts:6:18
+      4| const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+      5| const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      6| const supabase = createClient(supabaseUrl, supabaseServiceKey);
+       |                  ^
+      7| 
+      8| const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a'; // Bar El R…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/cycle14_integrity_qtsp.test.ts [ tests/cycle14_integrity_qtsp.test.ts ]
+Error: supabaseKey is required.
+ ❯ new SupabaseClient node_modules/@supabase/supabase-js/dist/index.mjs:200:27
+ ❯ createClient node_modules/@supabase/supabase-js/dist/index.mjs:390:9
+ ❯ tests/cycle14_integrity_qtsp.test.ts:6:18
+      4| const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+      5| const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      6| const supabase = createClient(supabaseUrl, supabaseServiceKey);
+       |                  ^
+      7| 
+      8| const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a';
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  tests/cycle5_offline.test.ts [ tests/cycle5_offline.test.ts ]
+Error: Failed to resolve import "uuid" from "tests/cycle5_offline.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /private/tmp/time-control-hub/tests/cycle5_offline.test.ts:4:29
+  2  |  import { createClient } from "@supabase/supabase-js";
+  3  |  import * as dotenv from "dotenv";
+  4  |  import { v4 as uuidv4 } from "uuid";
+     |                                ^
+  5  |  dotenv.config();
+  6  |  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+ ❯ TransformPluginContext._formatLog node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:28999:43
+ ❯ TransformPluginContext.error node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:28996:14
+ ❯ normalizeUrl node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:27119:18
+ ❯ node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:27177:32
+ ❯ TransformPluginContext.transform node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:27145:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:28797:14
+ ❯ loadAndTransform node_modules/vitest/node_modules/vite/dist/node/chunks/config.js:22670:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  tests/cycle9_compliance.test.ts [ tests/cycle9_compliance.test.ts ]
+Error: supabaseKey is required.
+ ❯ new SupabaseClient node_modules/@supabase/supabase-js/dist/index.mjs:200:27
+ ❯ createClient node_modules/@supabase/supabase-js/dist/index.mjs:390:9
+ ❯ tests/cycle9_compliance.test.ts:7:18
+      5| const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+      6| const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // …
+      7| const supabase = createClient(supabaseUrl, supabaseServiceKey);
+       |                  ^
+      8| 
+      9| const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a'; // Bar El R…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/cycle10_reporting.test.ts > Cycle 10: Reporting + ITSS Package > Should generate a full ITSS package with manifest and hashes
+TypeError: Cannot read properties of null (reading 'success')
+ ❯ tests/cycle10_reporting.test.ts:38:23
+     36| 
+     37|         if (error) console.error('ITSS error:', error);
+     38|         expect(result.success).toBe(true);
+       |                       ^
+     39|         expect(result.manifest).toBeDefined();
+     40|         expect(result.manifest.integrity.package_hash).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Employee should be able to request a correction
+AssertionError: expected { code: '23503', …(3) } to be null
+
+- Expected: 
+null
+
++ Received: 
+{
+  "code": "23503",
+  "details": "Key (actor_id)=(d900d261-1279-4aa1-97b2-e39c316bd00c) is not present in table \"users\".",
+  "hint": null,
+  "message": "insert or update on table \"audit_log\" violates foreign key constraint \"audit_log_actor_id_fkey\"",
+}
+
+ ❯ tests/cycle6_corrections.test.ts:41:26
+     39| 
+     40|         if (reqError) console.error('Error creating request:', reqErro…
+     41|         expect(reqError).toBeNull();
+       |                          ^
+     42|         expect(request.status).toBe('pending');
+     43|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  tests/cycle6_corrections.test.ts > Cycle 6: Correcciones + Workflow + Auditoría > Responsible should be able to approve a correction
+TypeError: Cannot read properties of null (reading 'id')
+ ❯ tests/cycle6_corrections.test.ts:65:31
+     63|                 reviewed_at: new Date().toISOString()
+     64|             })
+     65|             .eq('id', request.id)
+       |                               ^
+     66|             .select()
+     67|             .single();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  7 failed | 5 passed (12)
+      Tests  3 failed | 10 passed (13)
+   Start at  18:59:01
+   Duration  2.34s (transform 409ms, setup 935ms, import 365ms, tests 5.28s, environment 5.00s)
+

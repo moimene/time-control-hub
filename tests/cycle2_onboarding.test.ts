@@ -1,22 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { it, expect } from 'vitest';
+import { describeServiceIntegration, getServiceClient } from './test_env';
 
-dotenv.config();
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-describe('Cycle 2: Onboarding "Preconfigurado"', () => {
+describeServiceIntegration('Cycle 2: Onboarding "Preconfigurado"', () => {
 
     it('Should create default rule sets when bootstrapping a company', async () => {
-        if (!supabaseServiceKey) {
-            console.warn('Skipping Cycle 2 test: SUPABASE_SERVICE_ROLE_KEY missing');
-            return;
-        }
-
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+        const supabaseAdmin = getServiceClient();
 
         // 1. Create a dummy company for testing onboarding
         const { data: company } = await supabaseAdmin.from('company').insert({

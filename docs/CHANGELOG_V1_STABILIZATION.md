@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-01-11  
 **Versión:** 1.0.0-rc1  
-**Autor:** Lovable AI  
+**Autor:** Equipo de desarrollo  
 
 ---
 

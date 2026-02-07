@@ -32,6 +32,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!resendApiKey) {
       throw new Error("RESEND_API_KEY not configured");
     }
+    const resendFromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
 
     const resend = new Resend(resendApiKey);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -183,7 +184,7 @@ serve(async (req: Request): Promise<Response> => {
     
     const emailPromises = recipients.map(recipient =>
       resend.emails.send({
-        from: "QTSP Monitor <onboarding@resend.dev>",
+        from: `QTSP Monitor <${resendFromEmail}>`,
         to: [recipient.email],
         subject: subjectText,
         html: htmlContent,

@@ -1,0 +1,12 @@
+
+  
+   ID                                   | NAME                  | SLUG                  | STATUS | VERSION | UPDATED_AT (UTC)    
+  --------------------------------------|-----------------------|-----------------------|--------|---------|---------------------
+   8952b246-a62b-4fcd-80b0-0c5789c1ab58 | generate-itss-package | generate-itss-package | ACTIVE | 1       | 2026-02-06 20:34:27 
+   d263adef-f81e-4fea-a743-194d87d981b6 | absence-create        | absence-create        | ACTIVE | 1       | 2026-02-06 20:34:33 
+   e6be4bf5-57f1-4812-9e14-b993ae18e3a1 | employee-credentials  | employee-credentials  | ACTIVE | 1       | 2026-02-06 20:34:41 
+   7f047595-74cb-4d4e-8720-5c46d06690ce | setup-test-users      | setup-test-users      | ACTIVE | 1       | 2026-02-06 20:34:42 
+   0385cca4-a54b-4d78-a198-2e92c2bf53ea | setup-test-data       | setup-test-data       | ACTIVE | 1       | 2026-02-06 20:34:44 
+   0afc60b7-53c3-45cd-8776-e25449862d4c | seed-v1-fixtures      | seed-v1-fixtures      | ACTIVE | 1       | 2026-02-06 20:34:45 
+   c29bf5c5-7a0d-4633-87e4-69477bdc0f6c | get-test-credentials  | get-test-credentials  | ACTIVE | 1       | 2026-02-06 20:34:46 
+

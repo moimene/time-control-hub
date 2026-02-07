@@ -6,6 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function isFixtureEnvironmentAllowed(req: Request): boolean {
+  const explicitFlag = Deno.env.get('ALLOW_TEST_FIXTURES') === 'true';
+  const appEnv = (
+    Deno.env.get('APP_ENV') ||
+    Deno.env.get('ENV') ||
+    Deno.env.get('NODE_ENV') ||
+    ''
+  ).toLowerCase();
+  const nonProdEnv = ['dev', 'development', 'local', 'test', 'staging', 'preview'];
+  const requestHost = new URL(req.url).hostname;
+  const localHost = requestHost === 'localhost' || requestHost === '127.0.0.1';
+
+  return explicitFlag || nonProdEnv.includes(appEnv) || localHost;
+}
+
 // Company definitions
 const companies = [
   { name: 'Bar El Rincón', cif: 'B12345678', address: 'Calle Mayor 15', city: 'Madrid', postal_code: '28013', timezone: 'Europe/Madrid' },
@@ -120,12 +142,46 @@ serve(async (req) => {
   }
 
   try {
+    if (!isFixtureEnvironmentAllowed(req)) {
+      return jsonResponse({ error: 'setup-test-data is disabled in this environment' }, 403);
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return jsonResponse({ error: 'Missing Authorization header' }, 401);
+    }
+
+    const token = authHeader.replace('Bearer ', '').trim();
+    if (!token) {
+      return jsonResponse({ error: 'Invalid Authorization token' }, 401);
+    }
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !authData?.user) {
+      return jsonResponse({ error: 'Unauthorized user' }, 401);
+    }
+
+    const { data: superAdminRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', authData.user.id)
+      .eq('role', 'super_admin')
+      .maybeSingle();
+
+    if (roleError) {
+      throw new Error(`Unable to validate super admin role: ${roleError.message}`);
+    }
+
+    if (!superAdminRole) {
+      return jsonResponse({ error: 'Only super_admin can run setup-test-data' }, 403);
+    }
 
     const { clean = false } = await req.json().catch(() => ({}));
     const results: Record<string, unknown> = {};

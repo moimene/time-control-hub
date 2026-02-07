@@ -189,7 +189,7 @@ export function getSectorFromCNAE(cnae: string): string | null {
   if (!cnae) return null;
   
   // Clean the CNAE code (remove dots, spaces)
-  const cleanCNAE = cnae.replace(/[\.\s-]/g, '');
+  const cleanCNAE = cnae.replace(/[.\s-]/g, '');
   
   // Try exact match first
   if (CNAE_SECTOR_MAP[cleanCNAE]) {
@@ -212,7 +212,7 @@ export function getSuggestedSector(cnae: string): { sector: string; confidence: 
   const sector = getSectorFromCNAE(cnae);
   if (!sector) return null;
   
-  const cleanCNAE = cnae.replace(/[\.\s-]/g, '');
+  const cleanCNAE = cnae.replace(/[.\s-]/g, '');
   
   // Determine confidence based on match specificity
   if (CNAE_SECTOR_MAP[cleanCNAE]) {

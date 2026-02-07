@@ -1,0 +1,2 @@
+IPv6 is not supported on your current network: dial tcp [2a05:d018:135e:169e:f889:46f2:6c5b:392e]:5432: connect: no route to host
+Run supabase link --project-ref ouxzjfqqgxlvxhjyihum to setup IPv4 connection.

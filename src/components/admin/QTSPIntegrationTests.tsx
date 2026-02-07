@@ -160,10 +160,10 @@ export function QTSPIntegrationTests() {
         return updated;
       }
       return [...prev, testResult];
-    });
-
-    try {
-      let requestBody: Record<string, unknown> = { action: testConfig.action };
+	    });
+	
+	    try {
+	      const requestBody: Record<string, unknown> = { action: testConfig.action };
 
       // Add company-specific data for tests that require it
       if (testConfig.requiresCompany && selectedCompanyId) {

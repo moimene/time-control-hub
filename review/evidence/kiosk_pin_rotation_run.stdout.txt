@@ -1,0 +1,7 @@
+
+> vite_react_shadcn_ts@0.0.0 security:rotate-kiosk-pins
+> node scripts/security/rotate-kiosk-default-pins.mjs
+
+[dotenv@17.2.3] injecting env (3) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Kiosk PIN rotation report written to /private/tmp/time-control-hub/review/evidence/kiosk_pin_rotation_run_2026-02-06.json
+Targeted: 21 | Rotated: 21 | Missing: 0 | Failed: 0

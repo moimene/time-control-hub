@@ -47,6 +47,87 @@ interface DailyRecord {
   audit_ref: string | null;
 }
 
+type AppRole = 'super_admin' | 'admin' | 'responsible' | 'employee' | 'asesor';
+
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function authorizeCompanyAccess(
+  req: Request,
+  supabase: ReturnType<typeof createClient>,
+  companyId: string
+): Promise<{ userId: string; roles: AppRole[] } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return jsonResponse({ success: false, error: 'Missing Authorization header' }, 401);
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  if (!token) {
+    return jsonResponse({ success: false, error: 'Invalid Authorization token' }, 401);
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData?.user) {
+    return jsonResponse({ success: false, error: 'Unauthorized user' }, 401);
+  }
+
+  const userId = authData.user.id;
+  const { data: roleRows, error: roleError } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId);
+
+  if (roleError) {
+    throw new Error(`Unable to resolve user roles: ${roleError.message}`);
+  }
+
+  const roles = (roleRows || []).map(r => r.role as AppRole);
+  const isPrivileged = roles.some(role =>
+    ['super_admin', 'admin', 'responsible', 'asesor'].includes(role)
+  );
+
+  if (!isPrivileged) {
+    return jsonResponse({ success: false, error: 'Insufficient permissions' }, 403);
+  }
+
+  if (roles.includes('super_admin')) {
+    return { userId, roles };
+  }
+
+  const { data: linkedCompany, error: linkedCompanyError } = await supabase
+    .from('user_company')
+    .select('company_id')
+    .eq('user_id', userId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (linkedCompanyError) {
+    throw new Error(`Unable to validate user-company link: ${linkedCompanyError.message}`);
+  }
+
+  const { data: linkedEmployee, error: linkedEmployeeError } = await supabase
+    .from('employees')
+    .select('company_id')
+    .eq('user_id', userId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  if (linkedEmployeeError) {
+    throw new Error(`Unable to validate employee-company link: ${linkedEmployeeError.message}`);
+  }
+
+  if (!linkedCompany && !linkedEmployee) {
+    return jsonResponse({ success: false, error: 'User not assigned to requested company' }, 403);
+  }
+
+  return { userId, roles };
+}
+
 async function computeHash(data: string): Promise<string> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
@@ -78,6 +159,15 @@ serve(async (req) => {
       components,
       dry_run = false 
     } = body;
+
+    if (!company_id || !period_start || !period_end || !components) {
+      return jsonResponse({ success: false, error: 'Missing required ITSS parameters' }, 400);
+    }
+
+    const authContext = await authorizeCompanyAccess(req, supabase, company_id);
+    if (authContext instanceof Response) {
+      return authContext;
+    }
 
     console.log(`Generating ITSS package for company ${company_id}, period ${period_start} to ${period_end}`);
 
@@ -411,7 +501,7 @@ serve(async (req) => {
       qtsp_evidences: qtspEvidences,
       pre_checks: preChecks,
       generated_at: new Date().toISOString(),
-      generated_by: null, // Will be filled from auth
+      generated_by: authContext.userId,
       integrity: {
         algorithm: 'SHA-256',
         package_hash: '' // Calculated below
@@ -458,7 +548,8 @@ serve(async (req) => {
 
     // Log to audit
     await supabase.from('audit_log').insert({
-      actor_type: 'system',
+      actor_id: authContext.userId,
+      actor_type: 'user',
       action: 'generate_itss_package',
       entity_type: 'itss_package',
       entity_id: packageRecord.id,
@@ -486,11 +577,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating ITSS package:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({
       success: false,
-      error: error?.message || 'Unknown error'
+      error: message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

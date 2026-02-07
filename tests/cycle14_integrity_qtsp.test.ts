@@ -1,12 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a';
-const TEST_DATE = '2026-01-10';
+import { it, expect, beforeAll } from 'vitest';
+import { describeServiceIntegration, getServiceClient } from './test_env';
 
 // Local helper to match the Edge Function logic
 async function computeHash(data: string): Promise<string> {
@@ -31,7 +24,11 @@ async function buildMerkleRoot(hashes: string[]): Promise<string> {
     return buildMerkleRoot(nextLevel);
 }
 
-describe('Cycle 14: Integrity & QTSP Notarization', () => {
+describeServiceIntegration('Cycle 14: Integrity & QTSP Notarization', () => {
+    const supabase = getServiceClient();
+    const COMPANY_ID = process.env.COMPLIANCE_COMPANY_ID || 'a0000000-0000-0000-0000-00000000000a';
+    const TEST_DATE = process.env.TEST_QTSP_DATE || '2026-01-10';
+
     beforeAll(async () => {
         // Cleanup daily roots and events for the test date
         await supabase.from('daily_roots').delete().eq('date', TEST_DATE).eq('company_id', COMPANY_ID);

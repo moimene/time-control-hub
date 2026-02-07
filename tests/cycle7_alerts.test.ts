@@ -1,30 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { it, expect } from 'vitest';
+import { describeServiceIntegration, getServiceClient } from './test_env';
 
-dotenv.config();
-
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-async function getClient(email: string, password: string) {
-    const client = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return client;
-}
-
-describe('Cycle 7: Inconsistencias + Alertas', () => {
+describeServiceIntegration('Cycle 7: Inconsistencias + Alertas', () => {
+    const supabaseAdmin = getServiceClient();
 
     it('Should trigger an alert when an orphan entry is detected', async () => {
-        if (!supabaseServiceKey) {
-            console.warn('Skipping Cycle 7 test: SUPABASE_SERVICE_ROLE_KEY missing');
-            return;
-        }
-
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
         // 1. Find an employee
         const { data: employee } = await supabaseAdmin.from('employees').select('id, company_id').limit(1).single();
 

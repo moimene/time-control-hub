@@ -1,0 +1,19 @@
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+
+stderr | tests/cycle15_security_authz.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+
+ ✓ tests/cycle15_security_authz.test.ts (8 tests | 1 skipped) 4ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed | 1 skipped (8)
+   Start at  19:20:16
+   Duration  538ms (transform 31ms, setup 49ms, import 31ms, tests 4ms, environment 260ms)
+

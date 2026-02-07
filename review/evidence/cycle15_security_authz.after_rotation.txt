@@ -1,0 +1,19 @@
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: 🔑 add access controls to secrets: https://dotenvx.com/ops
+
+stderr | tests/cycle15_security_authz.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Integration tests requiring admin access will fail.
+
+stdout | tests/cycle15_security_authz.test.ts
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ✅ audit secrets and track compliance: https://dotenvx.com/ops
+
+ ✓ tests/cycle15_security_authz.test.ts (8 tests | 1 skipped) 6ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed | 1 skipped (8)
+   Start at  19:32:08
+   Duration  548ms (transform 31ms, setup 50ms, import 30ms, tests 6ms, environment 263ms)
+

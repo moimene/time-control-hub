@@ -69,7 +69,6 @@ async function checkQTSPHealth(): Promise<HealthResult> {
 }
 
 // Simple key-value store using qtsp_audit_log to track state
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getState(supabase: any, key: string): Promise<string | null> {
   const { data } = await supabase
     .from('qtsp_audit_log')
@@ -83,7 +82,6 @@ async function getState(supabase: any, key: string): Promise<string | null> {
   return payload?.value ?? null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function setState(supabase: any, key: string, value: string): Promise<void> {
   await supabase.from('qtsp_audit_log').insert({
     action: `state_${key}`,

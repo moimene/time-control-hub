@@ -1,0 +1,13 @@
+rule,count
+@typescript-eslint/no-explicit-any,242
+react-refresh/only-export-components,11
+react-hooks/exhaustive-deps,6
+react-hooks/rules-of-hooks,6
+no-empty,6
+no-constant-binary-expression,3
+no-case-declarations,2
+@typescript-eslint/no-empty-object-type,2
+no-useless-escape,2
+prefer-const,1
+@typescript-eslint/no-unused-expressions,1
+@typescript-eslint/no-require-imports,1

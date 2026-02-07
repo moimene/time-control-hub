@@ -1,0 +1,18 @@
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stdout | tests/cycle1_rls.test.ts > Cycle 1: Multi-tenant & Role-based Access Control > Company Isolation (Anti-Leak) > Admin of Bar El Rincón should NOT see Zapatería López employees
+Admin of Bar El Rincón found 2 employees: Employee (integration.employee@timecontrol.test), Employee (other.employee@timecontrol.test)
+
+ ✓ tests/cycle1_rls.test.ts (4 tests) 915ms
+       ✓ Admin of Bar El Rincón should NOT see Zapatería López employees  484ms
+       ✓ Employee should ONLY see their own data in sensitive tables  428ms
+ ✓ tests/cycle6_corrections.test.ts (2 tests) 1261ms
+     ✓ Employee should be able to request a correction  664ms
+     ✓ Responsible should be able to approve a correction  596ms
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  22:55:00
+   Duration  1.78s (transform 68ms, setup 133ms, import 61ms, tests 2.18s, environment 682ms)
+

@@ -1,15 +1,13 @@
 
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { it, expect, beforeAll } from 'vitest';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Needs service key for data manipulation in tests
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { describeServiceIntegration, getServiceClient } from './test_env';
 
-const COMPANY_ID = 'a0000000-0000-0000-0000-00000000000a'; // Bar El Rincón
-const EMPLOYEE_EMAIL = 'juan.martinez@elrincon.com';
+describeServiceIntegration('Cycle 9: Compliance Engine & Dynamic Rules', () => {
+    const supabase = getServiceClient();
+    const COMPANY_ID = process.env.COMPLIANCE_COMPANY_ID || 'a0000000-0000-0000-0000-00000000000a'; // Bar El Rincón
+    const EMPLOYEE_EMAIL = process.env.COMPLIANCE_EMPLOYEE_EMAIL || 'juan.martinez@elrincon.com';
 
-describe('Cycle 9: Compliance Engine & Dynamic Rules', () => {
     let employeeId: string;
 
     beforeAll(async () => {

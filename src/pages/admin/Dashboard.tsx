@@ -26,18 +26,19 @@ export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('current_month');
 
   // Calculate date range based on selected period
-  const getDateRange = () => {
-    switch (selectedPeriod) {
-      case 'current_month':
-        return { start: startOfMonth(today), end: endOfMonth(today) };
-      case 'previous_month':
-        const prevMonth = subMonths(today, 1);
-        return { start: startOfMonth(prevMonth), end: endOfMonth(prevMonth) };
-      case 'year_total':
-        return { start: startOfYear(today), end: endOfYear(today) };
-      default:
-        return { start: startOfMonth(today), end: endOfMonth(today) };
-    }
+	  const getDateRange = () => {
+	    switch (selectedPeriod) {
+	      case 'current_month':
+	        return { start: startOfMonth(today), end: endOfMonth(today) };
+	      case 'previous_month': {
+	        const prevMonth = subMonths(today, 1);
+	        return { start: startOfMonth(prevMonth), end: endOfMonth(prevMonth) };
+	      }
+	      case 'year_total':
+	        return { start: startOfYear(today), end: endOfYear(today) };
+	      default:
+	        return { start: startOfMonth(today), end: endOfMonth(today) };
+	    }
   };
 
   const dateRange = getDateRange();

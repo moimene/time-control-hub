@@ -38,28 +38,11 @@ export function TemplateEditor({ ruleSet, onSimulate }: TemplateEditorProps) {
   const { updateVersionPayload, validateTemplate, publishTemplate } = useTemplates();
   
   // Get the latest version
-  const latestVersion = ruleSet.rule_versions?.sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )[0];
+  const latestVersion = [...(ruleSet.rule_versions ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-  // If no version exists, show error state
-  if (!latestVersion) {
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error de configuración</AlertTitle>
-          <AlertDescription>
-            Esta plantilla no tiene una versión inicial. Esto puede deberse a un error 
-            durante la creación o a permisos insuficientes. Por favor, elimina esta 
-            plantilla y créala de nuevo, o contacta al administrador del sistema.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const initialPayload = (latestVersion?.payload_json as unknown as TemplatePayload) || DEFAULT_TEMPLATE_PAYLOAD;
+  const initialPayload =
+    (latestVersion?.payload_json as unknown as TemplatePayload) ?? DEFAULT_TEMPLATE_PAYLOAD;
   
   const [payload, setPayload] = useState<TemplatePayload>(initialPayload);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
@@ -71,7 +54,23 @@ export function TemplateEditor({ ruleSet, onSimulate }: TemplateEditorProps) {
     setPayload(initialPayload);
     setValidation(null);
     setHasChanges(false);
-  }, [ruleSet.id]);
+  }, [ruleSet.id, latestVersion?.id, initialPayload]);
+
+  // If no version exists, show error state
+  if (!latestVersion) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error de configuración</AlertTitle>
+          <AlertDescription>
+            Esta plantilla no tiene una versión inicial. Esto puede deberse a un error durante la creación o a permisos
+            insuficientes. Por favor, elimina esta plantilla y créala de nuevo, o contacta al administrador del sistema.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const updatePayload = (path: string, value: unknown) => {
     setPayload(prev => {

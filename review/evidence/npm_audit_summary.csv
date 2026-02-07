@@ -1,0 +1,11 @@
+package,severity,is_direct,fix_available,summary
+@isaacs/brace-expansion,high,false,true,"@isaacs/brace-expansion has Uncontrolled Resource Consumption"
+@remix-run/router,high,false,true,"React Router vulnerable to XSS via Open Redirects"
+glob,high,false,true,"glob CLI: Command injection via -c/--cmd executes matches with shell:true"
+jspdf,high,true,true,"jsPDF has PDF Injection in AcroFormChoiceField that allows Arbitrary JavaScript Execution | jsPDF Vulnerable to Denial of Service (DoS) via Unvalidated BMP Dimensions in BMPDecoder | jsPDF Vulnerable to Stored XMP Metadata Injection (Spoofing & Integrity Violation)"
+react-router,high,false,true,"@remix-run/router | React Router has unexpected external redirect via untrusted paths"
+react-router-dom,high,true,true,"@remix-run/router | react-router"
+esbuild,moderate,false,true,"esbuild enables any website to send any requests to the development server and read the response"
+js-yaml,moderate,false,true,"js-yaml has prototype pollution in merge (<<)"
+lodash,moderate,false,true,"Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions"
+vite,moderate,true,true,"Vite middleware may serve files starting with the same name with the public directory | Vite's `server.fs` settings were not applied to HTML files | vite allows server.fs.deny bypass via backslash on Windows"

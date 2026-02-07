@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
@@ -97,6 +97,10 @@ export default function QTSPMonitor() {
   
   // Enable realtime alerts for QTSP errors
   useQTSPRealtimeAlerts(notificationsEnabled);
+
+  // Keep a ref so effects can read the latest count without creating dependency loops.
+  const consecutiveFailuresRef = useRef(0);
+  consecutiveFailuresRef.current = consecutiveFailures;
 
   // Get email alerts enabled status
   const { data: emailAlertsStatus, refetch: refetchEmailAlerts } = useQuery({
@@ -238,8 +242,9 @@ export default function QTSPMonitor() {
       });
     } else {
       // Send recovery alert if we had significant failures before
-      if (consecutiveFailures >= 10) {
-        const downtimeMinutes = Math.round(consecutiveFailures * 0.5);
+      const failuresBeforeRecovery = consecutiveFailuresRef.current;
+      if (failuresBeforeRecovery >= 10) {
+        const downtimeMinutes = Math.round(failuresBeforeRecovery * 0.5);
         sendHealthAlert(
           'healthy',
           'La conexión con Digital Trust se ha restablecido',
@@ -282,7 +287,7 @@ export default function QTSPMonitor() {
     }
 
     setLastHealthStatus(healthStatus.status);
-  }, [healthStatus, lastHealthStatus, notificationsEnabled, sendHealthAlert]);
+  }, [healthStatus, lastHealthStatus, notificationsEnabled, sendHealthAlert, consecutiveFailuresRef]);
 
   // Update latency history when health check completes
   useEffect(() => {
