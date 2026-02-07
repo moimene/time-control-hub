@@ -1242,7 +1242,51 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // AUTHENTICATION CHECK
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const isInternalCall = token === supabaseServiceKey;
+
+    // Initialize Supabase with Service Key (for subsequent DB operations)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (!isInternalCall) {
+      // Verify User JWT
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Verify Company Membership
+      const { data: belongs, error: rpcError } = await supabase.rpc('user_belongs_to_company', {
+        _user_id: user.id,
+        _company_id: company_id
+      });
+
+      if (rpcError) {
+        console.error('Error checking company membership:', rpcError);
+        // Fail closed if we can't verify
+        return new Response(JSON.stringify({ error: 'Error verifying permission' }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (!belongs) {
+        return new Response(JSON.stringify({ error: 'Forbidden: You do not belong to this company' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // Get company info
     const { data: company } = await supabase
