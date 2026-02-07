@@ -55,7 +55,7 @@ serve(async (req) => {
     // Get employee record
     const { data: employee, error: empError } = await supabase
       .from('employees')
-      .select('id, pin_hash, pin_salt, pin_locked_until')
+      .select('id, pin_hash, pin_salt, pin_locked_until, pin_failed_attempts')
       .eq('user_id', user.id)
       .single();
 
@@ -85,11 +85,12 @@ serve(async (req) => {
 
       if (currentHashHex !== employee.pin_hash) {
         // Increment failed attempts
+        const currentAttempts = ((employee as any).pin_failed_attempts || 0) + 1;
         await supabase
           .from('employees')
           .update({ 
-            pin_failed_attempts: (employee as any).pin_failed_attempts + 1,
-            pin_locked_until: (employee as any).pin_failed_attempts >= 4 
+            pin_failed_attempts: currentAttempts,
+            pin_locked_until: currentAttempts >= 5
               ? new Date(Date.now() + 15 * 60 * 1000).toISOString() 
               : null
           })
@@ -103,7 +104,9 @@ serve(async (req) => {
     }
 
     // Generate new salt and hash
-    const newSalt = crypto.randomUUID();
+    const saltArray = new Uint8Array(16);
+    crypto.getRandomValues(saltArray);
+    const newSalt = Array.from(saltArray).map(b => b.toString(16).padStart(2, '0')).join('');
     const encoder = new TextEncoder();
     const newPinData = encoder.encode(newPin + newSalt);
     const newHashBuffer = await crypto.subtle.digest('SHA-256', newPinData);
