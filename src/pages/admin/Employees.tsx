@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -150,12 +150,18 @@ export default function Employees() {
     },
   });
 
-  const filteredEmployees = employees?.filter(
-    (e) =>
-      e.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.last_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.employee_code.toLowerCase().includes(search.toLowerCase())
-  );
+  // Optimized filtering: Memoize results to prevent re-filtering on unrelated state changes
+  // (e.g. dialog toggles) and move toLowerCase() outside the loop for O(n) performance.
+  const filteredEmployees = useMemo(() => {
+    if (!employees) return [];
+    const searchLower = search.toLowerCase();
+    return employees.filter(
+      (e) =>
+        e.first_name.toLowerCase().includes(searchLower) ||
+        e.last_name.toLowerCase().includes(searchLower) ||
+        e.employee_code.toLowerCase().includes(searchLower)
+    );
+  }, [employees, search]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
