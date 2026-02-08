@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { useCompany } from '@/hooks/useCompany';
 import { useTimeEventInconsistencies } from '@/hooks/useTimeEventInconsistencies';
 import { InconsistencyAlert } from '@/components/admin/InconsistencyAlert';
+import { filterTimeRecords, type TimeRecord } from '@/lib/timeRecordsUtils';
 import type { EventType, EventSource } from '@/types/database';
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -83,21 +84,16 @@ export default function TimeRecords() {
 
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
-  const filteredRecords = records?.filter((record: any) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      record.employees?.first_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.last_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.employee_code?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredRecords = useMemo(
+    () => filterTimeRecords(records, search),
+    [records, search]
+  );
 
   const exportCSV = () => {
     if (!filteredRecords) return;
 
     const headers = ['Código', 'Nombre', 'Tipo', 'Fecha', 'Hora', 'Origen'];
-    const rows = filteredRecords.map((record: any) => [
+    const rows = filteredRecords.map((record: TimeRecord) => [
       record.employees?.employee_code,
       `${record.employees?.first_name} ${record.employees?.last_name}`,
       eventTypeLabels[record.event_type as EventType],
@@ -206,7 +202,7 @@ export default function TimeRecords() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRecords?.map((record: any) => {
+                filteredRecords?.map((record: TimeRecord) => {
                   const overrideReason = record.raw_payload?.override_reason;
                   return (
                     <TableRow key={record.id}>
