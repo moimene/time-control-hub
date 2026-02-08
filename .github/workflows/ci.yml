@@ -36,6 +36,5 @@ jobs:
       - name: Audit (fail on high/critical)
         run: npm audit --audit-level=high
 
-      - name: Lint (non-blocking until lint debt is remediated)
+      - name: Lint
         run: npm run lint
-        continue-on-error: true
