@@ -25,7 +25,7 @@ playwright-report/
 test-results/
 
 # Local scratch files
-.tmp_functions_list.json
+.tmp_*
 
 # Editor directories and files
 .vscode/*

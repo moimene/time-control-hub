@@ -1,0 +1,14 @@
+
+ RUN  v4.0.16 /private/tmp/time-control-hub
+
+stderr | tests/cycle15_security_authz.test.ts
+⚠️ SUPABASE_SERVICE_ROLE_KEY not set. Admin integration tests will be skipped.
+
+ ✓ tests/cycle15_security_authz.test.ts (9 tests) 1926ms
+     ✓ should reject unauthenticated invoke for hardened public-risk functions (401/403)  1921ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  08:48:13
+   Duration  2.36s (transform 23ms, setup 55ms, import 28ms, tests 1.93s, environment 288ms)
+
