@@ -1708,6 +1708,37 @@ npm ci
 npm run dev
 ```
 
+### Tests (Repo)
+
+```bash
+# Lint (CI-gated)
+npm run lint
+
+# Unit/source-contract tests (CI-gated)
+npm test
+
+# Build (CI-gated)
+npm run build
+```
+
+### E2E (Playwright)
+
+Ver `docs/E2E.md`.
+
+```bash
+# Instalar navegadores (primera vez)
+npm run e2e:install
+
+# Seed + generar `.env.integration` (gitignored) con usuarios/empresa/kiosk de integración
+node scripts/setup/seed-integration-env.mjs
+
+# Ejecutar E2E (por defecto contra Vercel)
+npm run e2e
+
+# Opcional: ejecutar contra local
+E2E_BASE_URL=http://localhost:5173 npm run e2e
+```
+
 ### Configuración de Cron Jobs
 
 ```sql

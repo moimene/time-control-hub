@@ -1,31 +1,55 @@
-# Analysis of Current State vs TEST_PLAN_V1
+# GAPS_ANALYSIS_V1 — Updated (2026-02-08)
 
-## Identified Gaps
+This document tracks gaps against `docs/TEST_PLAN_V1.md` and the current repository state.
+
+## Current State (What Is Already Implemented)
 
 ### 1. RLS & Multi-tenancy (Cycle 1)
-- **CRITICAL BUG**: Several RLS policies in `20260106073715` and `20260106094329` have flipped arguments in `user_belongs_to_company(company_id, auth.uid())`. This breaks access control for Rule Sets, Violations, Incidents, and Certificates.
-- **Asesor Laboral Role**: The `app_role` enum does not include `asesor`. Access control for this role needs to be defined and implemented.
-- **RLS Verification**: Need to ensure `user_belongs_to_company` covers all entry points for an external adviser linked to multiple companies.
+- RLS helper argument-order issues were addressed via migrations and are guarded by:
+  - Static check: `npm run security:audit-rls`
+  - Optional live audit: `npm run security:audit-rls-live`
+- Role `asesor` exists in `app_role`, with read-only RLS policies and UI routes under `/asesor`.
 
-### 2. Onboarding & Fixtures (Cycle 2 & 3)
-- **Seed Data**: Current `setup-test-data` uses generic names. We need the specific 3-company dataset (Bar Pepe, Clínica Vet, Tienda Centro) with their specific timezones and roles.
-- **Rule Seeding**: `company-bootstrap` seeds many things but misses default `rule_sets` assignment by sector.
+### 2. Fixtures / Seed (Cycles 2–3)
+- `supabase/functions/seed-v1-fixtures` exists and seeds the 3-company dataset (including Atlantic/Canary TZ), holidays and base rules.
+- Seed/fixture functions are gated (environment + `super_admin`), and the UI route `/test-credentials` is disabled by default in production builds.
 
 ### 3. Kiosk Flow (Cycle 4)
-- **Offline Support**: Frontend has a robust `useOfflineQueue` and backend `kiosk-clock` handles `sync_offline`. Need to verify the "offline validation" (caching of PINs/QR tokens).
-- **Idempotency**: Handled via `offline_uuid` in `kiosk-clock`.
+- Playwright E2E includes a kiosk flow test (`e2e/kiosk.e2e.ts`) covering terminal activation + PIN clock in/out.
+- Default kiosk PIN exposure is probed/rotated via scripts under `scripts/security/`.
 
-### 4. Compliance Engine (Cycle 9)
-- **Static vs Dynamic**: The `compliance-evaluator` edge function currently uses hardcoded constants for rules (`MAX_DAILY_HOURS`, etc.).
-- **Missing precendece**: Precedence Ley -> Convenio -> Contrato -> Excepción is not yet implemented in the evaluator logic. It should read from `rule_assignments` and `rule_versions`.
+### 4. Compliance Engine (Cycle 8/9)
+- `supabase/functions/compliance-evaluator` fetches effective rules from DB (`rule_assignments` + `rule_versions`) with fallbacks.
+- Admin UI for compliance exists under `/admin/compliance` and incidents under `/admin/compliance/incidents`.
 
-### 5. Digital Evidence & QTSP (Cycle 10)
-- **Daily Roots**: Logic exists but needs to be triggered for all test companies and verified with the Digital Trust API.
-- **Forensic Export**: Need to verify the bundle creation including Merkle proofs.
+### 5. Edge Functions Auth (P0 operational reality)
+- Supabase Auth access tokens in this project are **ES256**.
+- Supabase Edge gateway `verify_jwt=true` can reject ES256 user JWTs; frontend-invoked Edge Functions are configured with `verify_jwt=false` and enforce manual auth/role/tenant checks inside each function.
+- Regression suite: `tests/cycle15_security_authz.test.ts` (with optional live smoke).
 
-## Planned Remediation
+## Remaining Gaps / Risks (What Still Needs Work)
 
-1. [x] **RLS Fix**: Created migration `20260111000000_fix_rls_flipped_args.sql`.
-2. [ ] **New Fixtures**: Create `supabase/functions/seed-v1-fixtures/index.ts`.
-3. [ ] **Adviser Role**: Add `asesor` to `app_role` and update policies.
-4. [ ] **Dynamic Compliance**: Refactor `compliance-evaluator` to use DB-defined rules.
+### 1. E2E breadth (Cycle 0 across all roles)
+- We now have navigation coverage for admin/responsible/employee and optional super-admin/asesor, but deeper workflow E2E tests are still limited.
+- Recommended next E2E workflows to add (incrementally):
+  - Employee absence request -> responsible/admin approval
+  - Employee correction request -> approval workflow + audit presence
+  - Admin communications -> employee response thread
+  - ITSS generator dry-run -> expected outputs render/download
+
+### 2. Offline PWA regression (Cycle 5)
+- No automated browser-level offline capture/sync/idempotency scenario yet (should be Playwright with offline mode + IndexedDB assertions).
+
+### 3. CI execution of E2E
+- GitHub Actions currently runs unit/source-contract tests and build/lint/audit.
+- Add an E2E job only on a dedicated test/staging environment with injected `TEST_*` vars (avoid running E2E against shared/prod unintentionally).
+
+### 4. Test-only code shipping
+- `/test-credentials` is inaccessible by default, but the page module still exists in the codebase.
+- For stronger sanitization, consider stripping the test-credentials module from production builds entirely (build-time gating + dead-code elimination).
+
+## References
+- Test plan: `docs/TEST_PLAN_V1.md`
+- Verification: `docs/VERIFICATION_PLAN_V1.md`
+- E2E guide: `docs/E2E.md`
+

@@ -13,6 +13,12 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+export function pageTitle(page: Page, title: string) {
+  // Match the main page title (our layouts use an <h1> for the screen title).
+  // Use exact matching to avoid strict-mode collisions (e.g. "Notificaciones" vs "Centro de Notificaciones").
+  return page.getByRole('heading', { name: title, level: 1, exact: true });
+}
+
 export function employeeCodeLast3Digits(employeeCode: string): string {
   const match = employeeCode.match(/(\d{3})$/);
   if (!match) {

@@ -86,6 +86,10 @@ These are loaded from the current environment and, when present, from `.env.inte
 - `TEST_RESPONSIBLE_PASSWORD`
 - `TEST_EMPLOYEE_EMAIL`
 - `TEST_EMPLOYEE_PASSWORD`
+- `TEST_SUPER_ADMIN_EMAIL` (optional: enables super-admin E2E coverage)
+- `TEST_SUPER_ADMIN_PASSWORD` (optional)
+- `TEST_ASESOR_EMAIL` (optional: enables asesor E2E coverage)
+- `TEST_ASESOR_PASSWORD` (optional)
 - `TEST_KIOSK_TERMINAL_NAME`
 - `TEST_KIOSK_EMPLOYEE_CODE`
 - `TEST_KIOSK_PIN`

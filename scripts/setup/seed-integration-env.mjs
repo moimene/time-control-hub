@@ -122,10 +122,15 @@ async function main() {
   const responsibleEmail =
     process.env.INTEGRATION_RESPONSIBLE_EMAIL || 'integration.responsible@timecontrol.test';
   const employeeEmail = process.env.INTEGRATION_EMPLOYEE_EMAIL || 'integration.employee@timecontrol.test';
+  const superAdminEmail =
+    process.env.INTEGRATION_SUPER_ADMIN_EMAIL || 'integration.superadmin@timecontrol.test';
+  const asesorEmail = process.env.INTEGRATION_ASESOR_EMAIL || 'integration.asesor@timecontrol.test';
 
   const adminPassword = randomPassword();
   const responsiblePassword = randomPassword();
   const employeePassword = randomPassword();
+  const superAdminPassword = randomPassword();
+  const asesorPassword = randomPassword();
 
   // 1) Core tenant data
   const company = await ensureRow(
@@ -160,6 +165,11 @@ async function main() {
     email: employeeEmail,
     password: employeePassword,
   });
+  const superAdminUserId = await ensureAuthUser(serviceClient, {
+    email: superAdminEmail,
+    password: superAdminPassword,
+  });
+  const asesorUserId = await ensureAuthUser(serviceClient, { email: asesorEmail, password: asesorPassword });
 
   // 3) Roles
   await upsertRow(serviceClient, 'user_roles', { user_id: adminUserId, role: 'admin' }, 'user_id,role');
@@ -175,6 +185,13 @@ async function main() {
     { user_id: employeeUserId, role: 'employee' },
     'user_id,role',
   );
+  await upsertRow(
+    serviceClient,
+    'user_roles',
+    { user_id: superAdminUserId, role: 'super_admin' },
+    'user_id,role',
+  );
+  await upsertRow(serviceClient, 'user_roles', { user_id: asesorUserId, role: 'asesor' }, 'user_id,role');
 
   // 4) Company assignment (tenant scope)
   await upsertRow(
@@ -193,6 +210,12 @@ async function main() {
     serviceClient,
     'user_company',
     { user_id: employeeUserId, company_id: company.id },
+    'user_id,company_id',
+  );
+  await upsertRow(
+    serviceClient,
+    'user_company',
+    { user_id: asesorUserId, company_id: company.id },
     'user_id,company_id',
   );
 
@@ -306,6 +329,12 @@ async function main() {
     `TEST_EMPLOYEE_EMAIL=${employeeEmail}`,
     `TEST_EMPLOYEE_PASSWORD=${employeePassword}`,
     '',
+    `TEST_SUPER_ADMIN_EMAIL=${superAdminEmail}`,
+    `TEST_SUPER_ADMIN_PASSWORD=${superAdminPassword}`,
+    '',
+    `TEST_ASESOR_EMAIL=${asesorEmail}`,
+    `TEST_ASESOR_PASSWORD=${asesorPassword}`,
+    '',
     `TEST_COMPANY_NAME=${companyName}`,
     `TEST_COMPANY_ID=${company.id}`,
     `TEST_EMPLOYEE_CODE_PREFIX=${employeeCodePrefix}`,
@@ -335,7 +364,7 @@ async function main() {
 
   console.log('Seeded integration environment successfully.');
   console.log(`Company: ${company.name} (${company.id})`);
-  console.log(`Users: ${adminEmail}, ${responsibleEmail}, ${employeeEmail}`);
+  console.log(`Users: ${adminEmail}, ${responsibleEmail}, ${employeeEmail}, ${superAdminEmail}, ${asesorEmail}`);
   console.log(`Wrote local integration env to: ${path.resolve(integrationEnvPath)}`);
 }
 
