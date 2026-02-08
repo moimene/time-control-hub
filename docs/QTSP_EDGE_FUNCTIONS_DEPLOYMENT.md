@@ -28,6 +28,11 @@ supabase secrets set \\
 Notes:
 - Rotate any secrets that were ever committed to git history (assume compromised).
 - If you use Resend, you must use a verified sending domain and set `RESEND_FROM_EMAIL`.
+- Env var aliases: the code accepts `QTSP_*` as fallbacks for `DIGITALTRUST_*`:
+  - `QTSP_API_BASE_URL` -> `DIGITALTRUST_API_URL`
+  - `QTSP_OKTA_TOKEN_URL` -> `DIGITALTRUST_LOGIN_URL`
+  - `QTSP_CLIENT_API` -> `DIGITALTRUST_CLIENT_ID`
+  - `QTSP_CLIENT_SECRET` -> `DIGITALTRUST_CLIENT_SECRET`
 
 ## 3) Deploy Edge Functions
 Deploy the QTSP function (and any others you need):
@@ -52,5 +57,5 @@ curl -X POST \"https://<YOUR_PROJECT_REF>.supabase.co/functions/v1/qtsp-notarize
 ```
 
 Where:
-- `<JWT>` is a valid Supabase user JWT with the required permissions for the function (depending on your `verify_jwt` and server-side authorization).
-
+- `<JWT>` is a valid Supabase user JWT with the required permissions for the function.
+- Even when `verify_jwt=false` is used for ES256 compatibility, functions still enforce auth and return 401/403 when called without a valid token.

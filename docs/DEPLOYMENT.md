@@ -13,7 +13,9 @@ This repository is designed to run without Lovable: the frontend is a Vite-built
 3. Set environment variables (Vercel Project Settings -> Environment Variables):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - Optional: `VITE_SUPABASE_PROJECT_ID`
    - Optional: `VITE_ENABLE_TEST_CREDENTIALS` must **not** be `"true"` in production.
+   - Never set `SUPABASE_SERVICE_ROLE_KEY` in Vercel (service-role is backend-only).
 4. Deploy and validate:
    - Hard refresh on deep routes like `/admin` and `/employee` (should not 404).
    - Login flow and role redirects.
@@ -38,6 +40,11 @@ supabase db push
 supabase functions deploy
 ```
 
+If you don't have Docker available locally, you can deploy using the remote builder:
+```bash
+supabase functions deploy --use-api
+```
+
 4. Push edge config (auth gate defaults, per-function overrides):
 ```bash
 supabase config push --yes
@@ -46,6 +53,20 @@ supabase config push --yes
 5. Configure Edge Function secrets (Dashboard or `supabase secrets set`):
    - QTSP: `DIGITALTRUST_*` (see `docs/QTSP_EDGE_FUNCTIONS_DEPLOYMENT.md`)
    - Email: `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (recommended)
+
+## Edge Functions Auth Notes (ES256 + `verify_jwt`)
+
+This project uses Supabase Auth access tokens signed with **ES256**. At the time of writing, Supabase Edge's
+gateway-level `verify_jwt=true` does not accept ES256 user JWTs and will return `401 Invalid JWT`.
+
+Current strategy:
+- Any Edge Function invoked from the frontend must be configured with `verify_jwt=false` in `supabase/config.toml`.
+- Each function performs **manual authentication/authorization** by:
+  - Reading the `Authorization: Bearer <token>` header.
+  - Resolving the user via `supabase.auth.getUser(token)` (service client).
+  - Enforcing role + tenant scope before any read/write.
+- Shared helper: `supabase/functions/_shared/auth.ts`.
+- Regression suite: `tests/cycle15_security_authz.test.ts` (includes optional live 401/403 smoke when enabled).
 
 ## Cutover Checklist (from Lovable)
 1. Ensure this GitHub repo is the only source of truth for frontend + backend artifacts.

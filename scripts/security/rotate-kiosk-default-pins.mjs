@@ -5,7 +5,9 @@ import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Prefer explicit env vars, then `.env`, then `.env.integration` (gitignored).
+dotenv.config({ override: false, quiet: true });
+dotenv.config({ path: '.env.integration', override: false, quiet: true });
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

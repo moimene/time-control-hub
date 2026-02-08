@@ -24,6 +24,8 @@ node scripts/setup/seed-integration-env.mjs
 
 This creates/updates test users, a company, an active kiosk terminal, and writes the required `TEST_*` vars to `.env.integration` with file permissions `0600`.
 
+> Note: `.env.integration` may contain values with spaces (for example `TEST_COMPANY_NAME=Bar El Rincón`), so it is **not** safe to `source` in a shell. Playwright loads it automatically. For Node/Vitest scripts, use dotenv loading (see below).
+
 ### If kiosk tests are being skipped
 
 If you already have `.env.integration` (with `TEST_ADMIN_*` credentials) but the kiosk tests are skipped due to missing `TEST_KIOSK_*` vars, you can bootstrap just the kiosk prerequisites without using a service role key:
@@ -59,6 +61,19 @@ In another terminal:
 
 ```bash
 E2E_BASE_URL=http://localhost:5173 npm run e2e
+```
+
+## Loading `.env.integration` for security regression / probes (optional)
+
+Some security regression checks and probe scripts read `VITE_SUPABASE_*` at runtime. You can:
+- Run Vitest live security checks by enabling flags (Vitest will load `.env.integration` automatically when these are set):
+```bash
+RUN_REMOTE_SECURITY_REGRESSION=true npm test
+RUN_CREDENTIAL_REVOCATION_PROBE=true npm test
+```
+- Run the credential revocation probe script (it auto-loads `.env.integration` when present):
+```bash
+npm run security:probe-credentials
 ```
 
 ## Required environment variables

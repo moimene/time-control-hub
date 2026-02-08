@@ -4,7 +4,9 @@ import process from 'node:process';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Prefer explicit env vars, then `.env`, then `.env.integration` (gitignored).
+dotenv.config({ override: false, quiet: true });
+dotenv.config({ path: '.env.integration', override: false, quiet: true });
 
 const DEFAULT_CREDENTIALS = [
   { label: 'super_admin_default', email: 'superadmin@timecontrol.com', password: 'super123' },

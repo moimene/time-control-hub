@@ -11,9 +11,13 @@ Eliminate critical exposure first (`P0`), recover functional reliability and gov
 ## Lote 1 — P0 (Immediate Containment)
 Target findings: `F001`, `F002`, `F003`, `F004`
 
+> Nota ES256: este proyecto emite access tokens ES256 y Supabase Edge `verify_jwt=true` puede rechazar esos JWTs con `401 Invalid JWT`. Por tanto, las funciones invocadas desde frontend deben usar `verify_jwt=false` + auth manual en servidor (ver `tests/cycle15_security_authz.test.ts`).
+
 ### Work items
-1. Set `verify_jwt=true` by default for all edge functions in `/tmp/time-control-hub/supabase/config.toml`.
-2. Keep `verify_jwt=false` only for explicitly approved public flows (candidate: kiosk endpoints) and document each exception with owner + rationale.
+1. Gestionar `verify_jwt` por función en `/tmp/time-control-hub/supabase/config.toml`:
+   - Mantener `verify_jwt=true` para funciones internas/cron cuando sea viable.
+   - Establecer `verify_jwt=false` para funciones invocadas por el frontend (compatibilidad ES256) y exigir auth manual.
+2. Mantener la lista aprobada de funciones con `verify_jwt=false` como contrato versionado y cubierto por tests (`tests/cycle15_security_authz.test.ts`).
 3. Add mandatory server-side checks in privileged functions:
 - Read `Authorization` header.
 - Resolve user via `supabase.auth.getUser(token)`.
@@ -29,22 +33,17 @@ Target findings: `F001`, `F002`, `F003`, `F004`
 - `scripts/security/probe-credential-revocation.mjs` (`npm run security:probe-credentials`).
 - Operational runbook at `/tmp/time-control-hub/review/credential-rotation-checklist.md`.
 
-### Approved `verify_jwt=false` exceptions (Lote 1)
-1. `kiosk-clock`
-- Owner: Security/Backend
-- Rationale: Endpoint designed for kiosk workflow where clock events can arrive without a user JWT; compensating controls must live in payload validation, kiosk token/PIN controls, and anomaly monitoring.
-- Status: Temporary exception, requires post-deploy validation.
-2. `kiosk-auth`
-- Owner: Security/Backend
-- Rationale: Public entrypoint for kiosk authentication bootstrap; cannot enforce app-user JWT at edge gateway by design.
-- Status: Temporary exception, requires post-deploy validation.
+### Approved `verify_jwt=false` list (Lote 1)
+The canonical list is enforced by `tests/cycle15_security_authz.test.ts` against `supabase/config.toml`.
+
+Rationale: ES256 gateway incompatibility + mandatory in-function auth controls.
 
 ### Dependencies
 - None. This lote is independent and blocking for all subsequent remediation.
 
 ### Acceptance criteria
 1. No mutating function remains publicly callable without validated identity and authorization.
-2. `verify_jwt=false` exceptions are minimal, documented, and approved.
+2. `verify_jwt=false` functions are restricted to frontend-invoked flows, documented, and enforced by regression tests.
 3. `/test-credentials` is inaccessible in production.
 4. Security regression tests for unauthorized calls pass (403/401 expected).
 5. Credential revocation probe reports zero active exposed credentials.

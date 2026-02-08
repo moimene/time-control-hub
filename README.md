@@ -10,7 +10,7 @@
 
 **Plataforma integral de control horario y cumplimiento laboral con sellado de tiempo cualificado (QTSP)** conforme al Reglamento eIDAS, Real Decreto-ley 8/2019 y normativa española de registro de jornada.
 
-> **Time Control Hub opera como Prestador Cualificado de Servicios de Confianza (QTSP)** integrando servicios de firma electrónica cualificada, sellos de tiempo RFC 3161, notificaciones certificadas y custodia de documentos críticos.
+> **Time Control Hub integra con un proveedor QTSP** (por ejemplo Digital Trust/EADTrust) para servicios como sellado de tiempo (RFC 3161), notificación certificada y custodia documental. Operar como QTSP implica requisitos legales y operativos fuera del alcance de este repositorio.
 
 ---
 
@@ -93,7 +93,7 @@ graph TB
         ADMIN["Admin Panel\n/admin"]
         EMP["Employee Portal\n/employee"]
         SUPER["Super Admin\n/super-admin"]
-        ADVISOR["Asesor Laboral\n/advisor"]
+        ADVISOR["Asesor Laboral\n/asesor"]
     end
 
     subgraph "Backend - Supabase (Owned Project)"
@@ -463,9 +463,9 @@ stateDiagram-v2
 
 > 📄 **[Documentación Técnica Completa QTSP](docs/QTSP_INTEGRATION.md)** - API Reference, Flujos, Modelo de Datos, Monitorización y Tests
 
-### Visión como QTSP
+### Integración con proveedor QTSP
 
-Time Control Hub **opera como Prestador Cualificado de Servicios de Confianza** integrando los siguientes servicios vía API:
+Time Control Hub **se integra con un proveedor QTSP** para los siguientes servicios vía API:
 
 ```mermaid
 graph TB
@@ -1617,6 +1617,14 @@ sequenceDiagram
 | **Retención** | Purga automática con evidencia QTSP |
 | **Comunicaciones** | Trazabilidad completa de mensajes |
 
+### Edge Functions (ES256 + `verify_jwt`)
+
+- En este proyecto, Supabase Auth emite **access tokens ES256**.
+- El gateway de Supabase Edge con `verify_jwt=true` puede rechazar esos JWTs (401 `Invalid JWT`), por lo que las funciones invocadas desde el frontend están configuradas con `verify_jwt=false` en `supabase/config.toml`.
+- Compensación obligatoria: cada función valida manualmente `Authorization: Bearer <token>` con `supabase.auth.getUser(token)` y aplica controles de **rol** y **tenant** (`company_id`) antes de cualquier lectura/escritura.
+- Helper compartido: `supabase/functions/_shared/auth.ts`.
+- Suite de regresión: `tests/cycle15_security_authz.test.ts` (incluye smoke live opcional con `RUN_REMOTE_SECURITY_REGRESSION=true`).
+
 ### Funciones RLS Helper
 
 ```sql
@@ -1662,12 +1670,22 @@ $$;
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
 VITE_SUPABASE_PROJECT_ID=xxx
+# Dev/Test only: do NOT enable in production builds
+# VITE_ENABLE_TEST_CREDENTIALS=true
+
+# Local ops only (never set in Vercel)
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Edge Functions secrets (configurar en Supabase)
 DIGITALTRUST_API_URL=https://api.eadtrust.eu
 DIGITALTRUST_LOGIN_URL=https://auth.eadtrust.eu/oauth/token
 DIGITALTRUST_CLIENT_ID=your-client-id
 DIGITALTRUST_CLIENT_SECRET=your-secret
+# Aliases soportados (fallback) para compatibilidad:
+# QTSP_API_BASE_URL=https://api.eadtrust.eu
+# QTSP_OKTA_TOKEN_URL=https://auth.eadtrust.eu/oauth/token
+# QTSP_CLIENT_API=your-client-id
+# QTSP_CLIENT_SECRET=your-secret
 
 # Email (opcional)
 RESEND_API_KEY=re_xxx

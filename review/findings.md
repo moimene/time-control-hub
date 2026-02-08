@@ -41,13 +41,19 @@ These commands reflect the current branch state after remediation work.
 - Build signal: production build passes, but main chunk is ~3.0 MB with chunk-size warning. See `/tmp/time-control-hub/review/evidence/npm_build.txt`.
 
 ## Lote 1 Closure Status (Auth Surface)
-- `supabase/config.toml` now enforces `verify_jwt=true` for all edge functions except `kiosk-auth` + `kiosk-clock` (explicit exceptions).
+- Supabase Auth access tokens in this project are **ES256**. Supabase Edge gateway `verify_jwt=true` does not currently accept those user JWTs and will return `401 Invalid JWT`.
+- For frontend-invoked functions, `verify_jwt=false` is set in `supabase/config.toml` and each function performs **manual auth + authz**:
+  - Reads `Authorization: Bearer <token>`
+  - Resolves identity via `supabase.auth.getUser(token)` (service client)
+  - Enforces role + `company_id` scope before any read/write
+- Shared helper: `/tmp/time-control-hub/supabase/functions/_shared/auth.ts`
 - High-risk mutators now reject unauthorized callers with explicit 401/403:
   - `generate-itss-package`: requires JWT, privileged role, and company assignment.
   - `absence-create`: requires JWT, role checks, tenant scope validation, and self-only constraints for employees.
 - Test/fixture functions are gated behind `ALLOW_TEST_FIXTURES` and `super_admin`.
 - Regression evidence:
   - `/tmp/time-control-hub/review/evidence/security_regression_2026-02-06T190117Z.txt` (`exit=0`)
+  - `/tmp/time-control-hub/review/evidence/security_regression_live_20260208T074812Z.txt` (live 401/403 smoke, `exit=0`)
 - Deployment note: these controls must be deployed to the target Supabase environment(s) to eliminate the live exposure.
 
 ## Production Snapshot (Supabase `ouxzjfqqgxlvxhjyihum`, Feb 6 2026)
@@ -67,13 +73,13 @@ These commands reflect the current branch state after remediation work.
   - `/tmp/time-control-hub/review/evidence/credential_rotation_run_2026-02-06.json`
   - `/tmp/time-control-hub/review/evidence/credential_rotation_run_extra_2026-02-06.json`
 - Revocation probe confirms old credentials cannot authenticate:
-  - `/tmp/time-control-hub/review/evidence/credential_revocation_probe_latest.json` shows `active=0`, `indeterminate=0` at `2026-02-06T18:59:32.301Z`
+  - `/tmp/time-control-hub/review/evidence/credential_revocation_probe_latest.json` shows `active=0`, `indeterminate=0` at `2026-02-08T07:47:33.864Z`
   - Snapshot: `/tmp/time-control-hub/review/evidence/credential_revocation_probe_2026-02-06T190117Z.json`
 - Historical baseline before kiosk PIN rotation:
   - `/tmp/time-control-hub/review/evidence/kiosk_pin_default_probe_after_password_rotation.json` showed `9/9` default PINs still authenticate.
 - Kiosk default PIN exposure mitigated by rotating `employees.pin_hash/pin_salt` (21 employees):
   - `/tmp/time-control-hub/review/evidence/kiosk_pin_rotation_run_2026-02-06.json` shows `rotated=21/21`
-  - `/tmp/time-control-hub/review/evidence/kiosk_pin_default_revocation_probe_latest.json` shows `active_default_pins=0` at `2026-02-06T18:59:36.428Z`
+  - `/tmp/time-control-hub/review/evidence/kiosk_pin_default_revocation_probe_latest.json` shows `active_default_pins=0` at `2026-02-08T07:47:51.338Z`
   - Snapshot: `/tmp/time-control-hub/review/evidence/kiosk_pin_default_revocation_probe_2026-02-06T190117Z.json`
 - Credential/PIN closure state: **F004 closed**.
 
@@ -103,11 +109,11 @@ This creates a large unauthenticated attack surface where service-role code path
 4. `F008` — ITSS test masks backend failures with null dereference. (Closed.)
 5. `F009` — High-severity dependency advisories in runtime/toolchain dependencies. (Closed; moderate Vite/esbuild remains.)
 6. `F010` — `.env` tracked and ignore policy does not prevent future secret commits. (Closed.)
-7. `F011` — No CI workflows enforcing quality/security gates. (Closed; lint non-blocking until debt remediated.)
+7. `F011` — No CI workflows enforcing quality/security gates. (Closed; CI added and lint is gating.)
 8. `F012` — Historical RLS argument-order bug fixed later, but remains a migration drift risk across environments. (Closed: static guard + live environment audit via `security_rls_drift_snapshot`.)
 
 ### P2
-1. `F013` — Lint debt concentrated in shared hooks/pages and edge functions. (Closed as blocking issue: lint now exits 0; warnings remain as tracked debt.)
+1. `F013` — Lint debt concentrated in shared hooks/pages and edge functions. (Closed as blocking issue: lint is green with `--max-warnings=0`.)
 2. `F014` — Oversized frontend chunk indicates route/code-splitting gaps. (Closed: route-level splitting + vendor chunking removed the large-chunk warning.)
 
 ## Data/RLS Risk Matrix by Critical Table

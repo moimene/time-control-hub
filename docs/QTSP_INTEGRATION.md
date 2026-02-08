@@ -791,6 +791,13 @@ stateDiagram-v2
 | `DIGITALTRUST_CLIENT_ID` | ID cliente OAuth | `time-control-hub-prod` |
 | `DIGITALTRUST_CLIENT_SECRET` | Secret OAuth | `xxx-secret-xxx` |
 
+Notas:
+- Por compatibilidad, el backend acepta `QTSP_*` como alias/fallback:
+  - `QTSP_API_BASE_URL` -> `DIGITALTRUST_API_URL`
+  - `QTSP_OKTA_TOKEN_URL` -> `DIGITALTRUST_LOGIN_URL`
+  - `QTSP_CLIENT_API` -> `DIGITALTRUST_CLIENT_ID`
+  - `QTSP_CLIENT_SECRET` -> `DIGITALTRUST_CLIENT_SECRET`
+
 ### Configuración por Empresa
 
 ```typescript
