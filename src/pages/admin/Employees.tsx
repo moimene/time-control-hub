@@ -24,6 +24,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -89,6 +99,7 @@ export default function Employees() {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [credentialsEmployee, setCredentialsEmployee] = useState<EmployeeWithLocation | null>(null);
   const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
+  const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { companyId } = useCompany();
@@ -342,6 +353,7 @@ export default function Employees() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
+              aria-label="Buscar empleado"
             />
           </div>
         </div>
@@ -393,6 +405,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Credenciales de acceso"
+                            aria-label="Gestionar credenciales"
                             onClick={() => {
                               setCredentialsEmployee(employee);
                               setCredentialsDialogOpen(true);
@@ -404,6 +417,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Ver QR"
+                            aria-label="Ver código QR"
                             onClick={() => {
                               setQrEmployee(employee);
                               setQrDialogOpen(true);
@@ -415,6 +429,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Cambiar PIN"
+                            aria-label="Cambiar PIN"
                             onClick={() => {
                               setPinEmployee(employee);
                               setPinDialogOpen(true);
@@ -425,6 +440,7 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Editar empleado"
                             onClick={() => {
                               setEditingEmployee(employee);
                               setIsOpen(true);
@@ -435,11 +451,8 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              if (confirm('¿Eliminar este empleado?')) {
-                                deleteMutation.mutate(employee.id);
-                              }
-                            }}
+                            aria-label="Eliminar empleado"
+                            onClick={() => setDeleteEmployeeId(employee.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -470,6 +483,31 @@ export default function Employees() {
           open={credentialsDialogOpen}
           onOpenChange={setCredentialsDialogOpen}
         />
+
+        <AlertDialog open={!!deleteEmployeeId} onOpenChange={(open) => !open && setDeleteEmployeeId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente al empleado y todos sus datos asociados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (deleteEmployeeId) {
+                    deleteMutation.mutate(deleteEmployeeId);
+                    setDeleteEmployeeId(null);
+                  }
+                }}
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AppLayout>
   );
