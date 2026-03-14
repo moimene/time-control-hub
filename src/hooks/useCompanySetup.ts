@@ -35,7 +35,7 @@ export function useCompanySetup(): UseCompanySetupResult {
   const { data: status, isLoading } = useQuery<CompanySetupStatus | null>({
     queryKey: ['company-setup-status', companyId],
     enabled: !!companyId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 30 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_company_setup_status', { p_company_id: companyId });

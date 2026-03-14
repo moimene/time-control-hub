@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useCompanySetup } from '@/hooks/useCompanySetup';
 
@@ -11,7 +12,7 @@ const SETUP_EXEMPT_PATHS = [
 ];
 
 interface SetupGateProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function SetupGate({ children }: SetupGateProps) {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,12 @@ import { useCompanySetup } from '@/hooks/useCompanySetup';
 export default function SetupRequired() {
   const navigate = useNavigate();
   const { status, isLoading, criticalPending, progressPercent } = useCompanySetup();
+
+  useEffect(() => {
+    if (!isLoading && criticalPending.length === 0 && status) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isLoading, criticalPending.length, status, navigate]);
 
   if (isLoading || !status) {
     return (
