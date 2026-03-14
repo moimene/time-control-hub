@@ -13,7 +13,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-function isFixtureEnvironmentAllowed(req: Request): boolean {
+function isFixtureEnvironmentAllowed(): boolean {
   const explicitFlag = Deno.env.get('ALLOW_TEST_FIXTURES') === 'true';
   const appEnv = (
     Deno.env.get('APP_ENV') ||
@@ -22,10 +22,7 @@ function isFixtureEnvironmentAllowed(req: Request): boolean {
     ''
   ).toLowerCase();
   const nonProdEnv = ['dev', 'development', 'local', 'test', 'staging', 'preview'];
-  const requestHost = new URL(req.url).hostname;
-  const localHost = requestHost === 'localhost' || requestHost === '127.0.0.1';
-
-  return explicitFlag || nonProdEnv.includes(appEnv) || localHost;
+  return explicitFlag || nonProdEnv.includes(appEnv);
 }
 
 const testUsers = [
@@ -55,7 +52,7 @@ serve(async (req) => {
   }
 
   try {
-    if (!isFixtureEnvironmentAllowed(req)) {
+    if (!isFixtureEnvironmentAllowed()) {
       return jsonResponse({ error: 'setup-test-users is disabled in this environment' }, 403);
     }
 

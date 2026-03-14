@@ -97,8 +97,19 @@ serve(async (req) => {
       allowEmployee: true,
     });
     if (companyAccess instanceof Response) return companyAccess;
-    if (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id) {
-      return jsonResponse({ error: 'Employees can only respond/sign for their own messages' }, 403, corsHeaders);
+
+    const isAdminActing = caller.isAdminLike && companyAccess.employeeId === null;
+
+    // Signature/sign is always self-service: only the exact recipient employee may sign.
+    // This prevents admins from generating compliance evidence attributed to someone else.
+    if ((signature_data || sign) && (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id)) {
+      return jsonResponse({ error: 'Only the recipient employee can sign a document' }, 403, corsHeaders);
+    }
+
+    // Non-signature operations (text response, form data): employees must self-match;
+    // admin-like roles may act on behalf (e.g., force-close a thread for a departed employee).
+    if (!isAdminActing && (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id)) {
+      return jsonResponse({ error: 'Employees can only respond for their own messages' }, 403, corsHeaders);
     }
 
     // Validate requirements

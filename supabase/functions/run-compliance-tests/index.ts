@@ -8,7 +8,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function isFixtureEnvironmentAllowed(req: Request): boolean {
+function isFixtureEnvironmentAllowed(): boolean {
     const explicitFlag = Deno.env.get('ALLOW_TEST_FIXTURES') === 'true';
     const appEnv = (
         Deno.env.get('APP_ENV') ||
@@ -17,10 +17,9 @@ function isFixtureEnvironmentAllowed(req: Request): boolean {
         ''
     ).toLowerCase();
     const nonProdEnv = ['dev', 'development', 'local', 'test', 'staging', 'preview'];
-    const requestHost = new URL(req.url).hostname;
-    const localHost = requestHost === 'localhost' || requestHost === '127.0.0.1';
-
-    return explicitFlag || nonProdEnv.includes(appEnv) || localHost;
+    // Do NOT use req.url hostname: in Supabase Edge the internal routing URL can resolve
+    // as localhost even on production deployments, defeating the environment gate.
+    return explicitFlag || nonProdEnv.includes(appEnv);
 }
 
 serve(async (req) => {
@@ -33,7 +32,7 @@ serve(async (req) => {
         const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        if (!isFixtureEnvironmentAllowed(req)) {
+        if (!isFixtureEnvironmentAllowed()) {
             return jsonResponse({ error: 'Compliance protocol tests are disabled in this environment' }, 403, corsHeaders);
         }
 

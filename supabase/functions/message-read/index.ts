@@ -70,7 +70,6 @@ serve(async (req) => {
       return jsonResponse({ error: 'Recipient not found' }, 404, corsHeaders);
     }
 
-    // Only the recipient employee can confirm read (even if the caller is also admin-like).
     const companyAccess = await requireCompanyAccess({
       supabaseAdmin: supabase,
       ctx: caller,
@@ -79,8 +78,28 @@ serve(async (req) => {
       allowEmployee: true,
     });
     if (companyAccess instanceof Response) return companyAccess;
-    if (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id) {
+
+    // Admin-like callers (super_admin, admin, responsible, asesor) with no employee record in this
+    // company get read-only audit access: they can inspect message state without mutating the
+    // employee's read-tracking records or generating attributed evidence.
+    const isAdminActing = caller.isAdminLike && companyAccess.employeeId === null;
+    if (!isAdminActing && (!companyAccess.employeeId || companyAccess.employeeId !== recipient.employee_id)) {
       return jsonResponse({ error: 'Employees can only confirm read for their own messages' }, 403, corsHeaders);
+    }
+
+    if (isAdminActing) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          admin_read: true,
+          is_first_read: !recipient.first_read_at,
+          read_count: recipient.read_count || 0,
+          requires_response: thread.requires_response,
+          requires_signature: thread.requires_signature,
+          response_deadline: thread.response_deadline,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
     }
 
     const now = new Date().toISOString();
