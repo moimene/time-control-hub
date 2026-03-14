@@ -9,8 +9,6 @@ SET search_path = public
 AS $$
 DECLARE
   v_current_year INT := EXTRACT(YEAR FROM NOW())::INT;
-  v_caller_company_id UUID;
-
   v_employees_count         BIGINT;
   v_rule_assignments_count  BIGINT;
   v_convenio_set            BOOLEAN;
@@ -24,15 +22,11 @@ DECLARE
   v_result JSONB;
 BEGIN
   -- Caller validation: only allow access to own company (or super_admin)
-  SELECT uc.company_id INTO v_caller_company_id
-  FROM user_company uc
-  JOIN user_roles ur ON ur.user_id = uc.user_id
-  WHERE uc.user_id = auth.uid()
-    AND (uc.company_id = p_company_id OR ur.role = 'super_admin')
-  LIMIT 1;
-
-  IF v_caller_company_id IS NULL THEN
-    RAISE EXCEPTION 'Access denied: caller does not belong to company %', p_company_id;
+  IF NOT (
+    EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'super_admin')
+    OR EXISTS (SELECT 1 FROM user_company WHERE user_id = auth.uid() AND company_id = p_company_id)
+  ) THEN
+    RAISE EXCEPTION 'Access denied' USING ERRCODE = '42501';
   END IF;
 
   SELECT COUNT(*) INTO v_employees_count
@@ -160,4 +154,5 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION get_company_setup_status(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION get_company_setup_status(UUID) TO authenticated;
