@@ -1,3 +1,7 @@
+-- Migration: get_company_setup_status
+-- Purpose: Centralised JSONB function that evaluates company setup completeness
+--          across 8 checks (4 critical, 4 recommended) for the SetupGate feature.
+
 CREATE OR REPLACE FUNCTION get_company_setup_status(p_company_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -35,7 +39,6 @@ BEGIN
       AND ra.is_active = TRUE
       AND rv.payload_json -> 'meta' ->> 'convenio' IS NOT NULL
       AND trim(rv.payload_json -> 'meta' ->> 'convenio') <> ''
-    LIMIT 1
   ) INTO v_convenio_set;
 
   SELECT EXISTS (
@@ -44,7 +47,6 @@ BEGIN
     WHERE company_id = p_company_id
       AND year = v_current_year
       AND published_at IS NOT NULL
-    LIMIT 1
   ) INTO v_calendar_published;
 
   SELECT COUNT(*) INTO v_holidays_count
@@ -101,7 +103,7 @@ BEGIN
         'category', 'critical',
         'completed', v_employees_count > 1,
         'label', 'Empleados dados de alta',
-        'hint', 'Registra al menos un empleado antes de activar el sistema',
+        'hint', 'Registra al menos un empleado (además del administrador) antes de activar el sistema',
         'path', '/admin/employees'
       ),
       jsonb_build_object(
