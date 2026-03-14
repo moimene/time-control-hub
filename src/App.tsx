@@ -33,6 +33,8 @@ const ContingencyRecords = lazy(() => import("./pages/admin/ContingencyRecords")
 const ITSSPackageGenerator = lazy(() => import("./pages/admin/ITSSPackageGenerator"));
 const CalendarLaboral = lazy(() => import("./pages/admin/CalendarLaboral"));
 const AdminCommunications = lazy(() => import("./pages/admin/Communications"));
+const SetupRequired = lazy(() => import("./pages/admin/SetupRequired"));
+import { SetupGate } from "@/components/admin/SetupGate";
 
 const EmployeeDashboard = lazy(() => import("./pages/employee/Dashboard"));
 const RequestCorrection = lazy(() => import("./pages/employee/RequestCorrection"));
@@ -112,12 +114,22 @@ function AppRoutes() {
           <Route path="/test-credentials" element={<TestCredentials />} />
         )}
 
+        {/* Admin setup page - always accessible, outside SetupGate */}
+        <Route
+          path="/admin/setup"
+          element={
+            <ProtectedRoute requiredRoles={["super_admin", "admin", "responsible"]}>
+              <SetupRequired />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin routes */}
         <Route
           path="/admin"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin", "responsible"]}>
-              <Dashboard />
+              <SetupGate><Dashboard /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -133,7 +145,7 @@ function AppRoutes() {
           path="/admin/clocking-devices"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin"]}>
-              <ClockingDevices />
+              <SetupGate><ClockingDevices /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -141,7 +153,7 @@ function AppRoutes() {
           path="/admin/time-records"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin", "responsible"]}>
-              <TimeRecords />
+              <SetupGate><TimeRecords /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -149,7 +161,7 @@ function AppRoutes() {
           path="/admin/corrections"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin", "responsible"]}>
-              <Corrections />
+              <SetupGate><Corrections /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -165,7 +177,7 @@ function AppRoutes() {
           path="/admin/reports"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin", "responsible"]}>
-              <Reports />
+              <SetupGate><Reports /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -197,7 +209,7 @@ function AppRoutes() {
           path="/admin/compliance"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin"]}>
-              <Compliance />
+              <SetupGate><Compliance /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -205,7 +217,7 @@ function AppRoutes() {
           path="/admin/compliance/incidents"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin"]}>
-              <ComplianceIncidents />
+              <SetupGate><ComplianceIncidents /></SetupGate>
             </ProtectedRoute>
           }
         />
@@ -221,7 +233,7 @@ function AppRoutes() {
           path="/admin/absences"
           element={
             <ProtectedRoute requiredRoles={["super_admin", "admin"]}>
-              <AdminAbsences />
+              <SetupGate><AdminAbsences /></SetupGate>
             </ProtectedRoute>
           }
         />
