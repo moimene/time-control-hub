@@ -138,6 +138,7 @@ export default function TimeRecords() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
+              aria-label="Buscar empleado"
             />
           </div>
 
