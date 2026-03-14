@@ -33,7 +33,9 @@ function computeResult(status: CompanySetupStatus) {
   const criticalPending = status.checks.filter(c => c.category === 'critical' && !c.completed);
   const recommendedPending = status.checks.filter(c => c.category === 'recommended' && !c.completed);
   const completedCount = status.checks.filter(c => c.completed).length;
-  const progressPercent = Math.round((completedCount / status.checks.length) * 100);
+  const progressPercent = status.checks.length === 0
+    ? 0
+    : Math.round((completedCount / status.checks.length) * 100);
   return { criticalPending, recommendedPending, progressPercent, isReady: criticalPending.length === 0 };
 }
 
@@ -79,5 +81,18 @@ describe('useCompanySetup — computed values', () => {
     );
     const { progressPercent } = computeResult(buildStatus(allFalse));
     expect(progressPercent).toBe(0);
+  });
+
+  it('progressPercent=0 when checks array is empty', () => {
+    const emptyStatus: CompanySetupStatus = {
+      company_id: 'test',
+      evaluated_at: new Date().toISOString(),
+      checks: [],
+    };
+    const completed = emptyStatus.checks.filter(c => c.completed).length;
+    const pct = emptyStatus.checks.length === 0
+      ? 0
+      : Math.round((completed / emptyStatus.checks.length) * 100);
+    expect(pct).toBe(0);
   });
 });

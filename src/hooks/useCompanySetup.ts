@@ -30,7 +30,7 @@ export interface UseCompanySetupResult {
 }
 
 export function useCompanySetup(): UseCompanySetupResult {
-  const { companyId } = useCompany();
+  const { companyId, isLoading: companyLoading } = useCompany();
 
   const { data: status, isLoading } = useQuery<CompanySetupStatus | null>({
     queryKey: ['company-setup-status', companyId],
@@ -47,7 +47,7 @@ export function useCompanySetup(): UseCompanySetupResult {
   if (!status) {
     return {
       status: null,
-      isLoading,
+      isLoading: companyLoading || isLoading,
       isReady: false,
       criticalPending: [],
       recommendedPending: [],
@@ -62,7 +62,9 @@ export function useCompanySetup(): UseCompanySetupResult {
     c => c.category === 'recommended' && !c.completed
   );
   const completedCount = status.checks.filter(c => c.completed).length;
-  const progressPercent = Math.round((completedCount / status.checks.length) * 100);
+  const progressPercent = status.checks.length === 0
+    ? 0
+    : Math.round((completedCount / status.checks.length) * 100);
 
   return {
     status,
