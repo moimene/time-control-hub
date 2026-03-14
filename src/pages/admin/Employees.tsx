@@ -32,10 +32,11 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog, Briefcase } from 'lucide-react';
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
 import { EmployeeCredentialsDialog } from '@/components/employees/EmployeeCredentialsDialog';
+import { EmployeeTemplateDialog } from '@/components/employees/EmployeeTemplateDialog';
 import { AUTONOMOUS_COMMUNITIES, getAutonomousCommunityName } from '@/lib/autonomousCommunities';
 import type { EmployeeStatus } from '@/types/database';
 
@@ -89,6 +90,8 @@ export default function Employees() {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [credentialsEmployee, setCredentialsEmployee] = useState<EmployeeWithLocation | null>(null);
   const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
+  const [templateEmployee, setTemplateEmployee] = useState<EmployeeWithLocation | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { companyId } = useCompany();
@@ -425,6 +428,17 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Asignar jornada"
+                            onClick={() => {
+                              setTemplateEmployee(employee);
+                              setTemplateDialogOpen(true);
+                            }}
+                          >
+                            <Briefcase className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => {
                               setEditingEmployee(employee);
                               setIsOpen(true);
@@ -469,6 +483,12 @@ export default function Employees() {
           employee={credentialsEmployee}
           open={credentialsDialogOpen}
           onOpenChange={setCredentialsDialogOpen}
+        />
+
+        <EmployeeTemplateDialog
+          employee={templateEmployee}
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
         />
       </div>
     </AppLayout>
