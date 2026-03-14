@@ -24,6 +24,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -339,6 +350,7 @@ export default function Employees() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar empleado..."
+              aria-label="Buscar empleado"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -393,6 +405,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Credenciales de acceso"
+                            aria-label="Credenciales de acceso"
                             onClick={() => {
                               setCredentialsEmployee(employee);
                               setCredentialsDialogOpen(true);
@@ -404,6 +417,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Ver QR"
+                            aria-label="Ver código QR"
                             onClick={() => {
                               setQrEmployee(employee);
                               setQrDialogOpen(true);
@@ -415,6 +429,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Cambiar PIN"
+                            aria-label="Cambiar PIN"
                             onClick={() => {
                               setPinEmployee(employee);
                               setPinDialogOpen(true);
@@ -425,6 +440,8 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Editar empleado"
+                            aria-label="Editar empleado"
                             onClick={() => {
                               setEditingEmployee(employee);
                               setIsOpen(true);
@@ -432,17 +449,37 @@ export default function Employees() {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              if (confirm('¿Eliminar este empleado?')) {
-                                deleteMutation.mutate(employee.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Eliminar empleado"
+                                aria-label="Eliminar empleado"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar empleado?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Se eliminará permanentemente al
+                                  empleado {employee.first_name} {employee.last_name} y todos sus datos asociados.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(employee.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       )}
                     </TableCell>
