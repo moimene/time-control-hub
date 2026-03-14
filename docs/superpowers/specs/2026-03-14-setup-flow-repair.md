@@ -96,26 +96,32 @@ ConfigWizardButton.handleWizardComplete(payload)  [same in Templates.tsx]
 
 ### Fixed Flow
 
+The key insight: `onComplete` is changed from `() => void` to `() => Promise<void>`. This allows `StepPublish` to await the full create+publish work that happens in the parent, driving the local `isPublishing` spinner accurately.
+
 ```
 StepPublish.handlePublish()
+  → setIsPublishing(true)
   → updateNestedPayload('meta', { effective_from, ... })
-  → onComplete(payload)        ← immediate, no fake delay
+  → await onComplete()          ← parent does the real work, StepPublish awaits it
+  → setIsPublishing(false)      ← only reached on success (parent throws on error)
 
-ConfigWizardButton.handleWizardComplete(payload)  [same in Templates.tsx]
-  → createRuleSet.mutateAsync(...)
-  → result = { ruleSet, version }
-  → supabase.functions.invoke('templates-publish', {
+ConfigWizardButton.handleWizardComplete()  [same in Templates.tsx]
+  → reads payload from WizardContext.state.payload (not passed as arg)
+  → result = await createRuleSet.mutateAsync({ name, payload, ... })
+  → await supabase.functions.invoke('templates-publish', {
        body: { rule_version_id: result.version.id, effective_from: payload.meta?.effective_from }
      })
-  → if error: toast.error, do NOT close wizard/sheet
-  → if success: toast.success with note to assign to employees, close wizard
+  → if invoke error: toast.error + throw (so StepPublish catches it and resets spinner)
+  → if success: toast.success, close wizard/sheet
 ```
 
 ### Files to Modify
 
-- `src/components/settings/ConfigWizardButton.tsx` — `handleWizardComplete`
-- `src/pages/admin/Templates.tsx` — `handleWizardComplete`
-- `src/components/templates/wizard/steps/StepPublish.tsx` — remove `setTimeout(1500)`; the "Publicando..." spinner state will be driven by the parent via a prop `isPublishing` passed to `StepPublish`
+- `src/components/settings/ConfigWizardButton.tsx` — change `handleWizardComplete` to be async and call `templates-publish` after `createRuleSet`; read payload from `useWizard().state.payload` instead of arg
+- `src/pages/admin/Templates.tsx` — same change as above
+- `src/components/templates/wizard/WizardContext.tsx` — already exports `state.payload`; no change needed
+- `src/components/templates/wizard/steps/StepPublish.tsx` — change `onComplete: () => void` to `onComplete: () => Promise<void>`; wrap `await onComplete()` in try/catch to reset `isPublishing` on error; remove `setTimeout(1500)`
+- `src/components/templates/TemplateWizard.tsx` — update the `onComplete` prop type in the wizard's `handleComplete` callback to be `async () => Promise<void>` and pass it down to `StepPublish`
 
 ### Acceptance Criteria
 
@@ -148,7 +154,9 @@ interface EmployeeTemplateDialogProps {
 
 2. **Select new template:**
    - Query: `rule_sets?company_id=eq.{companyId}&status=eq.published&select=id,name,convenio,rule_versions(id,published_at)&order=name`
-   - `<Select>` dropdown with `{name} — {convenio}` as label per option, value = `rule_version_id` of the latest published version
+   - Each rule set may have multiple versions; pick the latest by sorting `rule_versions` by `published_at DESC` client-side and taking `versions[0].id` as the select value
+   - Exclude rule sets where `rule_versions` is empty (no published version yet — defensive check)
+   - `<Select>` dropdown with `{name} — {convenio || 'Sin convenio'}` as label per option, value = latest `rule_version_id`
 
 3. **Effective from date:**
    - `<Input type="date">` defaulting to today
@@ -198,7 +206,22 @@ Import `Wand2` and `CalendarRange` from `lucide-react`.
 
 - Both links appear in the admin sidebar for `admin` and `responsible` roles
 - Links are absent for `employee` role (handled by `adminOnly: true` filter)
-- `SetupGate` EXEMPT_PATHS already includes both routes — no change needed there
+
+### Also: `src/components/admin/SetupGate.tsx`
+
+Add `/admin/calendar-laboral` to `SETUP_EXEMPT_PATHS`. Current list is missing it:
+```typescript
+const SETUP_EXEMPT_PATHS = [
+  '/admin/setup',
+  '/admin/settings',
+  '/admin/templates',
+  '/admin/employees',
+  '/admin/terminals',
+  '/admin/calendar-laboral',   // ← add this
+];
+```
+
+Without this, an admin redirected to `/admin/setup` who clicks "Configurar" on the `calendar_published` check would be immediately redirected away from `/admin/calendar-laboral` back to `/admin/setup`.
 
 ---
 
@@ -218,6 +241,8 @@ rule_assignments (
 ```
 
 One active assignment per employee enforced at application level (deactivate before insert).
+
+**Known limitation:** The deactivate+insert is two sequential client-side operations with no DB-level atomicity. In a slow network scenario, a browser close between step 1 and step 2 would leave the employee with zero active assignments. Acceptable for dev; a future migration can add a unique partial index `UNIQUE (employee_id) WHERE is_active = true` or wrap both steps in a single RPC.
 
 ---
 
