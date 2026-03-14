@@ -122,11 +122,12 @@ export function EmployeeTemplateDialog({
         throw new Error('Faltan datos para asignar');
       }
       // Step 1: deactivate previous assignment
-      await supabase
+      const { error: deactivateError } = await supabase
         .from('rule_assignments')
         .update({ is_active: false })
         .eq('employee_id', employee.id)
         .eq('is_active', true);
+      if (deactivateError) throw deactivateError;
 
       // Step 2: insert new assignment
       const { error } = await supabase
