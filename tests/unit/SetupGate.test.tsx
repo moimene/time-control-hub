@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 //   - NOT loading AND NOT ready AND pathname is NOT in EXEMPT list
 //
 // EXEMPT paths (any startsWith match):
-//   /admin/setup | /admin/settings | /admin/templates | /admin/employees | /admin/terminals
+//   /admin/setup | /admin/settings | /admin/templates | /admin/employees | /admin/terminals | /admin/calendar-laboral
 // ---------------------------------------------------------------------------
 
 const EXEMPT = [
@@ -16,6 +16,7 @@ const EXEMPT = [
   '/admin/templates',
   '/admin/employees',
   '/admin/terminals',
+  '/admin/calendar-laboral',
 ];
 
 function shouldRedirect({
@@ -72,5 +73,9 @@ describe('SetupGate — redirect logic', () => {
   it('redirects for non-exempt admin sub-paths', () => {
     expect(shouldRedirect({ isLoading: false, isReady: false, pathname: '/admin/reports' })).toBe(true);
     expect(shouldRedirect({ isLoading: false, isReady: false, pathname: '/admin/attendance' })).toBe(true);
+  });
+
+  it('does not redirect when path is /admin/calendar-laboral', () => {
+    expect(shouldRedirect({ isLoading: false, isReady: false, pathname: '/admin/calendar-laboral' })).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ const SETUP_EXEMPT_PATHS = [
   '/admin/templates',
   '/admin/employees',
   '/admin/terminals',
+  '/admin/calendar-laboral',
 ];
 
 interface SetupGateProps {

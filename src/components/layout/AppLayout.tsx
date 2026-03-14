@@ -4,12 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCompany } from '@/hooks/useCompany';
 import { Button } from '@/components/ui/button';
 import { HelpAgent } from '@/components/help/HelpAgent';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Clock, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Clock,
+  FileText,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -18,7 +18,9 @@ import {
   AlertTriangle,
   Scale,
   CalendarDays,
-  MessageSquare
+  MessageSquare,
+  Wand2,
+  CalendarRange
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -50,6 +52,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navItems: NavItem[] = [
     { href: '/admin', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
     { href: '/admin/employees', label: 'Empleados', icon: <Users className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/templates', label: 'Plantillas', icon: <Wand2 className="h-5 w-5" />, adminOnly: true },
+    { href: '/admin/calendar-laboral', label: 'Calendario', icon: <CalendarRange className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/absences', label: 'Ausencias', icon: <CalendarDays className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/communications', label: 'Comunicaciones', icon: <MessageSquare className="h-5 w-5" />, adminOnly: true },
     { href: '/admin/time-records', label: 'Registros', icon: <Clock className="h-5 w-5" /> },
