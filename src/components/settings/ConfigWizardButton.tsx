@@ -32,16 +32,17 @@ export function ConfigWizardButton({ className }: ConfigWizardButtonProps) {
     }
 
     // Step 2: publish the version
-    const { error: publishError } = await supabase.functions.invoke('templates-publish', {
+    const { data: publishData, error: publishError } = await supabase.functions.invoke('templates-publish', {
       body: {
         rule_version_id: result.version.id,
         effective_from: payload.meta?.effective_from,
       },
     });
 
-    if (publishError) {
-      toast.error(`Error al publicar la plantilla: ${publishError.message}`);
-      throw publishError;
+    const publishErrorMsg = publishError?.message || (publishData as any)?.error;
+    if (publishErrorMsg) {
+      toast.error(`Error al publicar la plantilla: ${publishErrorMsg}`);
+      throw new Error(publishErrorMsg);
     }
 
     setIsOpen(false);

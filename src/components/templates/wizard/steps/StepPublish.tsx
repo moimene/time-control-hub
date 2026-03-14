@@ -14,11 +14,11 @@ import { es } from 'date-fns/locale';
 import { SECTOR_LABELS } from '@/types/templates';
 
 interface StepPublishProps {
-  onComplete: () => Promise<void>;
+  onComplete: (publishMeta: { effective_from: string; effective_to: string }) => Promise<void>;
 }
 
 export function StepPublish({ onComplete }: StepPublishProps) {
-  const { state, updateNestedPayload } = useWizard();
+  const { state } = useWizard();
   const { payload, selectedSeedSector, isSimulationComplete, simulationResult } = state;
 
   const [effectiveFrom, setEffectiveFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -37,13 +37,8 @@ export function StepPublish({ onComplete }: StepPublishProps) {
   const handlePublish = async () => {
     if (!canPublish) return;
     setIsPublishing(true);
-    updateNestedPayload('meta', {
-      effective_from: effectiveFrom,
-      effective_to: effectiveTo,
-      version: 'v1.0',
-    });
     try {
-      await onComplete();
+      await onComplete({ effective_from: effectiveFrom, effective_to: effectiveTo });
     } catch {
       // parent already showed an error toast; just reset the spinner
     } finally {

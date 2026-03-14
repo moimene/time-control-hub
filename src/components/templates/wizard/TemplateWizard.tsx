@@ -70,9 +70,17 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
     setShowDraftDialog(false);
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (publishMeta: { effective_from: string; effective_to: string }) => {
     clearDraft();
-    await onComplete(payload);
+    const enrichedPayload = {
+      ...payload,
+      meta: {
+        ...payload?.meta,
+        ...publishMeta,
+        version: 'v1.0',
+      },
+    };
+    await onComplete(enrichedPayload);
   };
 
   const handleCancel = () => {
