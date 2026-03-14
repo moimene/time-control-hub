@@ -11,7 +11,19 @@ export default function SetupRequired() {
   const navigate = useNavigate();
   const { status, isLoading, criticalPending, progressPercent } = useCompanySetup();
 
-  if (isLoading || !status) return null;
+  if (isLoading || !status) {
+    return (
+      <AppLayout>
+        <div className="max-w-2xl mx-auto py-12 px-4 space-y-6 animate-pulse">
+          <div className="text-center space-y-2">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mx-auto" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto" />
+          </div>
+          <div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   const firstPending = criticalPending[0];
 
