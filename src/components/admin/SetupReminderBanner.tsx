@@ -10,6 +10,7 @@ function CheckItem({ item, onClick }: { item: SetupCheck; onClick: () => void })
   return (
     <button
       type="button"
+      disabled={item.completed}
       onClick={!item.completed ? onClick : undefined}
       className={`flex items-start gap-2 rounded-md px-3 py-2 text-sm text-left w-full transition-colors ${
         item.completed
@@ -21,7 +22,7 @@ function CheckItem({ item, onClick }: { item: SetupCheck; onClick: () => void })
     >
       {item.completed
         ? <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5 text-green-600" />
-        : <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-red-600" />}
+        : <XCircle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${item.category === 'critical' ? 'text-red-600' : 'text-amber-600'}`} />}
       <div className="flex flex-col min-w-0">
         <span className="truncate font-medium">{item.label}</span>
         <span className="text-xs opacity-75 whitespace-normal">{item.hint}</span>
