@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
@@ -150,12 +150,12 @@ export default function Employees() {
     },
   });
 
-  const filteredEmployees = employees?.filter(
+  const filteredEmployees = useMemo(() => employees?.filter(
     (e) =>
       e.first_name.toLowerCase().includes(search.toLowerCase()) ||
       e.last_name.toLowerCase().includes(search.toLowerCase()) ||
       e.employee_code.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [employees, search]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -342,6 +342,7 @@ export default function Employees() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
+              aria-label="Buscar empleado"
             />
           </div>
         </div>
@@ -393,6 +394,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Credenciales de acceso"
+                            aria-label="Credenciales de acceso"
                             onClick={() => {
                               setCredentialsEmployee(employee);
                               setCredentialsDialogOpen(true);
@@ -404,6 +406,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Ver QR"
+                            aria-label="Ver QR"
                             onClick={() => {
                               setQrEmployee(employee);
                               setQrDialogOpen(true);
@@ -415,6 +418,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Cambiar PIN"
+                            aria-label="Cambiar PIN"
                             onClick={() => {
                               setPinEmployee(employee);
                               setPinDialogOpen(true);
@@ -425,6 +429,7 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Editar empleado"
                             onClick={() => {
                               setEditingEmployee(employee);
                               setIsOpen(true);
@@ -435,6 +440,7 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Eliminar empleado"
                             onClick={() => {
                               if (confirm('¿Eliminar este empleado?')) {
                                 deleteMutation.mutate(employee.id);
