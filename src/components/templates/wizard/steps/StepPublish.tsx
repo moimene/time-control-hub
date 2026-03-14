@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 import { SECTOR_LABELS } from '@/types/templates';
 
 interface StepPublishProps {
-  onComplete: () => void;
+  onComplete: () => Promise<void>;
 }
 
 export function StepPublish({ onComplete }: StepPublishProps) {
@@ -36,21 +36,19 @@ export function StepPublish({ onComplete }: StepPublishProps) {
 
   const handlePublish = async () => {
     if (!canPublish) return;
-
     setIsPublishing(true);
-    
-    // Update payload with effective dates
     updateNestedPayload('meta', {
       effective_from: effectiveFrom,
       effective_to: effectiveTo,
       version: 'v1.0',
     });
-
-    // Simulate publishing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsPublishing(false);
-    onComplete();
+    try {
+      await onComplete();
+    } catch {
+      // parent already showed an error toast; just reset the spinner
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   // Summary of configuration

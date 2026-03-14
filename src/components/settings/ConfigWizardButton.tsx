@@ -5,6 +5,7 @@ import { TemplateWizard } from '@/components/templates/wizard/TemplateWizard';
 import { useTemplates } from '@/hooks/useTemplates';
 import { Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ConfigWizardButtonProps {
   className?: string;
@@ -15,20 +16,37 @@ export function ConfigWizardButton({ className }: ConfigWizardButtonProps) {
   const { createRuleSet, refetch } = useTemplates();
 
   const handleWizardComplete = async (payload: any) => {
+    // Step 1: create rule_set + rule_version as draft
+    let result: { ruleSet: any; version: any };
     try {
-      await createRuleSet.mutateAsync({
+      result = await createRuleSet.mutateAsync({
         name: payload.meta?.template_name || 'Nueva plantilla',
         description: `Creada con asistente - ${payload.meta?.convenio || 'Sin convenio'}`,
         sector: payload.meta?.sector,
         convenio: payload.meta?.convenio,
         payload,
       });
-      setIsOpen(false);
-      refetch();
-      toast.success('Plantilla creada correctamente con el asistente');
-    } catch (error) {
+    } catch {
       toast.error('Error al crear la plantilla');
+      throw new Error('createRuleSet failed');
     }
+
+    // Step 2: publish the version
+    const { error: publishError } = await supabase.functions.invoke('templates-publish', {
+      body: {
+        rule_version_id: result.version.id,
+        effective_from: payload.meta?.effective_from,
+      },
+    });
+
+    if (publishError) {
+      toast.error(`Error al publicar la plantilla: ${publishError.message}`);
+      throw publishError;
+    }
+
+    setIsOpen(false);
+    refetch();
+    toast.success('Plantilla publicada. Asígnala a tus empleados desde Empleados → icono Maletín');
   };
 
   return (

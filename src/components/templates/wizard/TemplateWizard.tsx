@@ -22,7 +22,7 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
 interface TemplateWizardProps {
-  onComplete: (payload: any) => void;
+  onComplete: (payload: any) => Promise<void>;
   onCancel: () => void;
   initialCNAE?: string;
   initialSector?: string;
@@ -70,9 +70,9 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
     setShowDraftDialog(false);
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     clearDraft();
-    onComplete(payload);
+    await onComplete(payload);
   };
 
   const handleCancel = () => {
