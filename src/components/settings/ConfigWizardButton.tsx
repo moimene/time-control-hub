@@ -3,9 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { TemplateWizard } from '@/components/templates/wizard/TemplateWizard';
 import { useTemplates } from '@/hooks/useTemplates';
+import { useCompany } from '@/hooks/useCompany';
 import { Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { createWizardPublishError, ensureWizardDraft, getDraftPublishStatus } from '@/lib/wizardPublish';
+import type { PublishDraftTarget, TemplatePayload } from '@/types/templates';
 
 interface ConfigWizardButtonProps {
   className?: string;
@@ -13,41 +16,50 @@ interface ConfigWizardButtonProps {
 
 export function ConfigWizardButton({ className }: ConfigWizardButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { createRuleSet, refetch } = useTemplates();
+  const { companyId } = useCompany();
+  const { refetch } = useTemplates();
 
-  const handleWizardComplete = async (payload: any) => {
-    // Step 1: create rule_set + rule_version as draft
-    let result: { ruleSet: any; version: any };
+  const handleWizardComplete = async (payload: TemplatePayload, publishDraft: PublishDraftTarget | null) => {
+    let activeDraft = publishDraft;
+
     try {
-      result = await createRuleSet.mutateAsync({
-        name: payload.meta?.template_name || 'Nueva plantilla',
-        description: `Creada con asistente - ${payload.meta?.convenio || 'Sin convenio'}`,
-        sector: payload.meta?.sector,
-        convenio: payload.meta?.convenio,
+      const draftStatus = await getDraftPublishStatus(publishDraft);
+      if (draftStatus?.publishedAt || draftStatus?.ruleSetStatus === 'published') {
+        setIsOpen(false);
+        refetch();
+        toast.success('Plantilla publicada. Asígnala a tus empleados desde Empleados -> icono Maletín');
+        return;
+      }
+
+      activeDraft = await ensureWizardDraft({
+        companyId,
         payload,
+        publishDraft,
       });
-    } catch {
-      toast.error('Error al crear la plantilla');
-      throw new Error('createRuleSet failed');
+
+      const { data: publishData, error: publishError } = await supabase.functions.invoke('templates-publish', {
+        body: {
+          rule_version_id: activeDraft.versionId,
+          effective_from: payload.meta?.effective_from,
+        },
+      });
+
+      const publishErrorMsg = publishError?.message || (publishData as { error?: string } | null)?.error;
+      if (publishErrorMsg) {
+        toast.error(`Error al publicar la plantilla: ${publishErrorMsg}`);
+        throw createWizardPublishError(publishErrorMsg, activeDraft);
+      }
+
+      setIsOpen(false);
+      refetch();
+      toast.success('Plantilla publicada. Asígnala a tus empleados desde Empleados -> icono Maletín');
+    } catch (error) {
+      const publishError = error as Error & { publishDraft?: PublishDraftTarget | null };
+      if (activeDraft && !publishError.publishDraft) {
+        publishError.publishDraft = activeDraft;
+      }
+      throw publishError;
     }
-
-    // Step 2: publish the version
-    const { data: publishData, error: publishError } = await supabase.functions.invoke('templates-publish', {
-      body: {
-        rule_version_id: result.version.id,
-        effective_from: payload.meta?.effective_from,
-      },
-    });
-
-    const publishErrorMsg = publishError?.message || (publishData as any)?.error;
-    if (publishErrorMsg) {
-      toast.error(`Error al publicar la plantilla: ${publishErrorMsg}`);
-      throw new Error(publishErrorMsg);
-    }
-
-    setIsOpen(false);
-    refetch();
-    toast.success('Plantilla publicada. Asígnala a tus empleados desde Empleados → icono Maletín');
   };
 
   return (

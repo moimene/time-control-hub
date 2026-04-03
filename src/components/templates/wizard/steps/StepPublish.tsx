@@ -18,11 +18,15 @@ interface StepPublishProps {
 }
 
 export function StepPublish({ onComplete }: StepPublishProps) {
-  const { state } = useWizard();
+  const { state, updateNestedPayload } = useWizard();
   const { payload, selectedSeedSector, isSimulationComplete, simulationResult } = state;
 
-  const [effectiveFrom, setEffectiveFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [effectiveTo, setEffectiveTo] = useState(format(addMonths(new Date(), 12), 'yyyy-MM-dd'));
+  const [effectiveFrom, setEffectiveFrom] = useState(
+    payload.meta?.effective_from || format(new Date(), 'yyyy-MM-dd'),
+  );
+  const [effectiveTo, setEffectiveTo] = useState(
+    payload.meta?.effective_to || format(addMonths(new Date(), 12), 'yyyy-MM-dd'),
+  );
   const [confirmations, setConfirmations] = useState({
     reviewed: false,
     legal: false,
@@ -130,7 +134,10 @@ export function StepPublish({ onComplete }: StepPublishProps) {
               <Input
                 type="date"
                 value={effectiveFrom}
-                onChange={(e) => setEffectiveFrom(e.target.value)}
+                onChange={(e) => {
+                  setEffectiveFrom(e.target.value);
+                  updateNestedPayload('meta', { effective_from: e.target.value });
+                }}
               />
             </div>
             <div className="space-y-2">
@@ -138,7 +145,10 @@ export function StepPublish({ onComplete }: StepPublishProps) {
               <Input
                 type="date"
                 value={effectiveTo}
-                onChange={(e) => setEffectiveTo(e.target.value)}
+                onChange={(e) => {
+                  setEffectiveTo(e.target.value);
+                  updateNestedPayload('meta', { effective_to: e.target.value });
+                }}
                 min={effectiveFrom}
               />
             </div>

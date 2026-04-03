@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,6 +82,15 @@ export function EmployeeTemplateDialog({
   const [selectedVersionId, setSelectedVersionId] = useState<string>('');
   const [effectiveFrom, setEffectiveFrom] = useState(today);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setSelectedVersionId('');
+    setEffectiveFrom(format(new Date(), 'yyyy-MM-dd'));
+  }, [employee?.id, open]);
+
   // Current active assignment for this employee
   const { data: currentAssignment, isLoading: loadingAssignment } = useQuery<ActiveAssignment | null>({
     queryKey: ['employee-assignment', employee?.id],
@@ -121,30 +130,17 @@ export function EmployeeTemplateDialog({
       if (!employee || !companyId || !selectedVersionId) {
         throw new Error('Faltan datos para asignar');
       }
-      // Step 1: deactivate previous assignment
-      const { error: deactivateError } = await supabase
-        .from('rule_assignments')
-        .update({ is_active: false })
-        .eq('employee_id', employee.id)
-        .eq('is_active', true);
-      if (deactivateError) throw deactivateError;
+      const { error } = await supabase.rpc('assign_rule_version_to_employee', {
+        p_employee_id: employee.id,
+        p_rule_version_id: selectedVersionId,
+        p_effective_from: effectiveFrom || null,
+      });
 
-      // Step 2: insert new assignment
-      const { error } = await supabase
-        .from('rule_assignments')
-        .insert({
-          company_id: companyId,
-          employee_id: employee.id,
-          rule_version_id: selectedVersionId,
-          is_active: true,
-          priority: 1,
-          effective_from: effectiveFrom || null,
-        });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employee-assignment', employee?.id] });
-      queryClient.invalidateQueries({ queryKey: ['company-setup-status'] });
+      queryClient.invalidateQueries({ queryKey: ['company-setup-status', companyId] });
       toast({ title: 'Jornada asignada correctamente' });
       onOpenChange(false);
     },

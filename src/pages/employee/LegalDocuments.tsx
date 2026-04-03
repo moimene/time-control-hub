@@ -39,7 +39,7 @@ export default function EmployeeLegalDocuments() {
         .from('employees')
         .select('id, company_id, first_name, last_name')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

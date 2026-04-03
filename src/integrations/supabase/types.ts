@@ -3016,6 +3016,7 @@ export type Database = {
           company_id: string
           created_at: string
           department: string | null
+          effective_from: string | null
           employee_id: string | null
           fallback_policy: string | null
           id: string
@@ -3031,6 +3032,7 @@ export type Database = {
           company_id: string
           created_at?: string
           department?: string | null
+          effective_from?: string | null
           employee_id?: string | null
           fallback_policy?: string | null
           id?: string
@@ -3046,6 +3048,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           department?: string | null
+          effective_from?: string | null
           employee_id?: string | null
           fallback_policy?: string | null
           id?: string
@@ -3602,6 +3605,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_rule_version_to_employee: {
+        Args: {
+          p_effective_from?: string | null
+          p_employee_id: string
+          p_rule_version_id: string
+        }
+        Returns: string
+      }
       calculate_working_days: {
         Args: {
           p_center_id: string

@@ -20,9 +20,11 @@ import { ChevronLeft, ChevronRight, AlertTriangle, X, Save, Check } from 'lucide
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import type { PublishDraftTarget, TemplatePayload } from '@/types/templates';
+import type { WizardPublishError } from '@/lib/wizardPublish';
 
 interface TemplateWizardProps {
-  onComplete: (payload: any) => Promise<void>;
+  onComplete: (payload: TemplatePayload, publishDraft: PublishDraftTarget | null) => Promise<void>;
   onCancel: () => void;
   initialCNAE?: string;
   initialSector?: string;
@@ -44,8 +46,8 @@ const STEP_NAMES = [
 ];
 
 function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
-  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft, lastSavedAt, saveCurrentStep, isStepSaved } = useWizard();
-  const { currentStep, validationErrors, payload } = state;
+  const { state, nextStep, prevStep, validateCurrentStep, resetWizard, hasDraft, clearDraft, clearPublishDraft, setPublishDraft, lastSavedAt, saveCurrentStep, isStepSaved } = useWizard();
+  const { currentStep, validationErrors, payload, publishDraft } = state;
   const [showDraftDialog, setShowDraftDialog] = useState(hasDraft && currentStep > 1);
 
   const handleNext = () => {
@@ -71,7 +73,6 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
   };
 
   const handleComplete = async (publishMeta: { effective_from: string; effective_to: string }) => {
-    clearDraft();
     const enrichedPayload = {
       ...payload,
       meta: {
@@ -80,7 +81,18 @@ function WizardContent({ onComplete, onCancel }: TemplateWizardProps) {
         version: 'v1.0',
       },
     };
-    await onComplete(enrichedPayload);
+
+    try {
+      await onComplete(enrichedPayload, publishDraft);
+      clearPublishDraft();
+      clearDraft();
+    } catch (error) {
+      const publishError = error as WizardPublishError;
+      if (publishError.publishDraft) {
+        setPublishDraft(publishError.publishDraft);
+      }
+      throw error;
+    }
   };
 
   const handleCancel = () => {

@@ -59,7 +59,7 @@ export default function SuperAdminUsers() {
     },
   });
 
-  // Get employee info for email lookup
+  // Get employee info for name/email lookup
   const { data: employees } = useQuery({
     queryKey: ['super-admin-employees-info'],
     queryFn: async () => {
@@ -67,12 +67,29 @@ export default function SuperAdminUsers() {
         .from('employees')
         .select('user_id, email, first_name, last_name, company_id');
       if (error) throw error;
-      
+
       const map: Record<string, any> = {};
       data.forEach((emp) => {
         if (emp.user_id) {
           map[emp.user_id] = emp;
         }
+      });
+      return map;
+    },
+  });
+
+  // Get auth user emails (from auth.users via RPC - covers users without employee records)
+  const { data: authEmails } = useQuery({
+    queryKey: ['super-admin-auth-emails'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_user_emails_for_superadmin');
+      if (error) {
+        console.warn('Could not fetch auth emails:', error.message);
+        return {};
+      }
+      const map: Record<string, string> = {};
+      (data as Array<{ user_id: string; email: string }>)?.forEach((u) => {
+        if (u.email) map[u.user_id] = u.email;
       });
       return map;
     },
@@ -174,8 +191,12 @@ export default function SuperAdminUsers() {
   };
 
   const getUserEmail = (userId: string) => {
+    // Priority: auth email (always accurate) > employee email > UUID fallback
+    const authEmail = authEmails?.[userId];
+    if (authEmail) return authEmail;
     const employee = employees?.[userId];
-    return employee?.email || userId.substring(0, 8) + '...';
+    if (employee?.email) return employee.email;
+    return userId;
   };
 
   const getUserName = (userId: string) => {

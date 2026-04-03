@@ -64,13 +64,21 @@ export default function Auth() {
       if (action === 'login') {
         const { error } = await signIn(email, password);
         if (error) {
-          let message = 'Error al iniciar sesión';
+          let message = 'Error al iniciar sesión. Inténtalo de nuevo.';
           if (error.message.includes('Invalid login credentials')) {
-            message = 'Credenciales inválidas';
+            message = 'Email o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.';
+          } else if (error.message.includes('Email not confirmed')) {
+            message = 'Tu email no ha sido confirmado. Revisa tu bandeja de entrada.';
+          } else if (error.message.includes('Too many requests')) {
+            message = 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.';
+          } else if (error.message.includes('User not found')) {
+            message = 'No existe una cuenta con este email.';
+          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            message = 'Error de conexión. Verifica tu conexión a internet.';
           }
           toast({
             variant: 'destructive',
-            title: 'Error',
+            title: 'Error de inicio de sesión',
             description: message,
           });
           return;
@@ -83,13 +91,17 @@ export default function Auth() {
       } else {
         const { error } = await signUp(email, password);
         if (error) {
-          let message = 'Error al registrarse';
+          let message = 'Error al registrarse. Inténtalo de nuevo.';
           if (error.message.includes('already registered')) {
-            message = 'Este email ya está registrado';
+            message = 'Este email ya está registrado. ¿Quieres iniciar sesión en su lugar?';
+          } else if (error.message.includes('password')) {
+            message = 'La contraseña no cumple los requisitos mínimos de seguridad.';
+          } else if (error.message.includes('network') || error.message.includes('fetch')) {
+            message = 'Error de conexión. Verifica tu conexión a internet.';
           }
           toast({
             variant: 'destructive',
-            title: 'Error',
+            title: 'Error de registro',
             description: message,
           });
           return;

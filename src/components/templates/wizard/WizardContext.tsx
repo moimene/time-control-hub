@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { TemplatePayload, SEED_TEMPLATES, DEFAULT_TEMPLATE_PAYLOAD } from '@/types/templates';
+import type { PublishDraftTarget } from '@/types/templates';
 
 const STORAGE_KEY = 'template-wizard-draft';
 
@@ -7,6 +8,7 @@ export interface WizardState {
   currentStep: number;
   totalSteps: number;
   payload: TemplatePayload;
+  publishDraft: PublishDraftTarget | null;
   selectedSeedSector: string | null;
   territorialScope: 'estatal' | 'autonomico' | 'provincial' | 'empresa';
   region: string;
@@ -31,6 +33,8 @@ interface WizardContextType {
   setRegion: (region: string) => void;
   validateCurrentStep: () => boolean;
   setSimulationResult: (result: any) => void;
+  setPublishDraft: (publishDraft: PublishDraftTarget | null) => void;
+  clearPublishDraft: () => void;
   resetWizard: () => void;
   clearDraft: () => void;
   saveCurrentStep: () => void;
@@ -47,6 +51,7 @@ const initialState: WizardState = {
   currentStep: 1,
   totalSteps: TOTAL_STEPS,
   payload: { ...DEFAULT_TEMPLATE_PAYLOAD },
+  publishDraft: null,
   selectedSeedSector: null,
   territorialScope: 'estatal',
   region: '',
@@ -91,6 +96,7 @@ function saveDraft(state: WizardState) {
     const toSave = {
       currentStep: state.currentStep,
       payload: state.payload,
+      publishDraft: state.publishDraft,
       selectedSeedSector: state.selectedSeedSector,
       territorialScope: state.territorialScope,
       region: state.region,
@@ -234,6 +240,20 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setPublishDraft = useCallback((publishDraft: PublishDraftTarget | null) => {
+    setState(prev => ({
+      ...prev,
+      publishDraft,
+    }));
+  }, []);
+
+  const clearPublishDraft = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      publishDraft: null,
+    }));
+  }, []);
+
   const resetWizard = useCallback(() => {
     clearDraftStorage();
     setState(initialState);
@@ -274,6 +294,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         setRegion,
         validateCurrentStep,
         setSimulationResult,
+        setPublishDraft,
+        clearPublishDraft,
         resetWizard,
         clearDraft,
         saveCurrentStep,

@@ -33,6 +33,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, QrCode, KeyRound, UserCog, Briefcase } from 'lucide-react';
+import { z } from 'zod';
 import { EmployeeQrDialog } from '@/components/employees/EmployeeQrDialog';
 import { EmployeePinDialog } from '@/components/employees/EmployeePinDialog';
 import { EmployeeCredentialsDialog } from '@/components/employees/EmployeeCredentialsDialog';
@@ -64,6 +65,52 @@ interface EmployeeWithLocation {
   pin_locked_until: string | null;
   is_department_responsible: boolean | null;
 }
+
+// Regex to reject dangerous characters (XSS/SQLi payloads)
+const safeTextRegex = /^[a-zA-ZÀ-ÿñÑ0-9\s\-'.,()/]+$/;
+const employeeCodeRegex = /^[A-Za-z0-9\-_]+$/;
+
+const employeeFormSchema = z.object({
+  employee_code: z.string()
+    .min(1, 'El código es obligatorio')
+    .max(20, 'El código no puede exceder 20 caracteres')
+    .regex(employeeCodeRegex, 'El código solo puede contener letras, números, guiones y guiones bajos'),
+  first_name: z.string()
+    .min(1, 'El nombre es obligatorio')
+    .max(100, 'Máximo 100 caracteres')
+    .regex(safeTextRegex, 'El nombre contiene caracteres no permitidos'),
+  last_name: z.string()
+    .min(1, 'Los apellidos son obligatorios')
+    .max(150, 'Máximo 150 caracteres')
+    .regex(safeTextRegex, 'Los apellidos contienen caracteres no permitidos'),
+  email: z.union([
+    z.string().email('Email inválido'),
+    z.literal(''),
+  ]).optional().transform(v => v || null),
+  phone: z.string()
+    .max(20, 'Máximo 20 caracteres')
+    .regex(/^[0-9+\-\s()]*$/, 'Formato de teléfono inválido')
+    .optional()
+    .transform(v => v || null),
+  department: z.string()
+    .max(100, 'Máximo 100 caracteres')
+    .regex(safeTextRegex, 'Contiene caracteres no permitidos')
+    .optional()
+    .or(z.literal(''))
+    .transform(v => v || null),
+  position: z.string()
+    .max(100, 'Máximo 100 caracteres')
+    .regex(safeTextRegex, 'Contiene caracteres no permitidos')
+    .optional()
+    .or(z.literal(''))
+    .transform(v => v || null),
+  locality: z.string()
+    .max(100, 'Máximo 100 caracteres')
+    .regex(safeTextRegex, 'Contiene caracteres no permitidos')
+    .optional()
+    .or(z.literal(''))
+    .transform(v => v || null),
+});
 
 const statusLabels: Record<EmployeeStatus, string> = {
   active: 'Activo',
@@ -164,17 +211,33 @@ export default function Employees() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const autonomousCommunity = formData.get('autonomous_community') as string;
+
+    // Validate with Zod schema (sanitizes XSS/SQLi)
+    const validation = employeeFormSchema.safeParse({
+      employee_code: (formData.get('employee_code') as string)?.trim(),
+      first_name: (formData.get('first_name') as string)?.trim(),
+      last_name: (formData.get('last_name') as string)?.trim(),
+      email: (formData.get('email') as string)?.trim(),
+      phone: (formData.get('phone') as string)?.trim(),
+      department: (formData.get('department') as string)?.trim(),
+      position: (formData.get('position') as string)?.trim(),
+      locality: (formData.get('locality') as string)?.trim(),
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast({
+        variant: 'destructive',
+        title: 'Error de validación',
+        description: firstError.message,
+      });
+      return;
+    }
+
     const data = {
-      employee_code: formData.get('employee_code') as string,
-      first_name: formData.get('first_name') as string,
-      last_name: formData.get('last_name') as string,
-      email: formData.get('email') as string || null,
-      phone: formData.get('phone') as string || null,
-      department: formData.get('department') as string || null,
-      position: formData.get('position') as string || null,
+      ...validation.data,
       status: (formData.get('status') as EmployeeStatus) || 'active',
       autonomous_community: autonomousCommunity === '_none_' ? null : (autonomousCommunity || null),
-      locality: formData.get('locality') as string || null,
     };
 
     if (editingEmployee) {
@@ -227,6 +290,8 @@ export default function Employees() {
                         name="employee_code"
                         defaultValue={editingEmployee?.employee_code}
                         required
+                        maxLength={20}
+                        placeholder="EMP001"
                       />
                     </div>
                     <div className="space-y-2">
@@ -253,6 +318,7 @@ export default function Employees() {
                         name="first_name"
                         defaultValue={editingEmployee?.first_name}
                         required
+                        maxLength={100}
                       />
                     </div>
                     <div className="space-y-2">
@@ -262,6 +328,7 @@ export default function Employees() {
                         name="last_name"
                         defaultValue={editingEmployee?.last_name}
                         required
+                        maxLength={150}
                       />
                     </div>
                   </div>
@@ -279,6 +346,8 @@ export default function Employees() {
                     <Input
                       id="phone"
                       name="phone"
+                      type="tel"
+                      maxLength={20}
                       defaultValue={editingEmployee?.phone || ''}
                     />
                   </div>
@@ -350,14 +419,14 @@ export default function Employees() {
         </div>
 
         {/* Table */}
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Departamento</TableHead>
+                <TableHead className="hidden md:table-cell">Email</TableHead>
+                <TableHead className="hidden lg:table-cell">Departamento</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="text-right">{!isAsesor && 'Acciones'}</TableHead>
               </TableRow>
@@ -382,8 +451,8 @@ export default function Employees() {
                     <TableCell>
                       {employee.first_name} {employee.last_name}
                     </TableCell>
-                    <TableCell>{employee.email || '-'}</TableCell>
-                    <TableCell>{employee.department || '-'}</TableCell>
+                    <TableCell className="hidden md:table-cell">{employee.email || '-'}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{employee.department || '-'}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={statusColors[employee.status]}>
                         {statusLabels[employee.status]}
@@ -396,6 +465,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Credenciales de acceso"
+                            aria-label={`Credenciales de ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               setCredentialsEmployee(employee);
                               setCredentialsDialogOpen(true);
@@ -407,6 +477,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Ver QR"
+                            aria-label={`Ver QR de ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               setQrEmployee(employee);
                               setQrDialogOpen(true);
@@ -418,6 +489,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Cambiar PIN"
+                            aria-label={`Cambiar PIN de ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               setPinEmployee(employee);
                               setPinDialogOpen(true);
@@ -429,6 +501,7 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             title="Asignar jornada"
+                            aria-label={`Asignar jornada a ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               setTemplateEmployee(employee);
                               setTemplateDialogOpen(true);
@@ -439,6 +512,8 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Editar empleado"
+                            aria-label={`Editar ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               setEditingEmployee(employee);
                               setIsOpen(true);
@@ -449,6 +524,8 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Eliminar empleado"
+                            aria-label={`Eliminar ${employee.first_name} ${employee.last_name}`}
                             onClick={() => {
                               if (confirm('¿Eliminar este empleado?')) {
                                 deleteMutation.mutate(employee.id);

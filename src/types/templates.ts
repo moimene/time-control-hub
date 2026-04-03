@@ -160,6 +160,11 @@ export interface RuleVersion {
   updated_at: string;
 }
 
+export interface PublishDraftTarget {
+  ruleSetId: string;
+  versionId: string;
+}
+
 export interface RuleSetWithVersions extends RuleSet {
   rule_versions?: RuleVersion[];
 }
