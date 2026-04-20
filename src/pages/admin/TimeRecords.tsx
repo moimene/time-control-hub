@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -30,7 +30,15 @@ import { cn } from '@/lib/utils';
 import { useCompany } from '@/hooks/useCompany';
 import { useTimeEventInconsistencies } from '@/hooks/useTimeEventInconsistencies';
 import { InconsistencyAlert } from '@/components/admin/InconsistencyAlert';
-import type { EventType, EventSource } from '@/types/database';
+import type { EventType, EventSource, TimeEvent } from '@/types/database';
+
+interface TimeEventWithEmployeeData extends TimeEvent {
+  employees: {
+    first_name: string;
+    last_name: string;
+    employee_code: string;
+  } | null;
+}
 
 const eventTypeLabels: Record<EventType, string> = {
   entry: 'Entrada',
@@ -83,7 +91,8 @@ export default function TimeRecords() {
 
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
-  const filteredRecords = records?.filter((record: any) => {
+  // Memoize filtering to prevent recalculation on unrelated state changes (e.g. date range selection or event type changes)
+  const filteredRecords = useMemo(() => (records as TimeEventWithEmployeeData[])?.filter((record) => {
     if (!search) return true;
     const searchLower = search.toLowerCase();
     return (
@@ -91,13 +100,13 @@ export default function TimeRecords() {
       record.employees?.last_name?.toLowerCase().includes(searchLower) ||
       record.employees?.employee_code?.toLowerCase().includes(searchLower)
     );
-  });
+  }), [records, search]);
 
   const exportCSV = () => {
     if (!filteredRecords) return;
 
     const headers = ['Código', 'Nombre', 'Tipo', 'Fecha', 'Hora', 'Origen'];
-    const rows = filteredRecords.map((record: any) => [
+    const rows = filteredRecords.map((record) => [
       record.employees?.employee_code,
       `${record.employees?.first_name} ${record.employees?.last_name}`,
       eventTypeLabels[record.event_type as EventType],
@@ -206,8 +215,8 @@ export default function TimeRecords() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredRecords?.map((record: any) => {
-                  const overrideReason = record.raw_payload?.override_reason;
+                filteredRecords?.map((record) => {
+                  const overrideReason = (record.raw_payload as { override_reason?: string })?.override_reason;
                   return (
                     <TableRow key={record.id}>
                       <TableCell>
