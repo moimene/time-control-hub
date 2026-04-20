@@ -350,6 +350,7 @@ export default function ClockingDevices() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6"
+                                aria-label="Copiar código"
                                 onClick={() => copyCode(terminal.pairing_code!)}
                               >
                                 <Copy className="h-3 w-3" />
@@ -366,6 +367,7 @@ export default function ClockingDevices() {
                                 variant="ghost"
                                 size="icon"
                                 title="Regenerar código"
+                                aria-label="Regenerar código"
                                 onClick={() => regenerateCodeMutation.mutate(terminal.id)}
                               >
                                 <RefreshCw className="h-4 w-4" />
@@ -374,6 +376,7 @@ export default function ClockingDevices() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label={`Eliminar terminal ${terminal.name}`}
                               onClick={() => {
                                 if (confirm('¿Eliminar este terminal?')) {
                                   deleteMutation.mutate(terminal.id);
@@ -558,7 +561,11 @@ export default function ClockingDevices() {
                           <TableCell className="text-right">
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Eliminar sesión ${session.device_name || 'sin nombre'}`}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
