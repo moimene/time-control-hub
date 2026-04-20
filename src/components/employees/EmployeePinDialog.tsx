@@ -130,6 +130,7 @@ export function EmployeePinDialog({ employee, open, onOpenChange }: EmployeePinD
                 size="icon"
                 className="absolute right-0 top-0 h-full"
                 onClick={() => setShowPin(!showPin)}
+                aria-label={showPin ? 'Ocultar PIN' : 'Mostrar PIN'}
               >
                 {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>

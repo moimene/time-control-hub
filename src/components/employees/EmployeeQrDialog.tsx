@@ -189,7 +189,7 @@ export function EmployeeQrDialog({ employee, open, onOpenChange }: EmployeeQrDia
                   <Download className="mr-2 h-4 w-4" />
                   Descargar
                 </Button>
-                <Button variant="outline" onClick={handleRegenerate}>
+                <Button variant="outline" onClick={handleRegenerate} aria-label="Regenerar código QR">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
