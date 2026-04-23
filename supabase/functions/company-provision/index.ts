@@ -8,9 +8,12 @@ const corsHeaders = {
 
 function generateSecurePassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
+  const randomValues = new Uint32Array(12);
+  crypto.getRandomValues(randomValues);
+
   let password = "";
   for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += chars.charAt(randomValues[i] % chars.length);
   }
   return password;
 }
