@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -84,15 +84,16 @@ export default function AuditLog() {
     },
   });
 
-  const filteredLogs = logs?.filter((log) => {
-    if (!search) return true;
+  const filteredLogs = useMemo(() => {
+    if (!logs) return undefined;
+    if (!search) return logs;
     const searchLower = search.toLowerCase();
-    return (
+    return logs.filter((log) =>
       log.action?.toLowerCase().includes(searchLower) ||
       log.entity_type?.toLowerCase().includes(searchLower) ||
       JSON.stringify(log.new_values)?.toLowerCase().includes(searchLower)
     );
-  });
+  }, [logs, search]);
 
   // Stats
   const stats = {

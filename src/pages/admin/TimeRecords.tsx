@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -83,15 +83,16 @@ export default function TimeRecords() {
 
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
-  const filteredRecords = records?.filter((record: any) => {
-    if (!search) return true;
+  const filteredRecords = useMemo(() => {
+    if (!records) return undefined;
+    if (!search) return records;
     const searchLower = search.toLowerCase();
-    return (
+    return records.filter((record: any) =>
       record.employees?.first_name?.toLowerCase().includes(searchLower) ||
       record.employees?.last_name?.toLowerCase().includes(searchLower) ||
       record.employees?.employee_code?.toLowerCase().includes(searchLower)
     );
-  });
+  }, [records, search]);
 
   const exportCSV = () => {
     if (!filteredRecords) return;
