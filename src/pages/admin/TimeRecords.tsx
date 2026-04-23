@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -83,15 +83,25 @@ export default function TimeRecords() {
 
   const { inconsistencies, hasInconsistencies } = useTimeEventInconsistencies(records);
 
-  const filteredRecords = records?.filter((record: any) => {
-    if (!search) return true;
+  const filteredRecords = useMemo(() => {
+    // Optimization: Memoize filtering to prevent recalculation on every render.
+    // Hoist toLowerCase() outside the loop to avoid O(n) redundant operations.
+    if (!records) return [];
+    if (!search) return records;
+
     const searchLower = search.toLowerCase();
-    return (
-      record.employees?.first_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.last_name?.toLowerCase().includes(searchLower) ||
-      record.employees?.employee_code?.toLowerCase().includes(searchLower)
-    );
-  });
+    return records.filter((record: any) => {
+      const firstName = record.employees?.first_name?.toLowerCase() || '';
+      const lastName = record.employees?.last_name?.toLowerCase() || '';
+      const code = record.employees?.employee_code?.toLowerCase() || '';
+
+      return (
+        firstName.includes(searchLower) ||
+        lastName.includes(searchLower) ||
+        code.includes(searchLower)
+      );
+    });
+  }, [records, search]);
 
   const exportCSV = () => {
     if (!filteredRecords) return;
